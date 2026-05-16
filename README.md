@@ -6,6 +6,7 @@ A multilingual, agentic AI assistant for **Indian legal drafting and research** 
 
 ## Quick links
 
+- **[Intern onboarding](./docs/ONBOARDING.md)** ← **start here if you just joined**
 - **[Project brief](./PROJECT_BRIEF.md)** — scope, goals, team ownership, hard constraints
 - **[Contributing](./CONTRIBUTING.md)** — PR rules, weekly cadence, demo days
 - **[Timeline](./docs/TIMELINE.md)** — six-week milestones
