@@ -1,0 +1,20 @@
+{
+  "name": "trionic-ai-adalat",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Multilingual agentic AI assistant for Indian legal drafting and research",
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "pnpm -r --filter './apps/*' --filter './packages/*' build",
+    "dev": "pnpm -r --filter './apps/*' --parallel dev",
+    "lint": "pnpm -r --parallel lint",
+    "typecheck": "pnpm -r --parallel typecheck",
+    "test": "pnpm -r --parallel test"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}
