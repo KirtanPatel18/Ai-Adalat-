@@ -7,11 +7,11 @@ Eval framework + fixtures + dashboards for citation correctness, hallucination, 
 **Owner:** Team F — Evals & Telemetry
 **Lead:** Kirtan Patel
 
-| Module | Owner |
-|---|---|
-| Citation-correctness eval framework | Kirtan Patel |
-| Cost & latency dashboards per-LLM | Thummar Ayush |
-| Hallucination & completeness eval | Kaushal Vora |
+| Module                              | Owner         |
+| ----------------------------------- | ------------- |
+| Citation-correctness eval framework | Kirtan Patel  |
+| Cost & latency dashboards per-LLM   | Thummar Ayush |
+| Hallucination & completeness eval   | Kaushal Vora  |
 
 ## What "good" looks like
 
