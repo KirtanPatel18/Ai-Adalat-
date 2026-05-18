@@ -9,9 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@trpc/client": "^10.45.6",
-    "@trpc/react-query": "^10.45.6",
-    "@trpc/server": "^10.45.6",
+    "@trpc/client": "^10.45.4",
+    "@trpc/react-query": "^10.45.4",
+    "@trpc/server": "^10.45.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.16.0",
