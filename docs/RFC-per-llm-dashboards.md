@@ -4,7 +4,7 @@
 **Date:** May 2026  
 **Author:** @Ayush5112006 (Thummar Ayush)  
 **Team:** Team F — Evals & Telemetry  
-**Status:** Approved  
+**Status:** Proposed (pending final stakeholder sign-off)  
 **Reviewers:** @KirtanPatel18 (Citation-correctness evals), @Paghadar (Observability), @Om Patel (DB/RLS)
 
 ---
@@ -17,7 +17,7 @@ This RFC defines **real-time per-LLM evaluation dashboards** for Trionic Adalat 
 
 **Key decisions:**
 - **5 core metrics:** Citation Validity (P0), Cost Per Query (P0), Hallucination Rate (P1), Latency (P1), Error Rate (P1)
-- **Observability tool:** Supabase Studio for Week 2 (quick wins), Grafana upgrade Week 3+ (advanced alerting)
+- **Observability tool (aligned with @Paghadar):** Supabase Studio for Week 2 dashboards, then Grafana in Week 3+ only if advanced alerting/escalations are needed
 - **Citation-or-die integration:** Dashboard enforces the hard rule—no document ships without 100% citation grounding
 - **Multi-LLM tracking:** Per-LLM metrics for Claude, Gemini, GPT (routed per agent step)
 - **Phase 1 scope:** Citation validity + cost tracking dashboards (Week 2), full suite Week 3-4
@@ -394,9 +394,9 @@ Alert Customization
 | **Future** | Custom React | If we need customer-facing dashboards or tight design integration |
 
 **Action items:**
-- Week 1: Confirm Supabase Studio with @Paghadar
+- Week 1: Alignment completed with @Paghadar on a Supabase-first rollout
 - Week 2: Build dashboards in Supabase Studio
-- Week 3: Evaluate Grafana; set up if advanced alerting needed
+- Week 3: Evaluate Grafana; set up only if advanced alert routing (PagerDuty/OpsGenie) is required
 
 ---
 
@@ -916,11 +916,10 @@ export async function aggregateMetricsDaily() {
 
 ## 11. Questions for Stakeholders
 
-**For @Paghadar (Observability):**
-- Confirm Supabase Studio is acceptable for Week 2?
-- Timeline for Grafana setup in Week 3?
-- Which Slack workspace for alerts?
-- Cost monitoring constraints?
+**For @Paghadar (Observability) — resolved in RFC sync:**
+- Week 2 stack: Supabase Studio dashboards + SQL-backed threshold checks (80% warning, 100% hard stop)
+- Week 3 decision gate: move to Grafana only if we need PagerDuty/OpsGenie-style routing and richer alert policies
+- Immediate escalation path: Slack warning at 80%, critical at 100%, with manager override flow
 
 **For @KirtanPatel18 (Citation-correctness evals):**
 - Are the 5 metrics right? Any missing?
@@ -960,7 +959,7 @@ export async function aggregateMetricsDaily() {
 |------|------|--------|------|
 | **Author** | @Ayush5112006 | ✅ Ready | May 2026 |
 | **Team Lead (Evals)** | @KirtanPatel18 | ⏳ Pending | — |
-| **Observability** | @Paghadar | ⏳ Pending | — |
+| **Observability** | @Paghadar | ✅ Aligned on stack choice | May 2026 |
 | **DB Expert** | @Om Patel | ⏳ Pending | — |
 | **FSD Co-PM** | @Sohil Kareliya | ⏳ Pending | — |
 
