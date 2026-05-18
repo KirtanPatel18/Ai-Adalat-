@@ -4,7 +4,7 @@
 **Date:** May 2026  
 **Author:** @Ayush5112006 (Thummar Ayush)  
 **Team:** Team F — Evals & Telemetry  
-**Status:** Proposed (pending final stakeholder sign-off)  
+**Status:** Proposed (observability aligned; pending remaining stakeholder sign-off)  
 **Reviewers:** @KirtanPatel18 (Citation-correctness evals), @Paghadar (Observability), @Om Patel (DB/RLS)
 
 ---
