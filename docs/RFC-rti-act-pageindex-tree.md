@@ -128,6 +128,7 @@ Example:
 
 
 ## Validation Strategy
+
 The RTI tree validator should enforce structural correctness before ingestion into retrieval systems.
 
 ### Duplicate detection
@@ -160,7 +161,6 @@ snapshot_id = "2026-05-10"
 Amendments or source updates must generate a new snapshot version instead of mutating historical nodes.
 
 ## Retrieval Considerations
-
 
 
 The RTI tree will primarily support retrieval at:
