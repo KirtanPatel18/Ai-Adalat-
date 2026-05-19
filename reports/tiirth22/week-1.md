@@ -66,4 +66,4 @@ The ingestion pipeline extracts legal sections, normalizes formatting inconsiste
 
 ### Mentor feedback (filled by repo manager Friday 7 PM IST)
 
-> <repo manager writes 1 line here>
+> Good Week-1 progress. The ingestion spike, validation checks, and retrieval tree generation are well-structured and aligned with the assigned task scope.
