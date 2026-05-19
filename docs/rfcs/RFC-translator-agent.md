@@ -282,10 +282,10 @@ This RFC will be considered accepted after approval from the Team C lead, Team E
 
 | Role | Name | Status | Date |
 |---|---|---|---|
-| Author | Maharshi Patel (@Maharshi309) | ✅ Submitted | 2026-05-19 |
-| Team C Lead | Malay Sheta (@malaysheta) | ⬜ Pending | — |
-| Team E Lead (glossary) | Megh Patel | ⬜ Pending | — |
-| Citator-gatekeeper | Hitarth Sherathia | ⬜ Pending | — |
+| Author | Maharshi Patel (@Maharshi309) |  Submitted | 2026-05-19 |
+| Team C Lead | Malay Sheta (@malaysheta) |  Pending | — |
+| Team E Lead (glossary) | Megh Patel |  Pending | — |
+| Citator-gatekeeper | Hitarth Sherathia |  Pending | — |
 
 > Tag @malaysheta as reviewer on the PR. Do not self-merge.
 
