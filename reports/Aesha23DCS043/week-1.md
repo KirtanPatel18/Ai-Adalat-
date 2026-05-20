@@ -80,3 +80,4 @@ Begin ingestion pipeline for structured legal text parsing.
 Start integration testing for citation-grounded retrieval workflows.
 
 Mentor feedback (filled by repo manager Friday 7 PM IST)
+> Good Week-1 architectural progress. The CrPC hierarchy planning, retrieval design, and citation-grounded workflow structure are well thought out and aligned with the PageIndex module requirements.
