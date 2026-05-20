@@ -9,61 +9,44 @@
 
 ---
 
-# 1. What
+# 1. Context & Why This Matters
 
-This RFC defines the Marathi legal translation pair for Trionic Adalat.
+Trionic Adalat is a multilingual AI-powered legal drafting and research platform focused on Indian legal workflows. The platform uses PageIndex retrieval and citation-aware drafting to ensure generated legal drafts remain grounded in authoritative Indian legal texts.
 
-The module enables:
-- English → Marathi legal translation
-- citation-preserving translation
-- glossary-aware legal terminology handling
-- hallucination prevention
-- legally consistent multilingual drafting
+This RFC covers the design and architecture of the Marathi translation pair inside the Indic translation pipeline.
 
-The Marathi translation pair will integrate into the existing Trionic Adalat drafting pipeline after:
-- retrieval
-- drafting
-- citation validation
-- reviewer validation
+The Marathi translation module is responsible for:
+- translating English legal drafts into Marathi
+- preserving legal terminology
+- preserving PageIndex citations
+- ensuring multilingual accessibility
+- preventing hallucinated legal content
 
-and before:
-- export
-- final user delivery
-
-This RFC also defines:
-- glossary integration strategy
-- fallback handling for missing legal terms
-- evaluation metrics
-- Marathi script rendering considerations
-
----
-
-# 2. Why
-
-Trionic Adalat is a multilingual AI-powered legal drafting platform grounded in authoritative Indian legal texts using PageIndex retrieval and citation validation.
-
-Generic translation systems perform poorly on legal text because legal terminology is:
+Legal translation is significantly more difficult than general-purpose translation because legal language is:
+- highly structured
 - context-sensitive
-- structurally rigid
-- jurisdiction-dependent
+- terminology-heavy
+- citation-dependent
+
+Generic translation systems frequently mistranslate legal terminology.
 
 Examples:
 - Plaintiff
 - Defendant
 - Jurisdiction
+- Arbitration
 - Affidavit
 - Consideration
 
-Incorrect legal translation may:
+Incorrect translations can:
 - change legal meaning
-- invalidate interpretation
-- confuse end users
+- confuse users
+- invalidate legal interpretation
 - break citation reliability
-- introduce hallucinated legal claims
 
-The Marathi translation pair is important because many users are more comfortable reading legal information in Marathi than English.
+The Marathi translation pair is critical because a large number of Indian users understand Marathi better than English legal terminology.
 
-The goal is to improve legal accessibility while preserving:
+The goal is to make legal drafting accessible while preserving:
 - legal precision
 - terminology consistency
 - citation integrity
@@ -71,7 +54,7 @@ The goal is to improve legal accessibility while preserving:
 
 ---
 
-# 3. Objectives
+# 2. Objectives
 
 | Goal ID | Objective |
 |---|---|
@@ -86,7 +69,7 @@ The goal is to improve legal accessibility while preserving:
 
 ---
 
-# 4. Translation Architecture
+# 3. Translation Architecture
 
 The Marathi translation layer sits after:
 - drafting
@@ -96,6 +79,8 @@ The Marathi translation layer sits after:
 and before:
 - export
 - user delivery
+
+---
 
 ## Translation Flow
 
@@ -129,7 +114,7 @@ Final Marathi Draft
 
 ---
 
-# 5. Legal Glossary Integration
+# 4. Legal Glossary Integration
 
 The Marathi translation pair will integrate with Megh’s Legal Glossary Schema RFC.
 
@@ -138,6 +123,8 @@ The glossary layer will:
 - prevent inconsistent translations
 - preserve domain-specific legal meaning
 - enforce approved Marathi legal equivalents
+
+---
 
 ## Proposed Integration Flow
 
@@ -156,6 +143,8 @@ Glossary Lookup
 Fallback Translation Strategy
 ```
 
+---
+
 ## Example Glossary Entries
 
 | English Term | Marathi Translation |
@@ -165,12 +154,16 @@ Fallback Translation Strategy
 | Affidavit | प्रतिज्ञापत्र |
 | Jurisdiction | अधिकार क्षेत्र |
 | Petition | याचिका |
+| Arbitration | मध्यस्थी |
+| Legal Notice | कायदेशीर नोटीस |
 
 ---
 
-# 6. Citation-Preserving Translation
+# 5. Citation-Preserving Translation
 
 PageIndex citations must remain unchanged during translation.
+
+---
 
 ## Example
 
@@ -186,18 +179,23 @@ The Plaintiff filed an affidavit before the District Court. [PageIndex:102]
 फिर्यादीने जिल्हा न्यायालयात प्रतिज्ञापत्र दाखल केले. [PageIndex:102]
 ```
 
+---
+
 ## Citation Preservation Rules
 
 - PageIndex values must never be modified
 - citation ordering must remain intact
 - translation must not remove references
 - translated output must preserve citation mapping
+- node IDs must remain unchanged
 
 ---
 
-# 7. Fallback Strategy for Missing Legal Terms
+# 6. Fallback Strategy for Missing Legal Terms
 
 If a legal term is unavailable in the glossary:
+
+---
 
 ## Priority Order
 
@@ -206,6 +204,8 @@ If a legal term is unavailable in the glossary:
 3. Transliteration
 4. Human-review escalation
 
+---
+
 ## Example
 
 | Scenario | Fallback |
@@ -213,6 +213,8 @@ If a legal term is unavailable in the glossary:
 | Unknown procedural term | transliteration |
 | Ambiguous legal phrase | human review |
 | Missing jurisdiction-specific term | contextual translation |
+
+---
 
 ## Escalation Conditions
 
@@ -224,13 +226,15 @@ Human review should trigger when:
 
 ---
 
-# 8. Hallucination Prevention
+# 7. Hallucination Prevention
 
 The Marathi translation layer must not:
 - invent statutes
 - generate unsupported claims
 - alter retrieved legal meaning
 - fabricate legal references
+
+---
 
 ## Safeguards
 
@@ -242,7 +246,7 @@ The Marathi translation layer must not:
 
 ---
 
-# 9. Evaluation Metrics
+# 8. Evaluation Metrics
 
 The Marathi translation pair should be evaluated using:
 
@@ -256,6 +260,8 @@ The Marathi translation pair should be evaluated using:
 | Human Legal Review Score | Legal correctness |
 | Marathi Readability Score | End-user accessibility |
 
+---
+
 ## Acceptance Targets
 
 | Metric | Target |
@@ -267,9 +273,11 @@ The Marathi translation pair should be evaluated using:
 
 ---
 
-# 10. Marathi Script & Frontend Rendering
+# 9. Marathi Script & Frontend Rendering
 
 Frontend systems must support proper Marathi Unicode rendering.
+
+---
 
 ## Requirements
 
@@ -279,12 +287,16 @@ Frontend systems must support proper Marathi Unicode rendering.
 - mobile readability support
 - PDF export compatibility
 
+---
+
 ## Recommended Fonts
 
 - Noto Sans Devanagari
 - Mukta
 - Hind
 - Poppins (fallback support)
+
+---
 
 ## Rendering Validation
 
@@ -297,7 +309,52 @@ The frontend must verify:
 
 ---
 
-# 11. Risks & Challenges
+# 10. Proposed Folder Structure
+
+```text
+packages/
+└── translation/
+    ├── marathi/
+    │   ├── glossary.json
+    │   ├── translator.ts
+    │   ├── prompts.ts
+    │   ├── validators.ts
+    │   ├── citation-locker.ts
+    │   └── README.md
+```
+
+---
+
+# 11. Proposed Translation Pipeline
+
+```text
+English Legal Draft
+        │
+        ▼
+PageIndex Citation Retrieval
+        │
+        ▼
+Citation Validation
+        │
+        ▼
+Legal Glossary Mapping
+        │
+        ▼
+Citation Locking
+        │
+        ▼
+Translation Layer
+        │
+        ▼
+Citation Restoration
+        │
+        ▼
+Marathi Legal Draft
+```
+
+---
+
+# 12. Risks & Challenges
 
 | Risk | Description |
 |---|---|
@@ -309,7 +366,64 @@ The frontend must verify:
 
 ---
 
-# 12. Future Enhancements
+# 13. Proposed Solutions
+
+## Glossary-First Translation
+
+Legal terminology should always be replaced using the glossary before free-form translation begins.
+
+---
+
+## Citation Locking
+
+All citations should be locked before translation and restored after translation completes.
+
+---
+
+## Prompt Engineering
+
+Translation prompts must explicitly enforce:
+- citation preservation
+- structure preservation
+- hallucination prevention
+- legal terminology consistency
+
+---
+
+## Human Review Support
+
+All translated drafts should remain editable in the redline editor for human review.
+
+---
+
+# 14. Security & Compliance
+
+The Marathi translation layer must comply with project-wide security rules.
+
+---
+
+## Compliance Rules
+
+- no legal advice generation
+- no external PII leakage
+- RLS-compliant storage
+- audit logging enabled
+
+---
+
+## Translation Logging
+
+All translation requests should log:
+- timestamp
+- model provider
+- token usage
+- latency
+- cited node IDs
+- request metadata
+
+---
+
+# 15. Future Enhancements
 
 Future improvements may include:
 - bidirectional Marathi ↔ English translation
@@ -318,34 +432,58 @@ Future improvements may include:
 - legal tone adaptation
 - regional Marathi dialect support
 - human-in-the-loop reviewer tooling
+- Marathi legal benchmark datasets
 
 ---
 
-# 13. Close Issue
+# 16. Open Questions
 
-This RFC proposes the Marathi legal translation pair architecture for Trionic Adalat with:
-- glossary-aware translation
-- citation-preserving output
+| # | Question | Owner | Needed By |
+|---|---|---|---|
+| Q1 | Which provider performs best for Marathi legal translation? | Yug Gandhi | Day 3 |
+| Q2 | Should glossary mappings be static JSON or database-driven? | Megh Patel | Day 2 |
+| Q3 | How should mixed-language legal drafts be handled? | Maharshi Patel | Day 4 |
+| Q4 | Should citations remain English-only or localized? | Dhruv Lokadiya | Day 3 |
+
+---
+
+# 17. Week 1 Deliverables
+
+- [ ] RFC reviewed by Megh Patel
+- [ ] Marathi translation workflow documented
+- [ ] `packages/translation/marathi/` scaffolded
+- [ ] Initial glossary structure created
+- [ ] Draft PR opened
+- [ ] Translation risks documented
+- [ ] Demo Day walkthrough prepared
+
+---
+
+# 18. Out of Scope
+
+The following are excluded from this RFC:
+
+- court filing automation
+- OCR ingestion
+- voice translation
+- legal advice generation
+- case-law retrieval
+- offline translation models
+
+---
+
+# 19. Conclusion
+
+This RFC proposes a citation-aware Marathi legal translation workflow for Trionic Adalat.
+
+The Marathi translation pair focuses on:
+- multilingual accessibility
+- legal terminology consistency
+- citation integrity
 - hallucination prevention
-- Marathi rendering support
-- evaluation metrics for legal reliability
+- trustworthy legal drafting
 
-The implementation will improve multilingual legal accessibility while maintaining legal correctness and citation integrity.
-
-## Proposed Next Steps
-
-1. Finalize glossary schema integration
-2. Implement translation middleware
-3. Add citation-locking validation
-4. Create Marathi evaluation benchmark dataset
-5. Begin Week-2 implementation and testing
+By integrating glossary-aware translation with PageIndex citation preservation, the Marathi translation pair can provide reliable and understandable legal drafting support for Marathi-speaking users while maintaining the project’s core “Citation-or-Die” principle.
 
 ---
 
-# 14. References
-
-- Trionic Adalat Architecture RFC
-- Megh Legal Glossary Schema RFC
-- PageIndex Retrieval RFC
-- Indic Legal Translation Research Papers
-- Unicode Devanagari Rendering Guidelines
