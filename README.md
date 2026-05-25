@@ -11,6 +11,9 @@ A multilingual, agentic AI assistant for **Indian legal drafting and research** 
 - **[Contributing](./CONTRIBUTING.md)** — PR rules, weekly cadence, demo days
 - **[Timeline](./docs/TIMELINE.md)** — six-week milestones
 - **[Architecture](./docs/ARCHITECTURE.md)** — system diagram + module map
+- **[UI flow](./docs/UI_FLOW.md)** — every screen, every state (Week-2 baseline)
+- **[API contracts](./docs/API_CONTRACTS.md)** — every route, every request/response shape
+- **[Shared types](./packages/shared/src/types.ts)** — locked TypeScript contracts
 - **[Weekly reports](./reports/)** — per-intern progress logs
 
 ## Repo layout
