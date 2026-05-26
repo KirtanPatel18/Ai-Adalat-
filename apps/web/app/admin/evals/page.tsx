@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import type { EvalRunResult } from "@trionic/shared";
 
 const MODEL_OPTIONS = [
@@ -85,6 +86,13 @@ export default function AdminEvalsPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-950 sm:px-6 lg:px-8">
+      <nav className="mx-auto mb-6 flex w-full max-w-7xl items-center justify-between">
+        <div className="text-2xl sm:text-3xl font-bold text-slate-900">Trionic Adalat</div>
+        <Link href="/sign-in" className="rounded-md bg-slate-900 px-3 py-2 text-sm text-white">
+          Admin login
+        </Link>
+      </nav>
+
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-6">
         <header className="rounded-3xl border border-slate-200 bg-white px-6 py-6 shadow-sm sm:px-8">
           <p className="text-sm font-medium uppercase tracking-[0.24em] text-slate-500">
@@ -92,7 +100,7 @@ export default function AdminEvalsPage() {
           </p>
           <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-2">
-              <h1 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+              <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
                 Per-LLM Evaluation Dashboard
               </h1>
               <p className="max-w-3xl text-sm leading-6 text-slate-600 sm:text-base">
