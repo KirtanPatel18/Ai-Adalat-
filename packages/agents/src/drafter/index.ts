@@ -3,39 +3,36 @@
  * Owner: Jenil Sutariya
  * Module: packages/agents/src/drafter
  *
- * TODO: Implement the Drafter agent.
- * Stub exports are provided so the package compiles while this is in progress.
+ * Public barrel — the ONLY file other packages import from this module.
+ * All agent logic is split across focused files:
+ *
+ *   types.ts         — DrafterInput, DrafterResult
+ *   citations.ts     — extractCitations(), extractNodeIds(), constants
+ *   drafter.agent.ts — runDrafter(), reviseDraft(), DrafterAgent class
+ *   drafter.prompt.ts— DRAFTER_SYSTEM_PROMPT, buildDrafterUserPrompt(), buildDrafterRevisionPrompt()
+ *
+ * Test files:
+ *   citations.test.ts — pure unit tests for citation utilities (no mocks)
+ *   drafter.test.ts   — integration-style tests for runDrafter(), DrafterAgent, etc.
  */
 
-import type { AgentTrace, DocumentDraft, PlannerOutput } from "@trionic/shared";
+// ─── Types ────────────────────────────────────────────────────────────────────
+export type { DrafterInput, DrafterResult } from "./types.js";
 
-// ─── Input / Output shapes ────────────────────────────────────────────────────
+// ─── Citation utilities ───────────────────────────────────────────────────────
+export {
+  extractCitations,
+  extractNodeIds,
+  CITE_MARKER_REGEX,
+  PROVISIONAL_SNAPSHOT_ID,
+} from "./citations.js";
 
-export interface DrafterInput {
-  /** Plan produced by the Planner agent. */
-  plan: PlannerOutput;
-  /** Optional session ID for trace attribution. */
-  session_id?: string;
-}
+// ─── Agent (runDrafter, reviseDraft, DrafterAgent) ────────────────────────────
+export { runDrafter, reviseDraft, DrafterAgent } from "./drafter.agent.js";
 
-export interface DrafterResult {
-  /** The generated document draft. */
-  draft: DocumentDraft;
-  /** Audit trace for this agent call. */
-  trace: AgentTrace;
-}
-
-// ─── Agent ────────────────────────────────────────────────────────────────────
-
-/** TODO: Jenil Sutariya — implement full drafter logic. */
-export async function runDrafter(_input: DrafterInput): Promise<DrafterResult> {
-  throw new Error("DrafterAgent not yet implemented — owner: Jenil Sutariya");
-}
-
-export class DrafterAgent {
-  readonly name = "drafter";
-
-  async run(input: DrafterInput): Promise<DrafterResult> {
-    return runDrafter(input);
-  }
-}
+// ─── Prompts (exported for testing / inspection) ──────────────────────────────
+export {
+  DRAFTER_SYSTEM_PROMPT,
+  buildDrafterUserPrompt,
+  buildDrafterRevisionPrompt,
+} from "./drafter.prompt.js";
