@@ -1,3 +1,7 @@
-// TODO: Evan Gregor — Reviewer tests
-// Owner: Evan Gregor
-// Module: packages/agents/src/reviewer
+import { describe, it, expect } from "vitest";
+
+describe("reviewer (placeholder)", () => {
+	it("has a placeholder test so the suite runs", () => {
+		expect(true).toBe(true);
+	});
+});
