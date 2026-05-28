@@ -9,6 +9,9 @@
         "typecheck": "tsc --noEmit",
         "test": "tsx src/run.ts"
     },
+    "dependencies": {
+        "@trionic/shared": "workspace:*"
+    },
     "devDependencies": {
         "@types/node": "^25.8.0",
         "tsx": "^4.7.0",
