@@ -9,6 +9,10 @@
  *   ✅ exports a runnable PlannerAgent stub
  *   ✅ Router resolves model from config; pluggable interface
  *   ✅ Trace shape matches packages/shared/AgentTrace type
+ *
+ * Week-2 additions:
+ *   ✅ PlannerAgent skeleton (agents/planner.ts) — canned plan by domain
+ *   ✅ runAgentChain — full pipeline orchestrator (orchestrator.ts)
  */
 
 // ─── LLM Router ───────────────────────────────────────────────────────────────
@@ -45,3 +49,18 @@ export type { TranslatorInput, TranslatorResult } from "./translator/index.js";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type { PipelineInput, PipelineResult } from "./types.js";
+
+// ─── Week-2: PlannerAgent skeleton (agents/planner.ts) ───────────────────────
+// Named differently from the W1 PlannerAgent to avoid a conflict.
+// The W2 class is the canonical one going forward.
+export {
+  PlannerAgent as PlannerAgentV2,
+  runPlannerAgent,
+} from "./agents/planner.js";
+export type {
+  PlannerInput as PlannerInputV2,
+  PlannerResult as PlannerResultV2,
+} from "./agents/planner.js";
+
+// ─── Week-2: runAgentChain orchestrator ──────────────────────────────────────
+export { runAgentChain } from "./orchestrator.js";
