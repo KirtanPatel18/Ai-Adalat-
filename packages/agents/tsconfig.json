@@ -15,7 +15,9 @@
     "resolveJsonModule": true,
     "paths": {
       "@trionic/shared": ["../shared/src/index.ts"],
-      "@trionic/shared/*": ["../shared/src/*"]
+      "@trionic/shared/*": ["../shared/src/*"],
+      "@trionic/translation": ["../translation/src/index.ts"],
+      "@trionic/translation/*": ["../translation/src/*"]
     }
   },
   "include": ["src/**/*"],
