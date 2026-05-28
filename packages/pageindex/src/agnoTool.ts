@@ -4,7 +4,6 @@ import { search } from "./search";
 import { descend } from "./descend";
 import { getText } from "./getText";
 
-// Structure for descend() response
 export interface TreeNode {
   node_id: PageIndexNodeId;
   title: string;
@@ -31,14 +30,7 @@ export interface GetTextArgs {
   node_id: PageIndexNodeId;
 }
 
-/**
- * PageIndex Tool Surface for Agents
- * Locked contract from API_CONTRACTS.md
- */
 export const pageindex = {
-  /**
-   * Search indexed legal nodes
-   */
   search: async ({
     query,
     scope,
@@ -51,9 +43,6 @@ export const pageindex = {
     return results.slice(0, top_k);
   },
 
-  /**
-   * Traverse act tree hierarchy
-   */
   descend: async ({
     node_id
   }: DescendArgs): Promise<{ children: TreeNode[] }> => {
@@ -64,9 +53,6 @@ export const pageindex = {
     };
   },
 
-  /**
-   * Retrieve full node text
-   */
   get_text: async ({
     node_id
   }: GetTextArgs): Promise<{ text: string; snapshot_id: SnapshotId } | null> => {
