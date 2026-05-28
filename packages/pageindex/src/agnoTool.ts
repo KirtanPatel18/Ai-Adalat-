@@ -4,7 +4,7 @@ import { search } from "./search";
 import { descend } from "./descend";
 import { getText } from "./getText";
 
-// Structure for descend() response
+// Structure for descend() response.
 export interface TreeNode {
   node_id: PageIndexNodeId;
   title: string;
