@@ -1,6 +1,22 @@
 {
-  "duplicate_ids_found": false,
-  "empty_titles": [],
-  "empty_text_nodes": [],
-  "validated_node_count": 270
+  "act": "RTI Act 2005",
+  "snapshot_id": "2026-05-28",
+  "validated_sections": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "19",
+    "20"
+  ],
+  "total_nodes": 13,
+  "duplicates": 0,
+  "missing_parents": 0,
+  "retrieval_passed": true,
+  "snapshot_valid": true,
+  "validated_against_indiacode": true
 }
