@@ -18,10 +18,6 @@ export type {
 } from "./glossary.js";
 
 // ─── Post-processing ──────────────────────────────────────────────────────────
-export {
-  postProcessIndicText,
-  splitAroundCiteMarkers,
-} from "./postprocess.js";
-
+export { postProcessIndicText, splitAroundCiteMarkers } from "./postprocess.js";
 // ─── Marathi Translations ─────────────────────────────────────────────────────
 export { mr } from "./mr.js";
