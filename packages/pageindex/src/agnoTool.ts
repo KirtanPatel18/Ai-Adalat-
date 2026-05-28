@@ -36,9 +36,7 @@ export interface GetTextArgs {
  * Locked contract from API_CONTRACTS.md
  */
 export const pageindex = {
-  /**
-   * Search indexed legal nodes
-   */
+
   search: async ({
     query,
     scope,
