@@ -54,9 +54,12 @@ export async function callClaude(req: LLMRequest): Promise<LLMResponse> {
   return {
     text,
     model: req.model,
+    provider: "claude",
     tokens_in: message.usage.input_tokens,
     tokens_out: message.usage.output_tokens,
     cost_usd,
     latency_ms,
+    fallback_used: false,
   };
+
 }
