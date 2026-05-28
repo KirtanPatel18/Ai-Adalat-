@@ -1,39 +1,205 @@
 {
   "node_id": "RTI-2005",
+  "act_code": "RTI-2005",
   "title": "Right to Information Act, 2005",
   "snapshot_id": "2026-05-28",
   "level": "act",
+  "retrieval_keywords": [
+    "RTI Act",
+    "Right to Information",
+    "information law"
+  ],
+  "citation_label": "RTI Act, 2005",
   "children": [
     {
+      "node_id": "RTI-2005/CH-I",
+      "act_code": "RTI-2005",
+      "title": "Preliminary",
+      "snapshot_id": "2026-05-28",
+      "level": "chapter",
+      "parent_id": "RTI-2005",
+      "children": [
+        {
+          "node_id": "RTI-2005/CH-I/S-1",
+          "act_code": "RTI-2005",
+          "title": "Short title, extent and commencement",
+          "section_number": "1",
+          "text": "This Act may be called the Right to Information Act, 2005.",
+          "snapshot_id": "2026-05-28",
+          "level": "section",
+          "parent_id": "RTI-2005/CH-I",
+          "retrieval_keywords": [
+            "short title",
+            "commencement",
+            "extent"
+          ],
+          "citation_label": "RTI Act §1"
+        },
+        {
+          "node_id": "RTI-2005/CH-I/S-2",
+          "act_code": "RTI-2005",
+          "title": "Definitions",
+          "section_number": "2",
+          "text": "In this Act, unless the context otherwise requires, public authority means any authority or body established by law.",
+          "snapshot_id": "2026-05-28",
+          "level": "section",
+          "parent_id": "RTI-2005/CH-I",
+          "retrieval_keywords": [
+            "definitions",
+            "public authority",
+            "information definition"
+          ],
+          "citation_label": "RTI Act §2"
+        }
+      ]
+    },
+    {
       "node_id": "RTI-2005/CH-II",
+      "act_code": "RTI-2005",
       "title": "Right to Information and Obligations of Public Authorities",
       "snapshot_id": "2026-05-28",
       "level": "chapter",
       "parent_id": "RTI-2005",
       "children": [
         {
+          "node_id": "RTI-2005/CH-II/S-3",
+          "act_code": "RTI-2005",
+          "title": "Right to information",
+          "section_number": "3",
+          "text": "Subject to the provisions of this Act, all citizens shall have the right to information.",
+          "snapshot_id": "2026-05-28",
+          "level": "section",
+          "parent_id": "RTI-2005/CH-II",
+          "retrieval_keywords": [
+            "right to information",
+            "citizens right",
+            "RTI rights"
+          ],
+          "citation_label": "RTI Act §3"
+        },
+        {
+          "node_id": "RTI-2005/CH-II/S-4",
+          "act_code": "RTI-2005",
+          "title": "Obligations of public authorities",
+          "section_number": "4",
+          "text": "Every public authority shall maintain all its records duly catalogued and indexed.",
+          "snapshot_id": "2026-05-28",
+          "level": "section",
+          "parent_id": "RTI-2005/CH-II",
+          "retrieval_keywords": [
+            "public authority obligations",
+            "records",
+            "indexed records"
+          ],
+          "citation_label": "RTI Act §4"
+        },
+        {
+          "node_id": "RTI-2005/CH-II/S-5",
+          "act_code": "RTI-2005",
+          "title": "Designation of Public Information Officers",
+          "section_number": "5",
+          "text": "Every public authority shall designate Public Information Officers.",
+          "snapshot_id": "2026-05-28",
+          "level": "section",
+          "parent_id": "RTI-2005/CH-II",
+          "retrieval_keywords": [
+            "PIO",
+            "public information officer",
+            "designation"
+          ],
+          "citation_label": "RTI Act §5"
+        },
+        {
           "node_id": "RTI-2005/CH-II/S-6",
+          "act_code": "RTI-2005",
           "title": "Request for obtaining information",
+          "section_number": "6",
           "text": "A person who desires to obtain any information under this Act shall make a request in writing or through electronic means.",
           "snapshot_id": "2026-05-28",
           "level": "section",
-          "parent_id": "RTI-2005/CH-II"
+          "parent_id": "RTI-2005/CH-II",
+          "retrieval_keywords": [
+            "section 6",
+            "RTI application",
+            "request for information",
+            "application format",
+            "how to file RTI"
+          ],
+          "citation_label": "RTI Act §6"
         },
         {
           "node_id": "RTI-2005/CH-II/S-7",
+          "act_code": "RTI-2005",
           "title": "Disposal of request",
-          "text": "The Central Public Information Officer or State Public Information Officer shall dispose of the request within thirty days.",
+          "section_number": "7",
+          "text": "The Public Information Officer shall dispose of the request within thirty days.",
           "snapshot_id": "2026-05-28",
           "level": "section",
-          "parent_id": "RTI-2005/CH-II"
+          "parent_id": "RTI-2005/CH-II",
+          "retrieval_keywords": [
+            "30 days",
+            "disposal of request",
+            "RTI response time"
+          ],
+          "citation_label": "RTI Act §7"
         },
         {
           "node_id": "RTI-2005/CH-II/S-8",
+          "act_code": "RTI-2005",
           "title": "Exemption from disclosure of information",
-          "text": "There shall be no obligation to give any citizen information which would prejudicially affect the sovereignty and integrity of India.",
+          "section_number": "8",
+          "text": "There shall be no obligation to provide information affecting the sovereignty and integrity of India.",
           "snapshot_id": "2026-05-28",
           "level": "section",
-          "parent_id": "RTI-2005/CH-II"
+          "parent_id": "RTI-2005/CH-II",
+          "retrieval_keywords": [
+            "exemptions",
+            "confidential information",
+            "disclosure exemption"
+          ],
+          "citation_label": "RTI Act §8"
+        }
+      ]
+    },
+    {
+      "node_id": "RTI-2005/CH-V",
+      "act_code": "RTI-2005",
+      "title": "Appeals and Penalties",
+      "snapshot_id": "2026-05-28",
+      "level": "chapter",
+      "parent_id": "RTI-2005",
+      "children": [
+        {
+          "node_id": "RTI-2005/CH-V/S-19",
+          "act_code": "RTI-2005",
+          "title": "Appeal",
+          "section_number": "19",
+          "text": "Any person who does not receive a decision within the specified time may prefer an appeal.",
+          "snapshot_id": "2026-05-28",
+          "level": "section",
+          "parent_id": "RTI-2005/CH-V",
+          "retrieval_keywords": [
+            "RTI appeal",
+            "appeal process",
+            "first appeal"
+          ],
+          "citation_label": "RTI Act §19"
+        },
+        {
+          "node_id": "RTI-2005/CH-V/S-20",
+          "act_code": "RTI-2005",
+          "title": "Penalties",
+          "section_number": "20",
+          "text": "The Information Commission may impose penalties on the Public Information Officer for refusal or delay.",
+          "snapshot_id": "2026-05-28",
+          "level": "section",
+          "parent_id": "RTI-2005/CH-V",
+          "retrieval_keywords": [
+            "penalty",
+            "delay penalty",
+            "PIO punishment"
+          ],
+          "citation_label": "RTI Act §20"
         }
       ]
     }
