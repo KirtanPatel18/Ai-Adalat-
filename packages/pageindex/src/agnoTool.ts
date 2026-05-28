@@ -4,8 +4,7 @@ import { search } from "./search";
 import { descend } from "./descend";
 import { getText } from "./getText";
 
-<<<<<<< HEAD
-=======
+
 // Structure for descend() response.
 >>>>>>> 812955db5cc8a94e64b6ed265adde231a3893a92
 export interface TreeNode {
