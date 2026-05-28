@@ -1,0 +1,41 @@
+{
+  "node_id": "RTI-2005",
+  "title": "Right to Information Act, 2005",
+  "snapshot_id": "2026-05-28",
+  "level": "act",
+  "children": [
+    {
+      "node_id": "RTI-2005/CH-II",
+      "title": "Right to Information and Obligations of Public Authorities",
+      "snapshot_id": "2026-05-28",
+      "level": "chapter",
+      "parent_id": "RTI-2005",
+      "children": [
+        {
+          "node_id": "RTI-2005/CH-II/S-6",
+          "title": "Request for obtaining information",
+          "text": "A person who desires to obtain any information under this Act shall make a request in writing or through electronic means.",
+          "snapshot_id": "2026-05-28",
+          "level": "section",
+          "parent_id": "RTI-2005/CH-II"
+        },
+        {
+          "node_id": "RTI-2005/CH-II/S-7",
+          "title": "Disposal of request",
+          "text": "The Central Public Information Officer or State Public Information Officer shall dispose of the request within thirty days.",
+          "snapshot_id": "2026-05-28",
+          "level": "section",
+          "parent_id": "RTI-2005/CH-II"
+        },
+        {
+          "node_id": "RTI-2005/CH-II/S-8",
+          "title": "Exemption from disclosure of information",
+          "text": "There shall be no obligation to give any citizen information which would prejudicially affect the sovereignty and integrity of India.",
+          "snapshot_id": "2026-05-28",
+          "level": "section",
+          "parent_id": "RTI-2005/CH-II"
+        }
+      ]
+    }
+  ]
+}
