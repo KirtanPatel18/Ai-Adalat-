@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import type { EvalRunResult } from "@trionic/shared";
 
@@ -49,18 +50,58 @@ export default function AdminEvalsPage() {
       try {
         setLoading(true);
         setError(null);
+        // Prefer querying Supabase directly from the client when public NEXT_PUBLIC_* env vars are present.
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-        const response = await fetch("/api/admin/evals", { cache: "no-store" });
-        const payload = (await response.json().catch(() => null)) as
-          | { runs?: EvalRunResult[]; error?: string; message?: string }
-          | null;
+        if (supabaseUrl && supabaseAnonKey) {
+          try {
+            const supabase = createClient(supabaseUrl, supabaseAnonKey);
+            const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+            const { data: rows, error } = await supabase
+              .from("agent_traces")
+              .select("model,tokens_in,tokens_out,cost_usd,latency_ms,timestamp")
+              .gte("timestamp", cutoff)
+              .order("timestamp", { ascending: true });
 
-        if (!response.ok) {
-          throw new Error(payload?.message ?? payload?.error ?? `Request failed (${response.status})`);
-        }
+            if (error || !rows) {
+              throw error ?? new Error("Failed to fetch traces from Supabase");
+            }
 
-        if (!cancelled) {
-          setRuns(Array.isArray(payload?.runs) ? payload.runs : []);
+            if (!cancelled) {
+              const runs = buildEvalRunsClient(rows as any);
+              setRuns(runs);
+            }
+          } catch (e) {
+            // If direct Supabase fetch fails, fallback to internal API route.
+            console.warn("Direct Supabase query failed, falling back to /api/admin/evals", e);
+            const response = await fetch("/api/admin/evals", { cache: "no-store" });
+            const payload = (await response.json().catch(() => null)) as
+              | { runs?: EvalRunResult[]; error?: string; message?: string }
+              | null;
+
+            if (!response.ok) {
+              throw new Error(payload?.message ?? payload?.error ?? `Request failed (${response.status})`);
+            }
+
+            if (!cancelled) {
+              setRuns(Array.isArray(payload?.runs) ? payload.runs : []);
+            }
+          }
+        } else {
+          // No public supabase config: use internal API route which uses server-side credentials.
+          const response = await fetch("/api/admin/evals", { cache: "no-store" });
+          const payload = (await response.json().catch(() => null)) as
+            | { runs?: EvalRunResult[]; error?: string; message?: string }
+            | null;
+
+          if (!response.ok) {
+            throw new Error(payload?.message ?? payload?.error ?? `Request failed (${response.status})`);
+          }
+
+          if (!cancelled) {
+            setRuns(Array.isArray(payload?.runs) ? payload.runs : []);
+          }
         }
       } catch (caughtError) {
         if (!cancelled) {
@@ -180,4 +221,73 @@ export default function AdminEvalsPage() {
       </section>
     </main>
   );
+}
+
+function buildEvalRunsClient(rows: any[], now = new Date()): EvalRunResult[] {
+  const WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+  const windowStart = new Date(now.getTime() - WINDOW_MS);
+  type Bucket = {
+    date: string;
+    model: string;
+    calls: number;
+    tokensIn: number;
+    tokensOut: number;
+    costUsd: number;
+    latencies: number[];
+  };
+
+  const buckets = new Map<string, Bucket>();
+
+  for (const row of rows) {
+    if (!row?.model || !row?.timestamp) continue;
+    const timestamp = new Date(row.timestamp);
+    if (Number.isNaN(timestamp.getTime()) || timestamp < windowStart) continue;
+
+    const date = timestamp.toISOString().slice(0, 10);
+    const key = `${date}::${row.model}`;
+    const bucket = (buckets.get(key) ?? {
+      date,
+      model: row.model,
+      calls: 0,
+      tokensIn: 0,
+      tokensOut: 0,
+      costUsd: 0,
+      latencies: [],
+    }) as Bucket;
+
+    bucket.calls += 1;
+    bucket.tokensIn += Number(row.tokens_in ?? 0);
+    bucket.tokensOut += Number(row.tokens_out ?? 0);
+    bucket.costUsd += Number(row.cost_usd ?? 0);
+    bucket.latencies.push(Number(row.latency_ms ?? 0));
+    buckets.set(key, bucket);
+  }
+
+  function percentile(values: number[], q: number) {
+    if (values.length === 0) return 0;
+    const s = [...values].sort((a, b) => a - b);
+    const pos = (s.length - 1) * q;
+    const lo = Math.floor(pos);
+    const hi = Math.ceil(pos);
+    if (lo === hi) return s[lo];
+    const frac = pos - lo;
+    return s[lo] + (s[hi] - s[lo]) * frac;
+  }
+
+  return [...buckets.values()]
+    .sort((l, r) => r.date.localeCompare(l.date) || l.model.localeCompare(r.model))
+    .map((bucket) => ({
+      run_id: `run-${bucket.date}-${bucket.model}`,
+      dataset_id: "prod-traces",
+      model: bucket.model,
+      ran_at: new Date(`${bucket.date}T00:00:00.000Z`).toISOString(),
+      metrics: [
+        { name: "total_calls", value: bucket.calls, unit: "calls" },
+        { name: "total_tokens_in", value: bucket.tokensIn, unit: "tokens" },
+        { name: "total_tokens_out", value: bucket.tokensOut, unit: "tokens" },
+        { name: "total_cost_usd", value: bucket.costUsd, unit: "usd" },
+        { name: "p50_latency_ms", value: percentile(bucket.latencies, 0.5), unit: "ms" },
+        { name: "p95_latency_ms", value: percentile(bucket.latencies, 0.95), unit: "ms" },
+      ],
+    } as EvalRunResult));
 }
