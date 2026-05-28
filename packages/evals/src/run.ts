@@ -83,9 +83,30 @@ async function runEvals(): Promise<void> {
     console.log("--- EvalRunResult ---");
     console.log(JSON.stringify(evalRunResult, null, 2));
 
-    // TODO: write to eval_runs table via POST /api/admin/evals/run
-    // once Om's Supabase table is ready
-    console.log("\n[TODO] Write to eval_runs table when Om's schema is ready");
+    // Write to eval_runs table via POST /api/admin/evals/run (Om's API)
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    try {
+      const res = await fetch(`${baseUrl}/api/admin/evals/run`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dataset_id: datasetId,
+          models: [model],
+        }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { run_id: string };
+        console.log(`\n[eval_runs] Queued run_id: ${data.run_id}`);
+      } else {
+        console.log(
+          `\n[eval_runs] API returned ${res.status} — skipping write`,
+        );
+      }
+    } catch {
+      console.log(
+        "\n[eval_runs] API not reachable — skipping write (run locally without server)",
+      );
+    }
 
     console.log("\n==============================================");
     console.log(
