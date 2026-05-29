@@ -7,11 +7,12 @@
  */
 
 // ─── Glossary ─────────────────────────────────────────────────────────────────
-export { lookupGlossary } from "./glossary.js";
+export { glossary, lookupGlossary } from "./glossary.js";
 export type {
   GlossaryEntry,
   GlossaryLookupInput,
   GlossaryLookupResult,
+  GlossaryTermLookupResult,
   GlossaryStatus,
   IndicLanguage,
 } from "./glossary.js";

@@ -1,0 +1,45 @@
+{
+  "app": {
+    "name": "Trionic Adalat",
+    "tagline": "भारतीय कानूनी मसौदे, वास्तविक कानून पर आधारित।",
+    "notLegalAdvice": "AI-जनित मसौदा - यह कानूनी सलाह नहीं है। दाखिल करने से पहले समीक्षा करें।"
+  },
+  "navigation": {
+    "dashboard": "डैशबोर्ड",
+    "newDraft": "नया मसौदा",
+    "settings": "सेटिंग्स",
+    "auditLog": "ऑडिट लॉग",
+    "signIn": "साइन इन"
+  },
+  "actions": {
+    "continue": "जारी रखें",
+    "generateDraft": "मसौदा बनाएं",
+    "translate": "अनुवाद करें",
+    "export": "निर्यात करें",
+    "cancel": "रद्द करें",
+    "save": "सहेजें"
+  },
+  "languages": {
+    "en": "English",
+    "hi": "हिन्दी",
+    "gu": "ગુજરાતી",
+    "mr": "मराठी",
+    "ta": "தமிழ்"
+  },
+  "dashboard": {
+    "title": "आपके मसौदे",
+    "empty": "अभी कोई मसौदा नहीं है। नया मसौदा शुरू करें।",
+    "search": "खोजें"
+  },
+  "draft": {
+    "title": "मसौदा",
+    "citations": "उद्धरण",
+    "generating": "आपका मसौदा बनाया जा रहा है...",
+    "reviewBeforeFiling": "दाखिल करने से पहले सभी उद्धरणों और तथ्यों की जांच करें।"
+  },
+  "onboarding": {
+    "welcome": "Trionic Adalat में आपका स्वागत है",
+    "displayName": "हम आपको क्या कहकर पुकारें?",
+    "preferredLanguage": "आप मसौदों के लिए कौन सी भाषा पसंद करते हैं?"
+  }
+}
