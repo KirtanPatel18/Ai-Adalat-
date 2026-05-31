@@ -236,11 +236,14 @@ export async function runPlannerAgent(input: PlannerInput): Promise<PlannerResul
     const syntheticLLMResponse = {
       text: JSON.stringify(plan),
       model: "stub/canned-plan-v2",
+      provider: "claude" as const,
       tokens_in,
       tokens_out,
       cost_usd: 0, // stub: free
       latency_ms,
+      fallback_used: false,
     };
+
 
     const trace = buildTrace({
       agent: "planner",
