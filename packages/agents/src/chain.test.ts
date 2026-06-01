@@ -238,14 +238,9 @@ describe("runAgentChain", () => {
     // Clear mocks but keep implementations
     vi.clearAllMocks();
 
-    // Second run — should use cache
-    const secondInput: ChainInput = {
-      ...BASE_INPUT,
-      intake_text: "I need an RTI application for municipal building records, specifically for the last 5 years",
-    };
-
+    // Second run — SAME intake text → cache hit (staleness check passes)
     const events = await collectEvents(
-      runAgentChain(secondInput, { memoryStore: store })
+      runAgentChain(BASE_INPUT, { memoryStore: store }) // identical intake = same hash
     );
 
     // Classifier and Planner should NOT have been called again
@@ -409,5 +404,74 @@ describe("runAgentChain", () => {
   it("starts with null memory for new document", async () => {
     const state = await store.get("brand-new-doc");
     expect(state).toBeNull();
+  });
+
+  // ── Test 11: Changed intake text invalidates classifier + planner cache ──
+
+  it("changed intake text re-runs classifier and planner (staleness detection)", async () => {
+    // First run with original intake
+    await collectEvents(
+      runAgentChain(BASE_INPUT, { memoryStore: store })
+    );
+
+    const { runClassifier } = await import("./classifier/index.js");
+    const { runPlanner } = await import("./planner/index.js");
+    expect(runClassifier).toHaveBeenCalledTimes(1);
+    expect(runPlanner).toHaveBeenCalledTimes(1);
+
+    vi.clearAllMocks();
+
+    // Second run with DIFFERENT intake text → hash changes → cache invalidated
+    const changedInput: ChainInput = {
+      ...BASE_INPUT,
+      intake_text: "I need a legal notice for non-payment of rent", // completely different
+    };
+
+    const events = await collectEvents(
+      runAgentChain(changedInput, { memoryStore: store })
+    );
+
+    // Classifier and Planner must re-run because intake changed
+    expect(runClassifier).toHaveBeenCalledTimes(1);
+    expect(runPlanner).toHaveBeenCalledTimes(1);
+
+    // Step.done for classifier should have real tokens (not 0)
+    const doneEvents = eventsOfType(events, "step.done");
+    const classifierDone = doneEvents.find((e) => e.agent === "classifier");
+    expect(classifierDone).toBeDefined();
+    expect(classifierDone!.tokens).toBeGreaterThan(0); // real run, not cache hit
+  });
+
+  // ── Test 12: Same intake text on second run → cache hit ─────────────────
+
+  it("identical intake text on second run uses cached classifier + planner", async () => {
+    // First run
+    await collectEvents(
+      runAgentChain(BASE_INPUT, { memoryStore: store })
+    );
+
+    const { runClassifier } = await import("./classifier/index.js");
+    const { runPlanner } = await import("./planner/index.js");
+    vi.clearAllMocks();
+
+    // Second run with IDENTICAL intake text
+    const events = await collectEvents(
+      runAgentChain(BASE_INPUT, { memoryStore: store }) // same BASE_INPUT
+    );
+
+    // Both should be cache hits
+    expect(runClassifier).not.toHaveBeenCalled();
+    expect(runPlanner).not.toHaveBeenCalled();
+
+    const doneEvents = eventsOfType(events, "step.done");
+    const classifierDone = doneEvents.find((e) => e.agent === "classifier");
+    const plannerDone = doneEvents.find((e) => e.agent === "planner");
+
+    // Cache hit → 0 tokens, 0 duration
+    expect(classifierDone!.tokens).toBe(0);
+    expect(plannerDone!.tokens).toBe(0);
+
+    // But chain still completes successfully
+    expect(eventsOfType(events, "draft.final").length).toBe(1);
   });
 });

@@ -21,6 +21,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@supabase/auth-helpers-nextjs':
+        specifier: ^0.15.0
+        version: 0.15.0(@supabase/supabase-js@2.106.2)
+      '@supabase/supabase-js':
+        specifier: ^2.106.2
+        version: 2.106.2
       '@trionic/shared':
         specifier: workspace:^
         version: link:../../packages/shared

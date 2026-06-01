@@ -232,7 +232,12 @@ export default function AdminEvalsPage() {
   );
 }
 
+<<<<<<< HEAD
 function buildEvalRunsClient(rows: TraceRow[], now = new Date()): EvalRunResult[] {
+=======
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildEvalRunsClient(rows: any[], now = new Date()): EvalRunResult[] {
+>>>>>>> origin/main
   const WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
   const windowStart = new Date(now.getTime() - WINDOW_MS);
   type Bucket = {

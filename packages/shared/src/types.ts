@@ -283,6 +283,66 @@ export type TranslatorOutput = {
   glossary_hits: Array<{ source: string; target: string; node_id?: PageIndexNodeId }>;
 };
 
+// ─── Conversation Memory ─────────────────────────────────────────────────────
+
+/**
+ * The persisted shape of multi-turn conversation state for a single document.
+ * One row per document — stored as JSONB in `documents.state` (Supabase).
+ * Owned by packages/agents/src/memory.ts; keyed by document_id.
+ *
+ * Rule: only add fields here with a repo-manager PR review.
+ * Do NOT store raw intake text or LLM prompt strings here (PII boundary).
+ */
+export type ConversationState = {
+  /** Schema version — bump only on breaking field changes; used for forward-compat migration. */
+  schema_version: 1;
+
+  /** The document this state belongs to. Foreign key → documents.id. */
+  document_id: string;
+
+  /**
+   * Monotonically increasing write counter (starts at 1).
+   * Memory.save() rejects writes where stored version >= incoming version
+   * (optimistic concurrency — prevents split-brain on concurrent retries).
+   */
+  version: number;
+
+  // ── Cached agent outputs (null = not yet run) ─────────────────────────────
+
+  /** Last successful Classifier output. Cached to skip re-classification on retry. */
+  last_classifier_output: ClassifierOutput | null;
+
+  /** Last successful Planner output. Cached to skip re-planning on retry. */
+  last_planner_output: PlannerOutput | null;
+
+  /**
+   * PageIndex node IDs retrieved during the most recent Drafter run.
+   * Stored for audit / eval replay only — PageIndex itself is always re-queried.
+   */
+  retrieved_nodes: PageIndexNodeId[];
+
+  /**
+   * How many complete Drafter→Citator passes have succeeded on this document.
+   * Used to populate DraftResponse.version_id ("v1", "v2", …).
+   */
+  current_draft_version: number;
+
+  // ── Staleness detection ───────────────────────────────────────────────────
+
+  /**
+   * DJB2 hash of the intake text at the time the Classifier was last called.
+   * If the next request's hash differs, cached classifier/planner outputs are
+   * discarded and both agents re-run unconditionally.
+   * NOT cryptographic — used only for fast change detection.
+   */
+  intake_text_hash: string;
+
+  // ── Bookkeeping ───────────────────────────────────────────────────────────
+
+  /** ISO-8601 timestamp stamped by Memory.save() on every write. */
+  updated_at: string;
+};
+
 // ─── Eval ────────────────────────────────────────────────────────────────────
 
 export type EvalMetric = {
