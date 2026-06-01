@@ -14,11 +14,16 @@ export function search(query: string): SearchResult[] {
     const title = node.title?.toLowerCase() || "";
     const text = node.text?.toLowerCase() || "";
 
+    const keywords = (
+      node.retrieval_keywords || []
+    )
+      .join(" ")
+      .toLowerCase();
+
     if (
       title.includes(normalizedQuery) ||
       text.includes(normalizedQuery) ||
-      normalizedQuery.includes("section 6") &&
-      node.node_id.includes("S-6")
+      keywords.includes(normalizedQuery)
     ) {
       results.push({
         node_id: node.node_id,
