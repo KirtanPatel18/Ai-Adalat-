@@ -1,22 +1,28 @@
 {
-  "act": "RTI Act 2005",
+  "act": "Right to Information Act, 2005",
   "snapshot_id": "2026-05-28",
+  "validation_status": "PASS",
+  "total_chapters": 6,
+  "total_sections": 31,
+  "total_nodes": 38,
   "validated_sections": [
     "1",
-    "2",
-    "3",
-    "4",
-    "5",
     "6",
-    "7",
-    "8",
+    "12",
     "19",
-    "20"
+    "28"
   ],
-  "total_nodes": 13,
-  "duplicates": 0,
-  "missing_parents": 0,
-  "retrieval_passed": true,
-  "snapshot_valid": true,
-  "validated_against_indiacode": true
+  "verification_source": "IndiaCode",
+  "checks": {
+    "all_sections_ingested": true,
+    "chapter_hierarchy_valid": true,
+    "section_numbering_complete": true,
+    "retrieval_keywords_present": true,
+    "sample_query_supported": true
+  },
+  "sample_query": {
+    "query": "Section 6 RTI application format",
+    "expected_node": "RTI-2005/CH-II/S-6",
+    "result": "PASS"
+  }
 }

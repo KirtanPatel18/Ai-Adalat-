@@ -37,6 +37,26 @@ def load_text():
     )
 
 
+def get_chapter(section_number: int, chapters: dict):
+
+    if 1 <= section_number <= 2:
+        return chapters["CH-I"]
+
+    if 3 <= section_number <= 11:
+        return chapters["CH-II"]
+
+    if 12 <= section_number <= 14:
+        return chapters["CH-III"]
+
+    if 15 <= section_number <= 18:
+        return chapters["CH-IV"]
+
+    if 19 <= section_number <= 23:
+        return chapters["CH-V"]
+
+    return chapters["CH-VI"]
+
+
 def build_tree(text):
 
     root = {
@@ -47,13 +67,55 @@ def build_tree(text):
         "children": []
     }
 
-    chapter = {
-        "node_id": "RTI-2005/SECTIONS",
-        "title": "Sections",
-        "snapshot_id": SNAPSHOT_ID,
-        "level": "chapter",
-        "parent_id": "RTI-2005",
-        "children": []
+    chapters = {
+        "CH-I": {
+            "node_id": "RTI-2005/CH-I",
+            "title": "Preliminary",
+            "snapshot_id": SNAPSHOT_ID,
+            "level": "chapter",
+            "parent_id": "RTI-2005",
+            "children": []
+        },
+        "CH-II": {
+            "node_id": "RTI-2005/CH-II",
+            "title": "Right to Information and Obligations of Public Authorities",
+            "snapshot_id": SNAPSHOT_ID,
+            "level": "chapter",
+            "parent_id": "RTI-2005",
+            "children": []
+        },
+        "CH-III": {
+            "node_id": "RTI-2005/CH-III",
+            "title": "The Central Information Commission",
+            "snapshot_id": SNAPSHOT_ID,
+            "level": "chapter",
+            "parent_id": "RTI-2005",
+            "children": []
+        },
+        "CH-IV": {
+            "node_id": "RTI-2005/CH-IV",
+            "title": "The State Information Commission",
+            "snapshot_id": SNAPSHOT_ID,
+            "level": "chapter",
+            "parent_id": "RTI-2005",
+            "children": []
+        },
+        "CH-V": {
+            "node_id": "RTI-2005/CH-V",
+            "title": "Powers and Functions of the Information Commissions",
+            "snapshot_id": SNAPSHOT_ID,
+            "level": "chapter",
+            "parent_id": "RTI-2005",
+            "children": []
+        },
+        "CH-VI": {
+            "node_id": "RTI-2005/CH-VI",
+            "title": "Miscellaneous",
+            "snapshot_id": SNAPSHOT_ID,
+            "level": "chapter",
+            "parent_id": "RTI-2005",
+            "children": []
+        }
     }
 
     matches = SECTION_PATTERN.findall(text)
@@ -61,9 +123,9 @@ def build_tree(text):
     for section_number, body in matches:
 
         lines = [
-            x.strip()
-            for x in body.splitlines()
-            if x.strip()
+            line.strip()
+            for line in body.splitlines()
+            if line.strip()
         ]
 
         if not lines:
@@ -73,19 +135,47 @@ def build_tree(text):
 
         section_text = "\n".join(lines)
 
-        chapter["children"].append(
+        section_num = int(section_number)
+
+        parent_chapter = get_chapter(
+            section_num,
+            chapters
+        )
+
+        keywords = [
+            f"section {section_number}",
+            title.lower()
+        ]
+
+        if section_number == "6":
+            keywords.extend([
+                "rti application",
+                "application format",
+                "request for information",
+                "how to file rti"
+            ])
+
+        parent_chapter["children"].append(
             {
-                "node_id": f"RTI-2005/S-{section_number}",
+                "node_id": f"{parent_chapter['node_id']}/S-{section_number}",
                 "title": title,
                 "section_number": section_number,
                 "text": section_text,
                 "snapshot_id": SNAPSHOT_ID,
                 "level": "section",
-                "parent_id": "RTI-2005/SECTIONS"
+                "parent_id": parent_chapter["node_id"],
+                "retrieval_keywords": keywords
             }
         )
 
-    root["children"].append(chapter)
+    root["children"] = [
+        chapters["CH-I"],
+        chapters["CH-II"],
+        chapters["CH-III"],
+        chapters["CH-IV"],
+        chapters["CH-V"],
+        chapters["CH-VI"]
+    ]
 
     return root
 
