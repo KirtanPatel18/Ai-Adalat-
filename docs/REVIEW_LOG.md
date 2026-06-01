@@ -15,3 +15,4 @@
 | #152 | docs(reports): add EvanGregor week-2 report | @EvanGregor | Agents | @Dhruv5353 | ✅ Merged | Jun 1 |
 | #154 | feat(indic): add Marathi glossary and translation support | @0604-swara | Indic | @Dhruv5353 | ✅ Merged | Jun 1 |
 | #148 | feat(pageindex): RTI Act ingestion system | @VrajAnghan | PageIndex | @Dhruv5353 | ✅ Merged | Jun 1 |
+| #166 | docs(reports): add parth-thakkar304 week-2 report | @parth-thakkar304 | Evals | @Dhruv5353 | ✅ Merged | Jun 1 |
