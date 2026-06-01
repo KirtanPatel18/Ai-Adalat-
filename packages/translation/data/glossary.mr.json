@@ -1,0 +1,330 @@
+
+[
+  {
+    "id": "mr-ica-1872-contract",
+    "term_en": "contract",
+    "term_indic": "करार",
+    "language": "mr",
+    "node_id": "ICA-1872/S-2",
+    "snapshot_id": "2026-05-19",
+    "act_code": "ICA-1872",
+    "domain": "contract",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ica-1872-agreement",
+    "term_en": "agreement",
+    "term_indic": "समजुतीचा करार",
+    "language": "mr",
+    "node_id": "ICA-1872/S-2",
+    "snapshot_id": "2026-05-19",
+    "act_code": "ICA-1872",
+    "domain": "contract",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ica-1872-proposal",
+    "term_en": "proposal",
+    "term_indic": "प्रस्ताव",
+    "language": "mr",
+    "node_id": "ICA-1872/S-2",
+    "snapshot_id": "2026-05-19",
+    "act_code": "ICA-1872",
+    "domain": "contract",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ica-1872-acceptance",
+    "term_en": "acceptance",
+    "term_indic": "स्वीकृती",
+    "language": "mr",
+    "node_id": "ICA-1872/S-2",
+    "snapshot_id": "2026-05-19",
+    "act_code": "ICA-1872",
+    "domain": "contract",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ica-1872-promise",
+    "term_en": "promise",
+    "term_indic": "वचन",
+    "language": "mr",
+    "node_id": "ICA-1872/S-2",
+    "snapshot_id": "2026-05-19",
+    "act_code": "ICA-1872",
+    "domain": "contract",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ica-1872-promisor",
+    "term_en": "promisor",
+    "term_indic": "वचनदाता",
+    "language": "mr",
+    "node_id": "ICA-1872/S-2",
+    "snapshot_id": "2026-05-19",
+    "act_code": "ICA-1872",
+    "domain": "contract",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ica-1872-promisee",
+    "term_en": "promisee",
+    "term_indic": "वचनग्रहीता",
+    "language": "mr",
+    "node_id": "ICA-1872/S-2",
+    "snapshot_id": "2026-05-19",
+    "act_code": "ICA-1872",
+    "domain": "contract",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ica-1872-breach",
+    "term_en": "breach",
+    "term_indic": "उल्लंघन",
+    "language": "mr",
+    "node_id": "ICA-1872/S-39",
+    "snapshot_id": "2026-05-19",
+    "act_code": "ICA-1872",
+    "domain": "contract",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ica-1872-damages",
+    "term_en": "damages",
+    "term_indic": "नुकसानभरपाई",
+    "language": "mr",
+    "node_id": "ICA-1872/S-73",
+    "snapshot_id": "2026-05-19",
+    "act_code": "ICA-1872",
+    "domain": "contract",
+    "status": "approved"
+  },
+  {
+    "id": "mr-general-compensation",
+    "term_en": "compensation",
+    "term_indic": "भरपाई",
+    "language": "mr",
+    "domain": "general",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ica-1872-indemnity",
+    "term_en": "indemnity",
+    "term_indic": "क्षतिपूर्ती करार",
+    "language": "mr",
+    "node_id": "ICA-1872/S-124",
+    "snapshot_id": "2026-05-19",
+    "act_code": "ICA-1872",
+    "domain": "contract",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ica-1872-guarantee",
+    "term_en": "guarantee",
+    "term_indic": "हमी",
+    "language": "mr",
+    "node_id": "ICA-1872/S-126",
+    "snapshot_id": "2026-05-19",
+    "act_code": "ICA-1872",
+    "domain": "contract",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ica-1872-surety",
+    "term_en": "surety",
+    "term_indic": "जामीनदार",
+    "language": "mr",
+    "node_id": "ICA-1872/S-126",
+    "snapshot_id": "2026-05-19",
+    "act_code": "ICA-1872",
+    "domain": "contract",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ica-1872-principal-debtor",
+    "term_en": "principal debtor",
+    "term_indic": "मुख्य कर्जदार",
+    "language": "mr",
+    "node_id": "ICA-1872/S-126",
+    "snapshot_id": "2026-05-19",
+    "act_code": "ICA-1872",
+    "domain": "contract",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ica-1872-creditor",
+    "term_en": "creditor",
+    "term_indic": "धनको",
+    "language": "mr",
+    "node_id": "ICA-1872/S-126",
+    "snapshot_id": "2026-05-19",
+    "act_code": "ICA-1872",
+    "domain": "contract",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ica-1872-agency",
+    "term_en": "agency",
+    "term_indic": "प्रतिनिधित्व",
+    "language": "mr",
+    "node_id": "ICA-1872/S-182",
+    "snapshot_id": "2026-05-19",
+    "act_code": "ICA-1872",
+    "domain": "contract",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ica-1872-agent",
+    "term_en": "agent",
+    "term_indic": "प्रतिनिधी",
+    "language": "mr",
+    "node_id": "ICA-1872/S-182",
+    "snapshot_id": "2026-05-19",
+    "act_code": "ICA-1872",
+    "domain": "contract",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ica-1872-principal",
+    "term_en": "principal",
+    "term_indic": "मुख्य व्यक्ती",
+    "language": "mr",
+    "node_id": "ICA-1872/S-182",
+    "snapshot_id": "2026-05-19",
+    "act_code": "ICA-1872",
+    "domain": "contract",
+    "status": "approved"
+  },
+  {
+    "id": "mr-procedure-plaintiff",
+    "term_en": "plaintiff",
+    "term_indic": "फिर्यादी",
+    "language": "mr",
+    "domain": "procedure",
+    "status": "approved"
+  },
+  {
+    "id": "mr-procedure-defendant",
+    "term_en": "defendant",
+    "term_indic": "प्रतिवादी",
+    "language": "mr",
+    "domain": "procedure",
+    "status": "approved"
+  },
+  {
+    "id": "mr-cpa-2019-complainant",
+    "term_en": "complainant",
+    "term_indic": "तक्रारदार",
+    "language": "mr",
+    "node_id": "CPA-2019/CH-I/S-2",
+    "snapshot_id": "2026-05-19",
+    "act_code": "CPA-2019",
+    "domain": "consumer",
+    "status": "approved"
+  },
+  {
+    "id": "mr-cpa-2019-opposite-party",
+    "term_en": "opposite party",
+    "term_indic": "विरोधी पक्ष",
+    "language": "mr",
+    "node_id": "CPA-2019/CH-I/S-2",
+    "snapshot_id": "2026-05-19",
+    "act_code": "CPA-2019",
+    "domain": "consumer",
+    "status": "approved"
+  },
+  {
+    "id": "mr-cpa-2019-consumer",
+    "term_en": "consumer",
+    "term_indic": "ग्राहक",
+    "language": "mr",
+    "node_id": "CPA-2019/CH-I/S-2",
+    "snapshot_id": "2026-05-19",
+    "act_code": "CPA-2019",
+    "domain": "consumer",
+    "status": "approved"
+  },
+  {
+    "id": "mr-cpa-2019-complaint",
+    "term_en": "complaint",
+    "term_indic": "तक्रार",
+    "language": "mr",
+    "node_id": "CPA-2019/CH-I/S-2",
+    "snapshot_id": "2026-05-19",
+    "act_code": "CPA-2019",
+    "domain": "consumer",
+    "status": "approved"
+  },
+  {
+    "id": "mr-cpa-2019-deficiency",
+    "term_en": "deficiency",
+    "term_indic": "सेवेमधील त्रुटी",
+    "language": "mr",
+    "node_id": "CPA-2019/CH-I/S-2",
+    "snapshot_id": "2026-05-19",
+    "act_code": "CPA-2019",
+    "domain": "consumer",
+    "status": "approved"
+  },
+  {
+    "id": "mr-cpa-2019-goods",
+    "term_en": "goods",
+    "term_indic": "वस्तू",
+    "language": "mr",
+    "node_id": "CPA-2019/CH-I/S-2",
+    "snapshot_id": "2026-05-19",
+    "act_code": "CPA-2019",
+    "domain": "consumer",
+    "status": "approved"
+  },
+  {
+    "id": "mr-cpa-2019-service",
+    "term_en": "service",
+    "term_indic": "सेवा",
+    "language": "mr",
+    "node_id": "CPA-2019/CH-I/S-2",
+    "snapshot_id": "2026-05-19",
+    "act_code": "CPA-2019",
+    "domain": "consumer",
+    "status": "approved"
+  },
+  {
+    "id": "mr-cpa-2019-unfair-trade-practice",
+    "term_en": "unfair trade practice",
+    "term_indic": "अनुचित व्यापार पद्धती",
+    "language": "mr",
+    "node_id": "CPA-2019/CH-I/S-2",
+    "snapshot_id": "2026-05-19",
+    "act_code": "CPA-2019",
+    "domain": "consumer",
+    "status": "approved"
+  },
+  {
+    "id": "mr-cpa-2019-product-liability",
+    "term_en": "product liability",
+    "term_indic": "उत्पादन दायित्व",
+    "language": "mr",
+    "node_id": "CPA-2019/CH-I/S-2",
+    "snapshot_id": "2026-05-19",
+    "act_code": "CPA-2019",
+    "domain": "consumer",
+    "status": "approved"
+  },
+  {
+    "id": "mr-procedure-jurisdiction",
+    "term_en": "jurisdiction",
+    "term_indic": "अधिकार क्षेत्र",
+    "language": "mr",
+    "domain": "procedure",
+    "status": "approved"
+  },
+  {
+    "id": "mr-general-legal-notice",
+    "term_en": "legal notice",
+    "term_indic": "कायदेशीर नोटीस",
+    "language": "mr",
+    "domain": "general",
+    "status": "approved"
+  }
+]
+

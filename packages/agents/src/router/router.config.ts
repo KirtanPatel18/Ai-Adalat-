@@ -20,58 +20,112 @@ export interface ModelConfig {
   temperature: number;
 }
 
+export interface StepRouteConfig {
+  /** The primary model that should handle this step under normal circumstances. */
+  preferred: ModelConfig;
+  /** The backup model to call if the primary model fails. */
+  fallback?: ModelConfig;
+}
+
 /**
  * Step-to-model routing table.
  * Key = agent step name (matches agent.ts export names).
- * Value = model config for that step.
- *
- * Week 1: Claude is LIVE. Gemini + GPT are STUBBED (return mock responses).
+ * Value = step route config for that step (preferred + fallback).
  */
-export const ROUTER_CONFIG: Record<string, ModelConfig> = {
-  planner: {
-    provider: "claude",
-    model: "claude-3-5-sonnet-20241022",
-    maxTokens: 1024,
-    temperature: 0.2,
-  },
+export const ROUTER_CONFIG: Record<string, StepRouteConfig> = {
   classifier: {
-    provider: "claude",
-    model: "claude-3-5-sonnet-20241022",
-    maxTokens: 512,
-    temperature: 0.1,
+    preferred: {
+      provider: "gemini",
+      model: "gemini-1.5-flash",
+      maxTokens: 512,
+      temperature: 0.1,
+    },
+    fallback: {
+      provider: "gpt",
+      model: "gpt-4o-mini",
+      maxTokens: 512,
+      temperature: 0.1,
+    }
+  },
+  planner: {
+    preferred: {
+      provider: "claude",
+      model: "claude-3-5-sonnet-20241022",
+      maxTokens: 1024,
+      temperature: 0.2,
+    },
+    fallback: {
+      provider: "gemini",
+      model: "gemini-1.5-pro",
+      maxTokens: 1024,
+      temperature: 0.2,
+    }
   },
   drafter: {
-    provider: "claude",
-    model: "claude-3-5-sonnet-20241022",
-    maxTokens: 4096,
-    temperature: 0.3,
+    preferred: {
+      provider: "claude",
+      model: "claude-3-5-sonnet-20241022",
+      maxTokens: 4096,
+      temperature: 0.3,
+    },
+    fallback: {
+      provider: "gpt",
+      model: "gpt-4o",
+      maxTokens: 4096,
+      temperature: 0.3,
+    }
   },
   citator: {
-    // Citator is pure logic — no LLM needed for validation.
-    // If an LLM fallback is required, it uses Claude.
-    provider: "claude",
-    model: "claude-3-5-sonnet-20241022",
-    maxTokens: 256,
-    temperature: 0.0,
+    preferred: {
+      provider: "claude",
+      model: "claude-3-5-sonnet-20241022",
+      maxTokens: 512,
+      temperature: 0.0,
+    },
+    fallback: {
+      provider: "gemini",
+      model: "gemini-1.5-pro",
+      maxTokens: 512,
+      temperature: 0.0,
+    }
   },
   reviewer: {
-    provider: "gemini",                    // STUBBED — Week 1
-    model: "gemini-1.5-pro",
-    maxTokens: 1024,
-    temperature: 0.2,
+    preferred: {
+      provider: "gemini",
+      model: "gemini-1.5-pro",
+      maxTokens: 1024,
+      temperature: 0.2,
+    },
+    fallback: {
+      provider: "gpt",
+      model: "gpt-4o",
+      maxTokens: 1024,
+      temperature: 0.2,
+    }
   },
   translator: {
-    provider: "gemini",                    // STUBBED — Week 1
-    model: "gemini-1.5-pro",
-    maxTokens: 2048,
-    temperature: 0.1,
+    preferred: {
+      provider: "gemini",
+      model: "gemini-1.5-pro",
+      maxTokens: 2048,
+      temperature: 0.1,
+    },
+    fallback: {
+      provider: "gpt",
+      model: "gpt-4o",
+      maxTokens: 2048,
+      temperature: 0.1,
+    }
   },
 };
 
-/** Fallback config used if a step is not found in ROUTER_CONFIG. */
-export const DEFAULT_MODEL_CONFIG: ModelConfig = {
-  provider: "claude",
-  model: "claude-3-5-sonnet-20241022",
-  maxTokens: 1024,
-  temperature: 0.2,
+/** Default config used if a step is not found in ROUTER_CONFIG. */
+export const DEFAULT_ROUTE_CONFIG: StepRouteConfig = {
+  preferred: {
+    provider: "claude",
+    model: "claude-3-5-sonnet-20241022",
+    maxTokens: 1024,
+    temperature: 0.2,
+  }
 };
+
