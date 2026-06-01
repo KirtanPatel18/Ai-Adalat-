@@ -18,7 +18,8 @@ import type {
   PlannerOutput,
 } from "@trionic/shared";
 import { router } from "../router/index.js";
-import { DRAFTER_SYSTEM_PROMPT } from "../drafter/drafter.prompt.js";
+import { DRAFTER_SYSTEM_PROMPT, RTI_DRAFTER_SYSTEM_PROMPT } from "../drafter/drafter.prompt.js";
+import { normalizeRtiNodeId } from "../drafter/citations.js";
 
 // ─── Input / Output shapes ────────────────────────────────────────────────────
 
@@ -93,10 +94,13 @@ MANDATORY:
 
 Output ONLY the Markdown document. No preamble, no explanation, no code fences.`;
 
+  const isRti = plan.document_type === "rti_application";
+  const systemPrompt = isRti ? RTI_DRAFTER_SYSTEM_PROMPT : DRAFTER_SYSTEM_PROMPT;
+
   // Real LLM call via LLM Router
   const llmResponse = await router.run(
     "drafter",
-    DRAFTER_SYSTEM_PROMPT,
+    systemPrompt,
     userPrompt
   );
 
@@ -105,7 +109,8 @@ Output ONLY the Markdown document. No preamble, no explanation, no code fences.`
   const regex = /\[CITE:([^\]]+)\]/g;
   let match;
   while ((match = regex.exec(llmResponse.text)) !== null) {
-    const citation = match[1].trim() as PageIndexNodeId;
+    const rawCitation = match[1].trim();
+    const citation = normalizeRtiNodeId(rawCitation) as PageIndexNodeId;
     if (!pendingCitations.includes(citation)) {
       pendingCitations.push(citation);
     }
