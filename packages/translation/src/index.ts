@@ -1,3 +1,4 @@
+
 /**
  * packages/translation/src/index.ts
  * Owner: Team E — Indic
@@ -19,3 +20,5 @@ export type {
 
 // ─── Post-processing ──────────────────────────────────────────────────────────
 export { postProcessIndicText, splitAroundCiteMarkers } from "./postprocess.js";
+// ─── Marathi Translations ─────────────────────────────────────────────────────
+export { mr } from "./mr.js";
