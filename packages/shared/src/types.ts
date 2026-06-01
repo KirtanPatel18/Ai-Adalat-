@@ -360,37 +360,4 @@ export type EvalRunResult = {
   per_doc_type?: Record<DocumentType, EvalMetric[]>;
 };
 
-// ─── Week-3 memory: ConversationState ──────────────────────────────────────────
 
-/**
- * Multi-turn conversation state persisted across agent calls in the pipeline.
- * Keyed by document_id; optimistic locking for concurrency control.
- */
-export type ConversationState = {
-  /** Schema version for forward-compat migration. Start at 1. */
-  schema_version: 1;
-
-  /** The document this state belongs to. Matches documents.id. */
-  document_id: string;
-
-  /** Write counter for optimistic concurrency lock. */
-  version: number;
-
-  /** Output of the Classifier agent. null if not run. */
-  last_classifier_output: ClassifierOutput | null;
-
-  /** Output of the Planner agent. null if not run. */
-  last_planner_output: PlannerOutput | null;
-
-  /** PageIndex node IDs retrieved during the most recent Drafter run. */
-  retrieved_nodes: PageIndexNodeId[];
-
-  /** Draft version counter within this document's lifecycle. */
-  current_draft_version: number;
-
-  /** DJB2 fast change detection hash of the intake text. */
-  intake_text_hash: string;
-
-  /** ISO-8601 timestamp of the most recent save(). */
-  updated_at: string;
-};
