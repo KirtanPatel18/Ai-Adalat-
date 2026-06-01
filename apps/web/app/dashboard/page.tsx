@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import type { Document, DocumentStatus, DocumentType, SupportedLanguage } from "@trionic/shared";
+import type { Document } from "@trionic/shared";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Plus } from "lucide-react";

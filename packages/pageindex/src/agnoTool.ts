@@ -34,7 +34,6 @@ export interface GetTextArgs {
 export const pageindex = {
   search: async ({
     query,
-    scope,
     top_k = 5
   }: SearchArgs): Promise<SearchResult[]> => {
     console.log(`[PageIndex] Searching for: "${query}"`);
