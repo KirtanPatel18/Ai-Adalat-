@@ -21,6 +21,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@trionic/agents':
+        specifier: workspace:^
+        version: link:../../packages/agents
       '@trionic/shared':
         specifier: workspace:^
         version: link:../../packages/shared
