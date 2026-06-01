@@ -69,6 +69,7 @@ export default function AdminEvalsPage() {
             }
 
             if (!cancelled) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const runs = buildEvalRunsClient(rows as any);
               setRuns(runs);
             }
@@ -223,6 +224,7 @@ export default function AdminEvalsPage() {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function buildEvalRunsClient(rows: any[], now = new Date()): EvalRunResult[] {
   const WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
   const windowStart = new Date(now.getTime() - WINDOW_MS);
