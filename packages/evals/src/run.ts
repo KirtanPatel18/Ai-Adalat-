@@ -1,49 +1,121 @@
 import { readFileSync } from "fs";
+import { randomUUID } from "crypto";
 import { citationValidity } from "./metrics/citationValidity";
+import type { EvalRunResult } from "@trionic/shared";
 import type { Fixture } from "./types";
 
-function runEval(fixturePath: string): void {
+// Parse CLI args
+// Usage: tsx src/run.ts --fixture fixtures/rti.json --models claude-sonnet-4-20250514,gpt-4o
+const args = process.argv.slice(2);
+const fixtureArgIdx = args.indexOf("--fixture");
+const modelsArgIdx = args.indexOf("--models");
+
+const fixturePath =
+  fixtureArgIdx !== -1
+    ? args[fixtureArgIdx + 1]
+    : "fixtures/rti-english-001.json";
+const models =
+  modelsArgIdx !== -1
+    ? args[modelsArgIdx + 1].split(",")
+    : ["claude-sonnet-4-20250514"];
+
+async function runEvals(): Promise<void> {
   console.log("==============================================");
   console.log(" Trionic Adalat — Eval Harness");
   console.log("==============================================\n");
 
-  // Load fixture
+  // Load fixture file
   const raw = readFileSync(fixturePath, "utf-8");
-  const fixture: Fixture = JSON.parse(raw);
+  const parsed = JSON.parse(raw);
 
-  console.log(`Fixture:   ${fixture.fixture_id}`);
-  console.log(`Doc type:  ${fixture.doc_type}`);
-  console.log(`Language:  ${fixture.language}`);
-  console.log(
-    `Agents:    ${fixture.agent_traces.map((t) => t.agent).join(", ")}`,
-  );
+  // Support both single fixture and multi-fixture format
+  const fixtures: Fixture[] = parsed.fixtures ?? [parsed];
+  const datasetId: string = parsed.dataset_id ?? parsed.fixture_id ?? "unknown";
+
+  console.log(`Dataset:   ${datasetId}`);
+  console.log(`Fixture:   ${fixturePath}`);
+  console.log(`Models:    ${models.join(", ")}`);
+  console.log(`Cases:     ${fixtures.length}`);
   console.log("");
 
-  // Run citation validity metric
-  const result = citationValidity(fixture);
+  for (const model of models) {
+    console.log(`\n--- Running model: ${model} ---\n`);
 
-  console.log("--- Metric: Citation Validity ---");
-  console.log(`Total citations:   ${result.total_citations}`);
-  console.log(`Valid citations:   ${result.valid_citations}`);
-  console.log(
-    `Invalid citations: ${result.invalid_citations.length === 0 ? "none" : result.invalid_citations.join(", ")}`,
-  );
-  console.log(`Score:             ${result.score_percent}%`);
-  console.log(`Status:            ${result.status.toUpperCase()}`);
-  console.log("");
+    let totalCitations = 0;
+    let validCitations = 0;
 
-  // Per-LLM cost and latency summary
-  console.log("--- Per-Agent Cost & Latency ---");
-  for (const trace of fixture.agent_traces) {
+    for (const fixture of fixtures) {
+      console.log(`  Fixture: ${fixture.fixture_id}`);
+
+      const result = await citationValidity(fixture);
+
+      totalCitations += result.total_citations;
+      validCitations += result.valid_citations;
+
+      console.log(
+        `  Citations: ${result.valid_citations}/${result.total_citations} valid`,
+      );
+      console.log(`  Status:    ${result.status.toUpperCase()}`);
+      if (result.invalid_citations.length > 0) {
+        console.log(`  Invalid:   ${result.invalid_citations.join(", ")}`);
+      }
+      console.log("");
+    }
+
+    const overallRate =
+      totalCitations === 0 ? 0 : (validCitations / totalCitations) * 100;
+
+    // Build EvalRunResult as per @trionic/shared contract
+    const evalRunResult: EvalRunResult = {
+      run_id: randomUUID(),
+      dataset_id: datasetId,
+      model,
+      ran_at: new Date().toISOString(),
+      metrics: [
+        {
+          name: "citation_validity_rate",
+          value: overallRate,
+          unit: "percent",
+        },
+      ],
+    };
+
+    console.log("--- EvalRunResult ---");
+    console.log(JSON.stringify(evalRunResult, null, 2));
+
+    // Write to eval_runs table via POST /api/admin/evals/run (Om's API)
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    try {
+      const res = await fetch(`${baseUrl}/api/admin/evals/run`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dataset_id: datasetId,
+          models: [model],
+        }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { run_id: string };
+        console.log(`\n[eval_runs] Queued run_id: ${data.run_id}`);
+      } else {
+        console.log(
+          `\n[eval_runs] API returned ${res.status} — skipping write`,
+        );
+      }
+    } catch {
+      console.log(
+        "\n[eval_runs] API not reachable — skipping write (run locally without server)",
+      );
+    }
+
+    console.log("\n==============================================");
     console.log(
-      `${trace.agent.padEnd(25)} model: ${trace.model.padEnd(30)} latency: ${trace.latency_ms}ms   cost: $${trace.cost_usd}`,
+      overallRate === 100
+        ? " EVAL PASSED ✓"
+        : ` EVAL FAILED ✗ (${overallRate.toFixed(1)}%)`,
     );
+    console.log("==============================================");
   }
-
-  console.log("\n==============================================");
-  console.log(result.status === "pass" ? " EVAL PASSED ✓" : " EVAL FAILED ✗");
-  console.log("==============================================");
 }
 
-// Entry point
-runEval("fixtures/rti-english-001.json");
+runEvals().catch(console.error);

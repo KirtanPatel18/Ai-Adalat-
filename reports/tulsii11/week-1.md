@@ -2,7 +2,7 @@
 
 **Team:** Team A — Frontend
 **Module owned:** Dashboard + History
-**Week of:** 2026-05-22
+**Week:** Week 1 (May 18 - May 24,2026)
 
 ---
 
@@ -41,18 +41,7 @@
   * focus states
   * accessible labels
 * Proposed frontend component structure using shadcn/ui components
-* Updated RFC after reviewer feedback and successfully merged the PR into `main`
-
-## Demo
-
-Suggested 60-second flow:
-
-1. Open merged RFC PR on GitHub
-2. Walk through dashboard layout decisions
-3. Show filtering/sorting planning
-4. Explain dashboard navigation flow
-5. Show merged PR status
-
+* Updated RFC after reviewer feedback and pushed revisions to the existing PR
 ## Metrics
 
 | Metric                         | Value | Notes                                                      |
@@ -79,7 +68,7 @@ Suggested 60-second flow:
 
 ## Next week
 
-* Complete frontend local setup fully
+* Complete frontend environment setup and begin dashboard implementation
 * Explore existing frontend component structure
 * Understand routing and layout flow inside `apps/web`
 * Begin actual dashboard/history implementation planning
@@ -87,6 +76,6 @@ Suggested 60-second flow:
 
 ---
 
-### Mentor feedback (filled by repo manager Friday 7 PM IST)
+### Mentor feedback
 
 > *Pending*

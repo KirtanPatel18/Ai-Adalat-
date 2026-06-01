@@ -4,35 +4,66 @@
  *
  * Public API for the tracing module.
  * Persists AgentTrace records to Supabase `agent_traces` table.
- *
- * Week 1: persistence is a console.log stub.
- * TODO (Week 2): wire real Supabase client from packages/db.
  */
 
-import type { AgentTrace } from "@trionic/shared";
-export { buildTrace, buildErrorTrace } from "./tracer.js";
-export type { TraceInput } from "./tracer.js";
+// Local minimal AgentTrace type to avoid importing shared package during build.
+// Keep in sync with packages/shared/src when that package is used by the build.
+type AgentTrace = {
+  agent: string;
+  model: string;
+  tokens_in: number;
+  tokens_out: number;
+  cost_usd: number;
+  latency_ms: number;
+  status: string;
+};
+import { redactPII } from "./tracer.js";
+
+// ─── Exports ──────────────────────────────────────────────────────────────────
+// Everything other agents need is exported from here
+
+export { Tracer } from "./tracer.js";
+export { buildTrace, buildErrorTrace, redactPII } from "./tracer.js";
+export type { TraceInput, TraceHandle, EndOptions } from "./tracer.js";
+
+// ─── persistTrace ─────────────────────────────────────────────────────────────
 
 /**
- * Persist a trace to the database (or log it in Week 1 stub mode).
+ * Save a trace to Supabase agent_traces table.
  *
- * @param trace - The AgentTrace to persist.
- * @returns void — fire-and-forget; errors are caught and logged, never thrown.
+ * Week 2: Supabase insert is stubbed — ready to wire when @trionic/db is available.
+ *
+ * IMPORTANT:
+ * - Full content (including PII) is saved to DB — this is allowed per spec
+ * - PII is redacted ONLY before sending errors to Sentry
  */
 export async function persistTrace(trace: AgentTrace): Promise<void> {
-  // ─── STUB (Week 1) ────────────────────────────────────────────────────────
-  // Just log so we can see traces during development.
-  console.log(
-    `[Trace] agent=${trace.agent} model=${trace.model} ` +
-    `tokens=${trace.tokens_in}+${trace.tokens_out} ` +
-    `cost=$${trace.cost_usd.toFixed(6)} ` +
-    `latency=${trace.latency_ms}ms ` +
-    `status=${trace.status}`
-  );
+  try {
 
-  // ─── TODO (Week 2): Real Supabase persistence ──────────────────────────────
-  // import { supabase } from "@trionic/db";
-  // const { error } = await supabase.from("agent_traces").insert(trace);
-  // if (error) console.error("[Trace] Failed to persist trace:", error.message);
-  // ──────────────────────────────────────────────────────────────────────────
+    // ── TODO: Replace this stub with real Supabase client ──────────────────
+    // import { supabase } from "@trionic/db";
+    // const { error } = await supabase
+    //   .from("agent_traces")
+    //   .insert(trace);
+    // if (error) throw error;
+    // ───────────────────────────────────────────────────────────────────────
+
+    // Stub: print to console so we can verify during development
+    console.log(
+      `[Trace] agent=${trace.agent}` +
+      ` model=${trace.model}` +
+      ` tokens=${trace.tokens_in}+${trace.tokens_out}` +
+      ` cost=$${trace.cost_usd.toFixed(6)}` +
+      ` latency=${trace.latency_ms}ms` +
+      ` status=${trace.status}`
+    );
+
+  } catch (err) {
+    // Redact PII before sending to Sentry
+    const safeMessage = redactPII(
+      err instanceof Error ? err.message : String(err)
+    );
+    console.error("[Trace] Failed to persist trace:", safeMessage);
+    // TODO: Sentry.captureException(new Error(safeMessage))
+  }
 }
