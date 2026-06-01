@@ -92,10 +92,16 @@ export async function createSupabaseClient(): Promise<AdminSupabaseClient> {
     throw new Error("Supabase environment variables are not configured");
   }
 
-  const mod: any = await import("@supabase/auth-helpers-nextjs").catch(() => null);
+  const mod = (await import("@supabase/auth-helpers-nextjs").catch(() => null)) as {
+    createRouteHandlerClient?: unknown;
+  } | null;
 
   if (mod && typeof mod.createRouteHandlerClient === "function") {
-    return mod.createRouteHandlerClient({ headers, cookies }) as unknown as AdminSupabaseClient;
+    const createRouteHandlerClient = mod.createRouteHandlerClient as (args: {
+      headers: typeof headers;
+      cookies: typeof cookies;
+    }) => unknown;
+    return createRouteHandlerClient({ headers, cookies }) as AdminSupabaseClient;
   }
 
   throw new Error("Supabase auth helper 'createRouteHandlerClient' not available");

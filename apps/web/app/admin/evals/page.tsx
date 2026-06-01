@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import type { EvalRunResult } from "@trionic/shared";
 
-const MODEL_OPTIONS = [
+export const MODEL_OPTIONS = [
   "all",
   "claude-opus",
   "claude-sonnet",
@@ -14,6 +14,15 @@ const MODEL_OPTIONS = [
 ] as const;
 
 type ModelFilter = (typeof MODEL_OPTIONS)[number];
+
+interface TraceRow {
+  model?: string | null;
+  tokens_in?: number | null;
+  tokens_out?: number | null;
+  cost_usd?: number | null;
+  latency_ms?: number | null;
+  timestamp?: string | null;
+}
 
 const NUMBER_FORMATTER = new Intl.NumberFormat("en-US");
 const CURRENCY_FORMATTER = new Intl.NumberFormat("en-US", {
@@ -69,7 +78,7 @@ export default function AdminEvalsPage() {
             }
 
             if (!cancelled) {
-              const runs = buildEvalRunsClient(rows as any);
+              const runs = buildEvalRunsClient(rows as unknown as TraceRow[]);
               setRuns(runs);
             }
           } catch (e) {
@@ -223,7 +232,7 @@ export default function AdminEvalsPage() {
   );
 }
 
-function buildEvalRunsClient(rows: any[], now = new Date()): EvalRunResult[] {
+function buildEvalRunsClient(rows: TraceRow[], now = new Date()): EvalRunResult[] {
   const WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
   const windowStart = new Date(now.getTime() - WINDOW_MS);
   type Bucket = {

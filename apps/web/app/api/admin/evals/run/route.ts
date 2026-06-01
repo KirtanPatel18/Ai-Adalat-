@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import type { AdminSupabaseClient, AdminUser } from "../lib";
+import type { AdminSupabaseClient } from "../lib";
 import {
   createSupabaseClient,
   errorResponse,
