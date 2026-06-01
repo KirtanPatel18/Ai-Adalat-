@@ -1,9 +1,5 @@
 import { PageIndexNodeId, SnapshotId } from "@trionic/shared";
 
-import { search } from "./search";
-import { descend } from "./descend";
-import { getText } from "./getText";
-
 // Structure for the descend() method response.
 export interface TreeNode {
   node_id: PageIndexNodeId;
@@ -31,41 +27,6 @@ export interface GetTextArgs {
   node_id: PageIndexNodeId;
 }
 
-export const pageindex = {
-  search: async ({
-    query,
-    scope,
-    top_k = 5
-  }: SearchArgs): Promise<SearchResult[]> => {
-    console.log(`[PageIndex] Searching for: "${query}"`);
-
-    const results = search(query);
-
-    return results.slice(0, top_k);
-  },
-
-  descend: async ({
-    node_id
-  }: DescendArgs): Promise<{ children: TreeNode[] }> => {
-    console.log(`[PageIndex] Descending into: ${node_id}`);
-
-    return {
-      children: descend(node_id)
-    };
-  },
-
-  get_text: async ({
-    node_id
-  }: GetTextArgs): Promise<{ text: string; snapshot_id: SnapshotId } | null> => {
-    console.log(`[PageIndex] Fetching text for: ${node_id}`);
-
-    const result = getText(node_id);
-
-    if (!result) {
-      return null;
-    }
-
-    return result;
 /**
  * PageIndex Tool Surface for Agents
  * This is the exact contract defined in docs/API_CONTRACTS.md
@@ -78,9 +39,9 @@ export const pageindex = {
    */
   search: async ({ query, scope, top_k = 5 }: SearchArgs): Promise<SearchResult[]> => {
     console.log(`[PageIndex] Searching for: "${query}" (top_k: ${top_k})`);
-    
+
     // TODO: Implement your actual retrieval logic here (e.g., Supabase pgvector or BM25)
-    
+
     // Dummy response matching the expected shape and sorting
     const results: SearchResult[] = [
       {
@@ -104,7 +65,7 @@ export const pageindex = {
    */
   descend: async ({ node_id }: DescendArgs): Promise<{ children: TreeNode[] }> => {
     console.log(`[PageIndex] Descending into node: ${node_id}`);
-    
+
     // TODO: Implement DB query to fetch children of the given node_id
     const children: TreeNode[] = [
       {
@@ -123,13 +84,13 @@ export const pageindex = {
    */
   get_text: async ({ node_id }: GetTextArgs): Promise<{ text: string; snapshot_id: SnapshotId } | null> => {
     console.log(`[PageIndex] Fetching text for node: ${node_id}`);
-    
+
     // TODO: Implement DB query to fetch the exact text for the node
     // If the database query returns no rows (meaning the LLM hallucinated the citation), return null.
-    
+
     // Mocking the Evals team's hallucinated citation test case to return null
     if (node_id === "RTI-2005/CH-XX/S-99" || node_id === "RTI-FAKE/CH-I/S-999") {
-      return null; 
+      return null;
     }
 
     // Default valid mock response

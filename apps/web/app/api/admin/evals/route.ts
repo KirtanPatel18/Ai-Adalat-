@@ -194,11 +194,13 @@ async function createSupabaseClient(): Promise<AdminSupabaseClient> {
   // At runtime the helper should exist; cast to any to satisfy TS.
   // Fallback: if the helper isn't present, construct a minimal client
   // using the Supabase JS client (not implemented here).
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const mod: any = await import("@supabase/auth-helpers-nextjs").catch(() => null);
+  const mod = (await import("@supabase/auth-helpers-nextjs").catch(() => null)) as
+    | { createRouteHandlerClient?: (opts: { headers: typeof headers; cookies: typeof cookies }) => unknown }
+    | null;
 
   if (mod && typeof mod.createRouteHandlerClient === "function") {
-    return mod.createRouteHandlerClient({ headers, cookies }) as unknown as AdminSupabaseClient;
+    const client = mod.createRouteHandlerClient({ headers, cookies });
+    return client as unknown as AdminSupabaseClient;
   }
 
   // If the helper is unavailable, throw an error so the caller knows.
@@ -294,16 +296,12 @@ async function handleAdminEvals(
 
   // Compute per-date-per-model spends so we can attach daily budget info to runs
   const modelSpendsByBucket: { [key: string]: number } = {};
-  traces.forEach((trace) => {
-    try {
-      const ts = new Date((trace as any).timestamp);
-      if (Number.isNaN(ts.getTime())) return;
-      const date = ts.toISOString().slice(0, 10);
-      const key = `${date}::${(trace as any).model}`;
-      modelSpendsByBucket[key] = (modelSpendsByBucket[key] ?? 0) + Number((trace as any).cost_usd ?? 0);
-    } catch (e) {
-      // ignore malformed rows
-    }
+  (traces as TraceRow[]).forEach((trace) => {
+    const ts = trace.timestamp ? new Date(trace.timestamp) : null;
+    if (!ts || Number.isNaN(ts.getTime()) || !trace.model) return;
+    const date = ts.toISOString().slice(0, 10);
+    const key = `${date}::${trace.model}`;
+    modelSpendsByBucket[key] = (modelSpendsByBucket[key] ?? 0) + Number(trace.cost_usd ?? 0);
   });
 
   // Produce alerts for any model-date that exceeds the daily cap
@@ -327,7 +325,21 @@ async function handleAdminEvals(
 
   const aggregatedRuns = buildEvalRuns(traces as TraceRow[], now);
 
-  const runsWithBudget: EvalRunResult[] = aggregatedRuns.map((run) => {
+  type BudgetAlert = {
+    model: string;
+    date: string;
+    spend: string;
+    budget: string;
+    severity: string;
+    message: string;
+  };
+
+  type RunWithBudget = EvalRunResult & {
+    budget_exceeded?: boolean;
+    alerts?: BudgetAlert[];
+  };
+
+  const runsWithBudget: RunWithBudget[] = aggregatedRuns.map((run) => {
     const date = run.ran_at.slice(0, 10);
     const key = `${date}::${run.model}`;
     const modelSpend = modelSpendsByBucket[key] ?? 0;
@@ -339,14 +351,14 @@ async function handleAdminEvals(
       { name: "budget_used_pct", value: BUDGET_CAP_USD > 0 ? (modelSpend / BUDGET_CAP_USD) * 100 : 0, unit: "%" },
     ];
 
+    const alertsForRun = budgetAlerts.filter((a) => a.model === run.model && a.date === date) as BudgetAlert[];
+
     return {
       ...run,
       metrics,
-      // @ts-expect-error - augmenting response shape for dashboard
       budget_exceeded: modelSpend > BUDGET_CAP_USD,
-      // @ts-expect-error - include alerts inline for convenience
-      alerts: budgetAlerts.filter((a) => a.model === run.model && a.date === date),
-    } as unknown as EvalRunResult;
+      alerts: alertsForRun,
+    };
   });
 
   return NextResponse.json({ runs: runsWithBudget });

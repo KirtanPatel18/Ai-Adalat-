@@ -15,6 +15,15 @@ const MODEL_OPTIONS = [
 
 type ModelFilter = (typeof MODEL_OPTIONS)[number];
 
+type ClientTraceRow = {
+  model?: string | null;
+  tokens_in?: number | null;
+  tokens_out?: number | null;
+  cost_usd?: number | null;
+  latency_ms?: number | null;
+  timestamp?: string | null;
+};
+
 const NUMBER_FORMATTER = new Intl.NumberFormat("en-US");
 const CURRENCY_FORMATTER = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -54,7 +63,7 @@ export default function AdminEvalsPage() {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-        if (supabaseUrl && supabaseAnonKey) {
+              if (supabaseUrl && supabaseAnonKey) {
           try {
             const supabase = createClient(supabaseUrl, supabaseAnonKey);
             const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
@@ -69,7 +78,8 @@ export default function AdminEvalsPage() {
             }
 
             if (!cancelled) {
-              const runs = buildEvalRunsClient(rows as any);
+              const clientRows = rows as ClientTraceRow[];
+              const runs = buildEvalRunsClient(clientRows);
               setRuns(runs);
             }
           } catch (e) {
@@ -156,11 +166,11 @@ export default function AdminEvalsPage() {
                 value={selectedModel}
                 onChange={(event) => setSelectedModel(event.target.value as ModelFilter)}
               >
-                <option value="all">All models</option>
-                <option value="claude-opus">claude-opus</option>
-                <option value="claude-sonnet">claude-sonnet</option>
-                <option value="gpt-4">gpt-4</option>
-                <option value="gemini-pro">gemini-pro</option>
+                {MODEL_OPTIONS.map((m) => (
+                  <option key={m} value={m}>
+                    {m === "all" ? "All models" : m}
+                  </option>
+                ))}
               </select>
             </label>
           </div>
@@ -223,7 +233,7 @@ export default function AdminEvalsPage() {
   );
 }
 
-function buildEvalRunsClient(rows: any[], now = new Date()): EvalRunResult[] {
+function buildEvalRunsClient(rows: ClientTraceRow[], now = new Date()): EvalRunResult[] {
   const WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
   const windowStart = new Date(now.getTime() - WINDOW_MS);
   type Bucket = {
