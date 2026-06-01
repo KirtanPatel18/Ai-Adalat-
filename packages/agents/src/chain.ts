@@ -38,7 +38,7 @@ import { runCitator } from "./citator/index.js";
 import { runReviewer } from "./reviewer/index.js";
 import { runTranslator } from "./translator/index.js";
 import { persistTrace } from "./tracing/index.js";
-import { Memory, createInitialState, hashIntakeText } from "./memory.js";
+import { Memory, MemoryConflictError, createInitialState, hashIntakeText } from "./memory.js";
 import type { MemoryStore } from "./memory.js";
 
 // ─── Input shape ──────────────────────────────────────────────────────────────
@@ -117,6 +117,40 @@ async function persistCacheTrace(agent: string, sessionId?: string): Promise<voi
   await persistTrace(trace);
 }
 
+// ─── Save with retry ─────────────────────────────────────────────────────────
+
+/**
+ * Persist state, retrying once on a MemoryConflictError.
+ *
+ * Rationale: a concurrent retry of the same chain can bump the version between
+ * our load and our save. In that case we reload, re-apply the field update via
+ * the `merge` callback, and save again. If the second attempt also conflicts we
+ * throw — the caller aborts the chain and returns a step.error.
+ *
+ * @param memory       - The Memory instance.
+ * @param documentId   - Document to update.
+ * @param state        - Current state object we want to save.
+ * @param merge        - Function that applies the pending field changes to a
+ *                       freshly loaded state (used on conflict-reload).
+ */
+async function saveWithRetry(
+  memory: Memory,
+  documentId: string,
+  state: ConversationState,
+  merge: (fresh: ConversationState) => ConversationState
+): Promise<ConversationState> {
+  try {
+    return await memory.save(documentId, state);
+  } catch (err) {
+    if (!(err instanceof MemoryConflictError)) throw err;
+    // Version conflict — reload and re-apply
+    const fresh = await memory.load(documentId);
+    if (!fresh) throw err; // shouldn't happen, but be safe
+    const merged = merge(fresh);
+    return await memory.save(documentId, merged);
+  }
+}
+
 // ─── The main orchestrator ────────────────────────────────────────────────────
 
 /**
@@ -153,6 +187,16 @@ export async function* runAgentChain(
 
   if (!state) {
     state = createInitialState(document_id, intakeHash);
+  } else if (state.intake_text_hash !== intakeHash) {
+    // Intake text changed — invalidate cached classifier and planner outputs
+    // so both agents re-run with the updated context. All other fields are kept
+    // (retrieved_nodes, current_draft_version, etc. remain valid).
+    state = {
+      ...state,
+      last_classifier_output: null,
+      last_planner_output: null,
+      intake_text_hash: intakeHash,
+    };
   }
 
   // ── 2. Classifier ──────────────────────────────────────────────────────
@@ -185,7 +229,11 @@ export async function* runAgentChain(
         version: state.version + 1,
         last_classifier_output: classifierOutput,
       };
-      await memory.save(document_id, state);
+      state = await saveWithRetry(memory, document_id, state, (fresh) => ({
+        ...fresh,
+        version: fresh.version + 1,
+        last_classifier_output: classifierOutput,
+      }));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       yield stepError("classifier", message);
@@ -224,7 +272,11 @@ export async function* runAgentChain(
         version: state.version + 1,
         last_planner_output: plannerOutput,
       };
-      await memory.save(document_id, state);
+      state = await saveWithRetry(memory, document_id, state, (fresh) => ({
+        ...fresh,
+        version: fresh.version + 1,
+        last_planner_output: plannerOutput,
+      }));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       yield stepError("planner", message);
@@ -283,13 +335,19 @@ export async function* runAgentChain(
     };
 
     // Update memory with draft version
+    const nextDraftVersion = state.current_draft_version + 1;
     state = {
       ...state,
       version: state.version + 1,
-      current_draft_version: state.current_draft_version + 1,
+      current_draft_version: nextDraftVersion,
       retrieved_nodes: retrievedNodes,
     };
-    await memory.save(document_id, state);
+    state = await saveWithRetry(memory, document_id, state, (fresh) => ({
+      ...fresh,
+      version: fresh.version + 1,
+      current_draft_version: nextDraftVersion,
+      retrieved_nodes: retrievedNodes,
+    }));
 
     // ── 6. Citator (always re-run) ─────────────────────────────────────
     yield stepStart("citator");
@@ -375,7 +433,10 @@ export async function* runAgentChain(
           ...state,
           version: state.version + 1,
         };
-        await memory.save(document_id, state);
+        state = await saveWithRetry(memory, document_id, state, (fresh) => ({
+          ...fresh,
+          version: fresh.version + 1,
+        }));
 
         const finalResponse: DraftResponse = {
           document_id,
