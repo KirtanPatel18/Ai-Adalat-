@@ -260,20 +260,96 @@ async function handleAdminEvals(
   }
 
   const cutoff = new Date(now.getTime() - WINDOW_MS);
-  const { data, error } = await supabase
+  const { data: traces, error: queryError } = await supabase
     .from("agent_traces")
     .select("*")
     .gte("timestamp", cutoff.toISOString())
-    .order("timestamp", { ascending: true });
+    .order("timestamp", { ascending: false });
 
-  if (error) {
-    return internalErrorResponse();
+  if (queryError) {
+    // Surface query errors to the caller
+    // Log for server-side visibility
+    // eslint-disable-next-line no-console
+    console.error("Query error:", queryError);
+    return NextResponse.json(
+      { error: "query_failed", message: queryError.message ?? "unknown" },
+      { status: 500 },
+    );
   }
 
-  const runs = buildEvalRuns(data ?? [], now);
-  warnIfBudgetExceeded(runs);
+  if (!traces || traces.length === 0) {
+    return NextResponse.json({ runs: [] });
+  }
 
-  return NextResponse.json({ runs });
+  // Budget config: $5 per model per day (Week 3)
+  const BUDGET_CAP_USD = 5.0;
+  const budgetAlerts: Array<{
+    model: string;
+    date: string;
+    spend: string;
+    budget: string;
+    severity: string;
+    message: string;
+  }> = [];
+
+  // Compute per-date-per-model spends so we can attach daily budget info to runs
+  const modelSpendsByBucket: { [key: string]: number } = {};
+  traces.forEach((trace) => {
+    try {
+      const ts = new Date((trace as any).timestamp);
+      if (Number.isNaN(ts.getTime())) return;
+      const date = ts.toISOString().slice(0, 10);
+      const key = `${date}::${(trace as any).model}`;
+      modelSpendsByBucket[key] = (modelSpendsByBucket[key] ?? 0) + Number((trace as any).cost_usd ?? 0);
+    } catch (e) {
+      // ignore malformed rows
+    }
+  });
+
+  // Produce alerts for any model-date that exceeds the daily cap
+  Object.entries(modelSpendsByBucket).forEach(([key, spend]) => {
+    const [date, model] = key.split("::");
+    if (spend > BUDGET_CAP_USD) {
+      const alert = {
+        model,
+        date,
+        spend: spend.toFixed(2),
+        budget: BUDGET_CAP_USD.toFixed(2),
+        severity: "critical",
+        message: `Model ${model} exceeded daily budget: $${spend.toFixed(2)} > $${BUDGET_CAP_USD.toFixed(2)}`,
+      };
+      budgetAlerts.push(alert);
+      // Week 3: log to console; Week 4 will send to Sentry
+      // eslint-disable-next-line no-console
+      console.warn(`[BUDGET ALERT] ${alert.message}`);
+    }
+  });
+
+  const aggregatedRuns = buildEvalRuns(traces as TraceRow[], now);
+
+  const runsWithBudget: EvalRunResult[] = aggregatedRuns.map((run) => {
+    const date = run.ran_at.slice(0, 10);
+    const key = `${date}::${run.model}`;
+    const modelSpend = modelSpendsByBucket[key] ?? 0;
+
+    const metrics = [
+      ...run.metrics,
+      { name: "daily_cost_usd", value: modelSpend, unit: "USD" },
+      { name: "budget_cap_usd", value: BUDGET_CAP_USD, unit: "USD" },
+      { name: "budget_used_pct", value: BUDGET_CAP_USD > 0 ? (modelSpend / BUDGET_CAP_USD) * 100 : 0, unit: "%" },
+    ];
+
+    return {
+      ...run,
+      metrics,
+      // @ts-expect-error - augmenting response shape for dashboard
+      budget_exceeded: modelSpend > BUDGET_CAP_USD,
+      // @ts-expect-error - include alerts inline for convenience
+      alerts: budgetAlerts.filter((a) => a.model === run.model && a.date === date),
+    } as unknown as EvalRunResult;
+  });
+
+  return NextResponse.json({ runs: runsWithBudget });
 }
 
 export async function GET() {
@@ -281,14 +357,6 @@ export async function GET() {
     const supabase = await createSupabaseClient();
     return handleAdminEvals(supabase);
   } catch (error) {
-    // If Supabase envs are not configured yet, return local mock fixture data
-    // so the admin dashboard can be tested while migrations/infra land.
-    if (error instanceof Error && /Supabase environment variables are not configured/.test(error.message)) {
-      const runs = buildEvalRuns(MOCK_TRACES);
-      warnIfBudgetExceeded(runs);
-      return NextResponse.json({ runs });
-    }
-
     return errorResponse(
       500,
       "internal_error",
@@ -298,55 +366,4 @@ export async function GET() {
   }
 }
 
-// Inline mock fixture data used when real Supabase / agent_traces table isn't available yet.
-// Generates realistic-looking traces across the last 14 days for several LLM models.
-const MODELS = ["claude-opus", "claude-sonnet", "gpt-4", "gemini-pro"];
-
-function randomInt(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function randomFloat(min: number, max: number, decimals = 4) {
-  const v = Math.random() * (max - min) + min;
-  return Math.round(v * Math.pow(10, decimals)) / Math.pow(10, decimals);
-}
-
-function generateMockTraces(): TraceRow[] {
-  const traces: TraceRow[] = [];
-  const now = Date.now();
-  const days = 14;
-
-  for (const model of MODELS) {
-    // give each model between 120 and 420 calls over the window
-    const calls = randomInt(120, 420);
-    for (let i = 0; i < calls; i++) {
-      // spread timestamps across the last 14 days
-      const offsetMs = randomInt(0, days * 24 * 60 * 60 * 1000 - 1);
-      const timestamp = new Date(now - offsetMs).toISOString();
-
-      const tokensIn = randomInt(10, 800);
-      const tokensOut = randomInt(5, 1200);
-      const costPerCall = randomFloat(0.01, 0.10, 5);
-      const latency = randomInt(200, 1000);
-
-      traces.push({
-        model,
-        tokens_in: tokensIn,
-        tokens_out: tokensOut,
-        cost_usd: costPerCall,
-        latency_ms: latency,
-        timestamp,
-      });
-    }
-  }
-
-  // Shuffle traces to avoid strictly grouped timestamps
-  for (let i = traces.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [traces[i], traces[j]] = [traces[j], traces[i]];
-  }
-
-  return traces;
-}
-
-const MOCK_TRACES: TraceRow[] = generateMockTraces();
+// No inline mock traces — using real `agent_traces` table only.
