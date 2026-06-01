@@ -32,11 +32,20 @@ export function PreferencesSection({ initialUser, onUpdateUser }: PreferencesSec
     setIsSaving(true);
 
     try {
-      // Simulate API latency
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      const res = await fetch("/api/users/me", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ default_language: language }),
+      });
 
-      // TODO(W3): PATCH /api/users/me
-      onUpdateUser({ default_language: language });
+      if (!res.ok) {
+        throw new Error("Failed to save preferences");
+      }
+
+      const updatedUser = (await res.json()) as User;
+      onUpdateUser(updatedUser);
 
       toast({
         title: "Preferences Saved",
