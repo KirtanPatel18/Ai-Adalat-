@@ -25,6 +25,12 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@trionic/shared": [
+        "../../packages/shared/src/index.ts"
+      ],
+      "@trionic/shared/*": [
+        "../../packages/shared/src/*"
       ]
     }
   },

@@ -77,7 +77,7 @@ export type DocumentType =
   | "legal_notice"
   | "nda"
   | "consumer_complaint"
-  | "employment_contract";
+  | "cheque_bounce_notice";
 
 /** Supported output languages (Goal G3). */
 export type SupportedLanguage =
@@ -129,6 +129,21 @@ export type PlannerOutput = {
 
 // ─── Classifier Output ───────────────────────────────────────────────────────
 
+/** Coarse legal domain bucket. */
+export type LegalDomain =
+  | "criminal"
+  | "civil"
+  | "consumer"
+  | "contract"
+  | "labour"
+  | "family"
+  | "constitutional"
+  | "administrative"
+  | "other";
+
+/** Triage severity for prioritising the user (mostly UX hinting). */
+export type Severity = "low" | "medium" | "high";
+
 /**
  * Output of the Classifier agent.
  * Determines whether the intake is a legal matter and routes it to the Planner.
@@ -136,12 +151,151 @@ export type PlannerOutput = {
 export type ClassifierOutput = {
   /** Whether the intake text is a legal matter we can help with. */
   is_legal: boolean;
-  /** Legal domain (e.g. "consumer_protection", "contract", "constitutional", "rti"). */
-  domain: string;
+  /** Legal domain. */
+  domain: LegalDomain;
+  /** Free-form sub-domain string for finer routing (e.g. "rti", "cheque-bounce"). */
+  sub_domain?: string;
   /** List of act codes deemed relevant (e.g. ["ICA-1872", "CPA-2019"]). */
   relevant_acts: string[];
+  /** Severity hint for the UI. */
+  severity: Severity;
   /** Confidence score 0–1. */
   confidence: number;
   /** Raw reason from the LLM for the classification. */
   reasoning: string;
+};
+
+// ─── User / Document persistence ─────────────────────────────────────────────
+
+/** Mirrors Supabase `users` table (extends auth.users via trigger). */
+export type User = {
+  id: string;                       // UUID, matches auth.users.id
+  email: string;
+  display_name: string | null;
+  default_language: SupportedLanguage;
+  onboarded_at: string | null;      // ISO-8601, null until first-run completes
+  created_at: string;
+};
+
+/** Lifecycle status of a Document. */
+export type DocumentStatus =
+  | "draft"        // user created, not yet generated
+  | "generating"   // agent chain in flight
+  | "final"        // generated + citations valid
+  | "failed"       // citator-gatekeeper rejected, awaits regen
+  | "exported"     // at least one export performed
+  | "archived";    // user-archived
+
+/** A persisted draft (separate from a generated DraftDocument snapshot). */
+export type Document = {
+  id: string;
+  owner_id: string;                 // -> users.id
+  doc_type: DocumentType;
+  language: SupportedLanguage;
+  title: string;                    // auto-derived from intake or user-edited
+  status: DocumentStatus;
+  current_version_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** One saved snapshot of a Document. Every edit creates a new version. */
+export type DocumentVersion = {
+  id: string;
+  document_id: string;              // -> documents.id
+  version_num: number;              // 1, 2, 3, ...
+  body_markdown: string;            // full draft text including [CITE:node_id] markers
+  citations: Citation[];
+  created_by: string;               // -> users.id (the user OR a system service)
+  created_at: string;
+};
+
+// ─── API request/response shapes ─────────────────────────────────────────────
+
+/** POST /api/draft request body. */
+export type DraftRequest = {
+  document_id: string;              // pre-created via POST /api/documents
+  intake_text: string;
+  target_language: SupportedLanguage;
+  /** Optional. If absent, Classifier will infer. */
+  doc_type?: DocumentType;
+  /** Optional user context (location, etc.) for personalisation. */
+  user_context?: Record<string, string>;
+};
+
+/** Final response after the SSE stream completes. */
+export type DraftResponse = {
+  document_id: string;
+  version_id: string;
+  body_markdown: string;
+  citations: Citation[];
+  trace_ids: string[];              // pointers into agent_traces
+  warnings: string[];               // soft issues (e.g. low-confidence citations)
+};
+
+/** Server-Sent Event payload emitted by POST /api/draft.
+ *  The frontend renders the step list off these. */
+export type AgentStreamEvent =
+  | { type: "step.start"; agent: string; ts: string }
+  | { type: "step.done"; agent: string; ts: string; duration_ms: number; tokens: number }
+  | { type: "step.error"; agent: string; ts: string; message: string }
+  | { type: "citation.emitted"; node_id: PageIndexNodeId; ts: string }
+  | { type: "draft.partial"; markdown_chunk: string; ts: string }
+  | { type: "draft.final"; response: DraftResponse; ts: string };
+
+/** Export format. */
+export type ExportFormat = "pdf" | "docx";
+
+/** Response from POST /api/documents/{id}/export. */
+export type ExportResult = {
+  url: string;                      // signed Supabase Storage URL, short TTL
+  format: ExportFormat;
+  expires_at: string;
+};
+
+// ─── Drafter / Citator / Reviewer / Translator outputs ───────────────────────
+
+export type DrafterOutput = {
+  body_markdown: string;            // contains inline [CITE:<node_id>] markers
+  pending_citations: PageIndexNodeId[];
+};
+
+export type CitatorVerdict = {
+  approved: boolean;
+  rejected_spans: Array<{
+    span: [number, number];
+    reason: "no_citation" | "invalid_node" | "ambiguous";
+    message: string;
+  }>;
+  resolved_citations: Citation[];
+};
+
+export type ReviewerOutput = {
+  approved: boolean;
+  banner_present: boolean;
+  missing_required_sections: string[];
+  tone_issues: string[];
+};
+
+export type TranslatorOutput = {
+  target_language: SupportedLanguage;
+  translated_markdown: string;
+  glossary_hits: Array<{ source: string; target: string; node_id?: PageIndexNodeId }>;
+};
+
+// ─── Eval ────────────────────────────────────────────────────────────────────
+
+export type EvalMetric = {
+  name: string;
+  value: number;
+  unit?: string;
+};
+
+export type EvalRunResult = {
+  run_id: string;
+  dataset_id: string;
+  model: string;
+  ran_at: string;
+  metrics: EvalMetric[];
+  per_doc_type?: Record<DocumentType, EvalMetric[]>;
 };

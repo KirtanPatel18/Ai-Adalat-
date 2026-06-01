@@ -1,17 +1,12 @@
+import type { AgentTrace, EvalMetric, EvalRunResult } from "@trionic/shared";
+
+// Re-export shared types for convenience
+export type { AgentTrace, EvalMetric, EvalRunResult };
+
+// Evals-specific types
 export type CiteMarker = {
   node_id: string;
   span: [number, number];
-};
-
-export type AgentTrace = {
-  agent: string;
-  model: string;
-  tokens_in: number;
-  tokens_out: number;
-  cost_usd: number;
-  latency_ms: number;
-  cited_nodes: string[];
-  status: "ok" | "rejected" | "error";
 };
 
 export type Fixture = {
