@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@trionic/shared": "workspace:^",
+    "@trionic/agents": "workspace:^",
     "@trpc/client": "^10.45.4",
     "@trpc/react-query": "^10.45.4",
     "@trpc/server": "^10.45.4",
