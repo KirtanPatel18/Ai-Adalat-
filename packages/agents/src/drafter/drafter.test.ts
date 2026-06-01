@@ -112,10 +112,12 @@ The Opposite Party's acts constitute a deficiency in service [CITE:CPA-2019/CH-I
 const makeMockLLMResponse = (text: string) => ({
   text,
   model: "claude-3-5-sonnet-20241022",
+  provider: "claude" as const,
   tokens_in: 350,
   tokens_out: 820,
   cost_usd: 0.004,
   latency_ms: 1200,
+  fallback_used: false,
 });
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
