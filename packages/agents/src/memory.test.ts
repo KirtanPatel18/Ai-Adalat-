@@ -184,6 +184,29 @@ describe("hashIntakeText", () => {
   });
 });
 
+describe("staleness detection via hashIntakeText", () => {
+  it("detects intake text change (different hashes → re-run needed)", () => {
+    const original = hashIntakeText("I need an RTI application for municipal building records");
+    const modified = hashIntakeText("I need a legal notice for non-payment of rent");
+    // Different intake → different hash → cache should be invalidated
+    expect(original).not.toBe(modified);
+  });
+
+  it("no change detected when intake text is identical (same hash → cache reuse)", () => {
+    const text = "I need an RTI application for municipal building records";
+    const h1 = hashIntakeText(text);
+    const h2 = hashIntakeText(text);
+    // Identical intake → same hash → classifier + planner can be served from cache
+    expect(h1).toBe(h2);
+  });
+
+  it("detects minor intake change (even small edits produce a different hash)", () => {
+    const original = hashIntakeText("I need an RTI application");
+    const withTypo  = hashIntakeText("I need an RTi application"); // capital i → lowercase
+    expect(original).not.toBe(withTypo);
+  });
+});
+
 describe("InMemoryStore", () => {
   it("tracks size correctly", async () => {
     const store = new InMemoryStore();

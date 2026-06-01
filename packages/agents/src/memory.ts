@@ -89,41 +89,49 @@ export class InMemoryStore implements MemoryStore {
 
 // ─── SupabaseStore (production — requires migration #103) ─────────────────────
 
-// TODO (Week 2 — coordinate with @om-patel91):
-// Confirm whether migration #103 includes `documents.state JSONB DEFAULT NULL`.
-// If not, add a follow-up migration before enabling this store.
-// Once the `state` column exists on `documents`,
-// uncomment and wire this store:
-//
-// export class SupabaseStore implements MemoryStore {
-//   constructor(private readonly supabase: SupabaseClient) {}
-//
-//   async get(documentId: string): Promise<ConversationState | null> {
-//     const { data, error } = await this.supabase
-//       .from("documents")
-//       .select("state")
-//       .eq("id", documentId)
-//       .single();
-//     if (error || !data?.state) return null;
-//     return data.state as ConversationState;
-//   }
-//
-//   async set(documentId: string, state: ConversationState): Promise<void> {
-//     const { error } = await this.supabase
-//       .from("documents")
-//       .update({ state })
-//       .eq("id", documentId);
-//     if (error) throw new Error(`Memory save failed: ${error.message}`);
-//   }
-//
-//   async delete(documentId: string): Promise<void> {
-//     const { error } = await this.supabase
-//       .from("documents")
-//       .update({ state: null })
-//       .eq("id", documentId);
-//     if (error) throw new Error(`Memory clear failed: ${error.message}`);
-//   }
-// }
+/**
+ * Production store backed by the `documents.state` JSONB column.
+ *
+ * Prerequisites:
+ *   1. @om-patel91's migration #103 must add `state JSONB DEFAULT NULL` to the
+ *      `documents` table before this store can be used in production.
+ *   2. Pass a Supabase client initialised with the service_role key (server-side
+ *      only). The Memory class must never run in the browser.
+ *
+ * The `supabase` param is typed `any` to avoid coupling this file to a specific
+ * version of @supabase/supabase-js. Callers provide a properly typed client.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export class SupabaseStore implements MemoryStore {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  constructor(private readonly supabase: any) {}
+
+  async get(documentId: string): Promise<ConversationState | null> {
+    const { data, error } = await this.supabase
+      .from("documents")
+      .select("state")
+      .eq("id", documentId)
+      .single();
+    if (error || !data?.state) return null;
+    return data.state as ConversationState;
+  }
+
+  async set(documentId: string, state: ConversationState): Promise<void> {
+    const { error } = await this.supabase
+      .from("documents")
+      .update({ state })
+      .eq("id", documentId);
+    if (error) throw new Error(`Memory save failed: ${error.message}`);
+  }
+
+  async delete(documentId: string): Promise<void> {
+    const { error } = await this.supabase
+      .from("documents")
+      .update({ state: null })
+      .eq("id", documentId);
+    if (error) throw new Error(`Memory clear failed: ${error.message}`);
+  }
+}
 
 // ─── Memory API ───────────────────────────────────────────────────────────────
 
