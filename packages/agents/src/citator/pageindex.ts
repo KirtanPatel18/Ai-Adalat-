@@ -1,4 +1,5 @@
 import type { PageIndexNodeId, SnapshotId } from "@trionic/shared";
+import { pageindex } from "@trionic/pageindex";
 
 export class NodeNotFoundError extends Error {
   constructor(node_id: PageIndexNodeId) {
@@ -14,10 +15,20 @@ export type PageIndexNode = {
 };
 
 /**
- * Stubbed PageIndex client for the Citator-Gatekeeper.
- *
- * Week 2: wire this to the real Team D pageindex.get_text tool.
+ * Citator PageIndex adapter.
+ * Calls the real pageindex.get_text tool from @trionic/pageindex.
+ * If the node does not exist (returns null), throws NodeNotFoundError.
  */
 export async function get_text(node_id: PageIndexNodeId): Promise<PageIndexNode> {
-  throw new NodeNotFoundError(node_id);
+  const result = await pageindex.get_text({ node_id });
+
+  if (!result) {
+    throw new NodeNotFoundError(node_id);
+  }
+
+  return {
+    node_id,
+    snapshot_id: result.snapshot_id,
+    text: result.text,
+  };
 }
