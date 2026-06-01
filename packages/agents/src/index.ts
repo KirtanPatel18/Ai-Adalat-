@@ -62,5 +62,15 @@ export type {
   PlannerResult as PlannerResultV2,
 } from "./agents/planner.js";
 
+// ─── Week-2: DrafterAgent (agents/drafter.ts) ────────────────────────────────
+export {
+  DrafterAgent as DrafterAgentV2,
+  runDrafterAgent,
+} from "./agents/drafter.js";
+export type {
+  DrafterAgentInput,
+  PageIndexNodeInput,
+} from "./agents/drafter.js";
+
 // ─── Week-2: runAgentChain orchestrator ──────────────────────────────────────
 export { runAgentChain } from "./orchestrator.js";

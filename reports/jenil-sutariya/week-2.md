@@ -22,7 +22,8 @@ In Week 2, I successfully integrated the **Drafter agent** with the real **PageI
 | Dynamic `maxTokens` (8192) for contracts | ✅ Done | Automatically bumps the LLM limit for `employment_contract` to accommodate larger document sizes. |
 | Asynchronous `snapshot_id` resolution | ✅ Done | Fetches real snapshot IDs using `pageindex.get_text` asynchronously for all parsed citations. |
 | Integration tests for Drafter -> Citator | ✅ Done | Created complete handoff test in `drafter.test.ts` verifying that citations are verified by the Citator. |
-| All tests passing cleanly | ✅ Done | 109/109 vitest unit & integration tests pass with zero errors or warnings. |
+| Standalone DrafterAgentV2 implemented | ✅ Done | Fulfills issue specifications in `packages/agents/src/agents/drafter.ts` using real LLM router call. |
+| All tests passing cleanly | ✅ Done | 111/111 vitest unit & integration tests pass with zero errors or warnings. |
 
 ---
 
@@ -41,6 +42,9 @@ In Week 2, I successfully integrated the **Drafter agent** with the real **PageI
 | `packages/agents/package.json` | Added `@trionic/pageindex` as a workspace dependency. |
 | `packages/agents/tsconfig.json` | Configured TypeScript paths mapping to resolve `@trionic/pageindex` correctly. |
 | `packages/agents/tsconfig.test.json` | Configured test paths mapping for vitest and IDE test runners. |
+| `packages/agents/src/index.ts` | Added exports for `DrafterAgentV2`, `runDrafterAgent`, `DrafterAgentInput`, and `PageIndexNodeInput` to the package barrel. |
+| `packages/agents/src/agents/drafter.ts` | Created standalone Drafter agent implementation matching the exact ticket signature requirements. |
+| `packages/agents/src/agents/drafter.test.ts` | Created unit tests for the standalone Week 2 Drafter agent. |
 | `packages/agents/src/drafter/drafter.prompt.ts` | Updated `buildDrafterUserPrompt` to accept retrieved PageIndex `SearchResult[]` nodes, formatting them in a clean layout for the LLM to read and reference exact node IDs. |
 | `packages/agents/src/drafter/drafter.agent.ts` | Imported `pageindex`, executed concurrent retrieval for each Planner hint query, implemented dynamic token limit bumps, and added async snapshot ID resolution for parsed citations. |
 | `packages/agents/src/drafter/drafter.test.ts` | Added vitest mocks for `@trionic/pageindex` to keep unit tests isolated, and authored a full `Drafter -> Citator` handoff integration test. |
@@ -65,18 +69,19 @@ pnpm --filter @trionic/agents test
 ```text
  RUN  v2.1.9 D:/Projects/AI Adalat/packages/agents
 
- ✓ src/drafter/citations.test.ts (21 tests) 8ms
- ✓ src/tracing/tracing.test.ts (3 tests) 6ms
- ✓ src/planner/planner.test.ts (2 tests) 6ms
+ ✓ src/drafter/citations.test.ts (21 tests) 9ms
+ ✓ src/tracing/tracing.test.ts (3 tests) 7ms
  ✓ src/reviewer/reviewer.test.ts (20 tests) 13ms
+ ✓ src/agents/drafter.test.ts (2 tests) 21ms
+ ✓ src/translator/translator.test.ts (25 tests) 24ms
+ ✓ src/planner/planner.test.ts (2 tests) 4ms
  ✓ src/router/router.test.ts (7 tests) 8ms
- ✓ src/classifier/classifier.test.ts (3 tests) 9ms
- ✓ src/translator/translator.test.ts (25 tests) 30ms
- ✓ src/citator/citator.test.ts (3 tests) 4ms
- ✓ src/drafter/drafter.test.ts (25 tests) 32ms
+ ✓ src/citator/citator.test.ts (3 tests) 5ms
+ ✓ src/classifier/classifier.test.ts (3 tests) 8ms
+ ✓ src/drafter/drafter.test.ts (25 tests) 38ms
 
- Test Files  9 passed (9)
-      Tests  109 passed (109)
-   Start at  20:59:11
-   Duration  943ms
+ Test Files  10 passed (10)
+      Tests  111 passed (111)
+   Start at  21:02:52
+   Duration  861ms
 ```
