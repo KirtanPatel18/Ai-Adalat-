@@ -17,10 +17,16 @@ const SECTION_KEYWORDS: Record<string, string[]> = {
   subject: ["subject", "sub:", "regarding", "re:"],
   sections_sought: ["sought", "information requested", "particulars of information", "information sought", "request"],
   information_requested: ["sought", "information requested", "particulars of information", "information sought", "request"],
+  "info sought": ["sought", "information requested", "particulars of information", "information sought", "request"],
+  info_sought: ["sought", "information requested", "particulars of information", "information sought", "request"],
   declaration: ["declare", "citizen of india", "fee", "ipo", "postal order", "payment"],
   payment_details_declaration: ["declare", "citizen of india", "fee", "ipo", "postal order", "payment"],
   applicant_details: ["applicant", "details of applicant", "name of applicant", "kaushal vora", "john doe"],
-  appeal_grounds: ["appeal", "grounds", "reason for appeal", "aggrieved", "rejection"]
+  appeal_grounds: ["appeal", "grounds", "reason for appeal", "aggrieved", "rejection"],
+  date: ["date", "day of", "2026"],
+  signature: ["signature", "sincerely", "faithfully", "applicant", "sign"],
+  "date+signature": ["date", "signature", "sincerely", "faithfully", "applicant", "sign"],
+  date_signature: ["date", "signature", "sincerely", "faithfully", "applicant", "sign"]
 };
 
 /**
@@ -31,8 +37,8 @@ function isSectionPresent(sectionKey: string, text: string): boolean {
   
   // 1. Direct match for header or label (e.g. "### Subject" or "**Subject**" or "Subject:")
   const cleanKey = sectionKey.replace(/_/g, " ").trim().toLowerCase();
-  const directHeaderRegex = new RegExp(`(#+|\\*\\*|__)\\s*${cleanKey}\\s*(#+|\\*\\*|__)?`, "i");
-  const directLabelRegex = new RegExp(`^\\s*${cleanKey}\\s*:`, "mi");
+  const directHeaderRegex = new RegExp(`(#+|\\*\\*|__)\\s*${cleanKey.replace(/[+]/g, "\\+")}\\s*(#+|\\*\\*|__)?`, "i");
+  const directLabelRegex = new RegExp(`^\\s*${cleanKey.replace(/[+]/g, "\\+")}\\s*:`, "mi");
 
   if (directHeaderRegex.test(text) || directLabelRegex.test(text)) {
     return true;
@@ -51,8 +57,13 @@ export async function completeness(
   fixture: Fixture,
 ): Promise<CompletenessResult> {
   const text = fixture.draft_output.text;
-  const requiredSections = fixture.ground_truth.required_sections || [];
+  let requiredSections = fixture.ground_truth.required_sections || [];
   
+  // Fallback to default required sections for RTI applications if empty
+  if (requiredSections.length === 0 && fixture.doc_type === "rti_application") {
+    requiredSections = ["address", "subject", "info_sought", "declaration", "date_signature"];
+  }
+
   const missingSections: string[] = [];
 
   for (const section of requiredSections) {
