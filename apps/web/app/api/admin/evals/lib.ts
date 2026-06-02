@@ -92,6 +92,7 @@ export async function createSupabaseClient(): Promise<AdminSupabaseClient> {
     throw new Error("Supabase environment variables are not configured");
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mod: any = await import("@supabase/auth-helpers-nextjs").catch(() => null);
 
   if (mod && typeof mod.createRouteHandlerClient === "function") {

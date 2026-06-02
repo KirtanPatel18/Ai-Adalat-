@@ -194,7 +194,7 @@ async function createSupabaseClient(): Promise<AdminSupabaseClient> {
   // At runtime the helper should exist; cast to any to satisfy TS.
   // Fallback: if the helper isn't present, construct a minimal client
   // using the Supabase JS client (not implemented here).
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
   const mod: any = await import("@supabase/auth-helpers-nextjs").catch(() => null);
 
   if (mod && typeof mod.createRouteHandlerClient === "function") {
