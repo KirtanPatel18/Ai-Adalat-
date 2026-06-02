@@ -1,6 +1,8 @@
 import { readFileSync } from "fs";
 import { randomUUID } from "crypto";
 import { citationValidity } from "./metrics/citationValidity";
+import { hallucinationRate } from "./metrics/hallucinationRate";
+import { completeness } from "./metrics/completeness";
 import type { EvalRunResult } from "@trionic/shared";
 import type { Fixture } from "./types";
 
@@ -43,27 +45,60 @@ async function runEvals(): Promise<void> {
 
     let totalCitations = 0;
     let validCitations = 0;
+    let totalClaims = 0;
+    let uncitedClaims = 0;
+    let totalRequired = 0;
+    let totalMissing = 0;
 
     for (const fixture of fixtures) {
       console.log(`  Fixture: ${fixture.fixture_id}`);
 
-      const result = await citationValidity(fixture);
+      const citeResult = await citationValidity(fixture);
+      const hallucResult = await hallucinationRate(fixture);
+      const compResult = await completeness(fixture);
 
-      totalCitations += result.total_citations;
-      validCitations += result.valid_citations;
+      totalCitations += citeResult.total_citations;
+      validCitations += citeResult.valid_citations;
+      totalClaims += hallucResult.total_claims;
+      uncitedClaims += hallucResult.uncited_claims;
+      totalRequired += compResult.required_sections.length;
+      totalMissing += compResult.missing_sections.length;
 
       console.log(
-        `  Citations: ${result.valid_citations}/${result.total_citations} valid`,
+        `  Citations:     ${citeResult.valid_citations}/${citeResult.total_citations} valid`,
       );
-      console.log(`  Status:    ${result.status.toUpperCase()}`);
-      if (result.invalid_citations.length > 0) {
-        console.log(`  Invalid:   ${result.invalid_citations.join(", ")}`);
+      if (citeResult.invalid_citations.length > 0) {
+        console.log(`    Invalid:     ${citeResult.invalid_citations.join(", ")}`);
       }
+
+      console.log(
+        `  Hallucination: ${hallucResult.hallucination_rate.toFixed(1)}% (${hallucResult.uncited_claims}/${hallucResult.total_claims} uncited claims)`,
+      );
+      if (hallucResult.hallucinated_spans.length > 0) {
+        console.log(`    Uncited:     "${hallucResult.hallucinated_spans.join('", "')}"`);
+      }
+
+      console.log(
+        `  Completeness:  ${compResult.completeness_rate.toFixed(1)}% (${compResult.required_sections.length - compResult.missing_sections.length}/${compResult.required_sections.length} present)`,
+      );
+      if (compResult.missing_sections.length > 0) {
+        console.log(`    Missing:     ${compResult.missing_sections.join(", ")}`);
+      }
+
+      const casePassed =
+        citeResult.status === "pass" &&
+        hallucResult.status === "pass" &&
+        compResult.status === "pass";
+      console.log(`  Status:        ${casePassed ? "PASS" : "FAIL"}`);
       console.log("");
     }
 
-    const overallRate =
+    const overallCiteRate =
       totalCitations === 0 ? 0 : (validCitations / totalCitations) * 100;
+    const overallHallucinationRate =
+      totalClaims === 0 ? 0 : (uncitedClaims / totalClaims) * 100;
+    const overallCompletenessRate =
+      totalRequired === 0 ? 100 : ((totalRequired - totalMissing) / totalRequired) * 100;
 
     // Build EvalRunResult as per @trionic/shared contract
     const evalRunResult: EvalRunResult = {
@@ -74,7 +109,17 @@ async function runEvals(): Promise<void> {
       metrics: [
         {
           name: "citation_validity_rate",
-          value: overallRate,
+          value: overallCiteRate,
+          unit: "percent",
+        },
+        {
+          name: "hallucination_rate",
+          value: overallHallucinationRate,
+          unit: "percent",
+        },
+        {
+          name: "completeness_rate",
+          value: overallCompletenessRate,
           unit: "percent",
         },
       ],
@@ -108,14 +153,20 @@ async function runEvals(): Promise<void> {
       );
     }
 
+    const overallPassed =
+      overallCiteRate === 100 &&
+      overallHallucinationRate === 0 &&
+      overallCompletenessRate === 100;
+
     console.log("\n==============================================");
     console.log(
-      overallRate === 100
+      overallPassed
         ? " EVAL PASSED ✓"
-        : ` EVAL FAILED ✗ (${overallRate.toFixed(1)}%)`,
+        : ` EVAL FAILED ✗ (Citations: ${overallCiteRate.toFixed(1)}%, Hallucination: ${overallHallucinationRate.toFixed(1)}%, Completeness: ${overallCompletenessRate.toFixed(1)}%)`,
     );
     console.log("==============================================");
   }
 }
 
 runEvals().catch(console.error);
+
