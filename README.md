@@ -7,10 +7,14 @@ A multilingual, agentic AI assistant for **Indian legal drafting and research** 
 ## Quick links
 
 - **[Intern onboarding](./docs/ONBOARDING.md)** ← **start here if you just joined**
+- **[Intern access — Supabase / Vercel / secrets](./docs/INTERN_ACCESS.md)** — what you can see, what you can't, why
 - **[Project brief](./PROJECT_BRIEF.md)** — scope, goals, team ownership, hard constraints
 - **[Contributing](./CONTRIBUTING.md)** — PR rules, weekly cadence, demo days
 - **[Timeline](./docs/TIMELINE.md)** — six-week milestones
 - **[Architecture](./docs/ARCHITECTURE.md)** — system diagram + module map
+- **[UI flow](./docs/UI_FLOW.md)** — every screen, every state (Week-2 baseline)
+- **[API contracts](./docs/API_CONTRACTS.md)** — every route, every request/response shape
+- **[Shared types](./packages/shared/src/types.ts)** — locked TypeScript contracts
 - **[Weekly reports](./reports/)** — per-intern progress logs
 
 ## Repo layout
