@@ -218,25 +218,52 @@ function internalErrorResponse() {
 }
 
 function warnIfBudgetExceeded(runs: EvalRunResult[]): void {
-  const budgetUsd = Number(process.env.EVAL_DAILY_BUDGET_USD ?? "0");
-  const alertThreshold = Number(process.env.EVAL_DAILY_BUDGET_ALERT_THRESHOLD ?? "1");
+  const budgetUsd = Number(process.env.EVAL_DAILY_BUDGET_USD ?? "5.0");
+  const alertThresholdPct = Number(process.env.EVAL_DAILY_BUDGET_ALERT_THRESHOLD ?? "100");
 
   if (
     !Number.isFinite(budgetUsd) ||
     budgetUsd <= 0 ||
-    !Number.isFinite(alertThreshold) ||
-    alertThreshold <= 0
+    !Number.isFinite(alertThresholdPct) ||
+    alertThresholdPct <= 0
   ) {
     return;
   }
 
-  const thresholdUsd = budgetUsd * alertThreshold;
+  const thresholdUsd = (budgetUsd * alertThresholdPct) / 100;
+
+  // Group runs by date to check daily totals
+  const dailyTotals = new Map<string, { totalCost: number; models: Set<string> }>();
 
   for (const run of runs) {
+    const date = run.ran_at.slice(0, 10);
     const totalCostUsd = getMetricValue(run, "total_cost_usd");
+
+    if (!dailyTotals.has(date)) {
+      dailyTotals.set(date, { totalCost: 0, models: new Set() });
+    }
+
+    const daily = dailyTotals.get(date)!;
+    daily.totalCost += totalCostUsd;
+    daily.models.add(run.model);
+
+    // Warn if individual model exceeds threshold
     if (totalCostUsd >= thresholdUsd) {
       console.warn(
-        `[admin/evals] ${run.model} on ${run.ran_at.slice(0, 10)} crossed budget: $${totalCostUsd.toFixed(4)} >= $${thresholdUsd.toFixed(4)}`,
+        `[admin/evals] Alert: ${run.model} on ${date} exceeded threshold: $${totalCostUsd.toFixed(4)} >= $${thresholdUsd.toFixed(4)} (budget: $${budgetUsd.toFixed(2)})`,
+      );
+    }
+  }
+
+  // Check daily totals against budget
+  for (const [date, data] of dailyTotals.entries()) {
+    if (data.totalCost > budgetUsd) {
+      console.warn(
+        `[admin/evals] BUDGET EXCEEDED: Daily cost on ${date} is $${data.totalCost.toFixed(4)}, exceeds limit of $${budgetUsd.toFixed(2)} by $${(data.totalCost - budgetUsd).toFixed(4)}. Models involved: ${Array.from(data.models).join(", ")}`,
+      );
+    } else if (data.totalCost >= thresholdUsd) {
+      console.warn(
+        `[admin/evals] Budget Warning: Daily cost on ${date} is $${data.totalCost.toFixed(4)}, at ${((data.totalCost / budgetUsd) * 100).toFixed(1)}% of $${budgetUsd.toFixed(2)} limit.`,
       );
     }
   }

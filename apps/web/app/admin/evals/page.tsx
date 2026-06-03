@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import type { EvalRunResult } from "@trionic/shared";
+import { BudgetTracker } from "@/components/admin/BudgetTracker";
 
 const MODEL_OPTIONS = [
   "all",
@@ -176,7 +177,14 @@ export default function AdminEvalsPage() {
             {error}
           </div>
         ) : (
-          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <>
+            <BudgetTracker
+              runs={runs}
+              dailyBudgetUsd={5.0}
+              alertThresholdPct={100}
+            />
+
+            <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
             <div className="overflow-x-auto">
               <table className="min-w-[960px] w-full border-collapse text-left">
                 <thead className="bg-slate-950 text-xs uppercase tracking-[0.22em] text-slate-200">
@@ -218,6 +226,7 @@ export default function AdminEvalsPage() {
               </table>
             </div>
           </div>
+          </>
         )}
       </section>
     </main>
