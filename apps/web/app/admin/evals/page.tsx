@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import type { EvalRunResult } from "@trionic/shared";
+import { BudgetTracker } from "@/components/admin/BudgetTracker";
 
 const MODEL_OPTIONS = [
   "all",
@@ -78,8 +79,13 @@ export default function AdminEvalsPage() {
             }
 
             if (!cancelled) {
+<<<<<<< HEAD
               const clientRows = rows as ClientTraceRow[];
               const runs = buildEvalRunsClient(clientRows);
+=======
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const runs = buildEvalRunsClient(rows as any);
+>>>>>>> agents/evals-real-agent-traces-dashboard
               setRuns(runs);
             }
           } catch (e) {
@@ -185,7 +191,14 @@ export default function AdminEvalsPage() {
             {error}
           </div>
         ) : (
-          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <>
+            <BudgetTracker
+              runs={runs}
+              dailyBudgetUsd={5.0}
+              alertThresholdPct={100}
+            />
+
+            <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
             <div className="overflow-x-auto">
               <table className="min-w-[960px] w-full border-collapse text-left">
                 <thead className="bg-slate-950 text-xs uppercase tracking-[0.22em] text-slate-200">
@@ -227,13 +240,19 @@ export default function AdminEvalsPage() {
               </table>
             </div>
           </div>
+          </>
         )}
       </section>
     </main>
   );
 }
 
+<<<<<<< HEAD
 function buildEvalRunsClient(rows: ClientTraceRow[], now = new Date()): EvalRunResult[] {
+=======
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildEvalRunsClient(rows: any[], now = new Date()): EvalRunResult[] {
+>>>>>>> agents/evals-real-agent-traces-dashboard
   const WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
   const windowStart = new Date(now.getTime() - WINDOW_MS);
   type Bucket = {
