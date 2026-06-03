@@ -79,13 +79,8 @@ export default function AdminEvalsPage() {
             }
 
             if (!cancelled) {
-<<<<<<< HEAD
               const clientRows = rows as ClientTraceRow[];
               const runs = buildEvalRunsClient(clientRows);
-=======
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const runs = buildEvalRunsClient(rows as any);
->>>>>>> agents/evals-real-agent-traces-dashboard
               setRuns(runs);
             }
           } catch (e) {
@@ -247,12 +242,7 @@ export default function AdminEvalsPage() {
   );
 }
 
-<<<<<<< HEAD
 function buildEvalRunsClient(rows: ClientTraceRow[], now = new Date()): EvalRunResult[] {
-=======
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildEvalRunsClient(rows: any[], now = new Date()): EvalRunResult[] {
->>>>>>> agents/evals-real-agent-traces-dashboard
   const WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
   const windowStart = new Date(now.getTime() - WINDOW_MS);
   type Bucket = {

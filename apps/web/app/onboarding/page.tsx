@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import type { SupportedLanguage } from '@trionic/shared'
 
 const LANGUAGES: { value: SupportedLanguage; label: string }[] = [
@@ -15,7 +14,6 @@ const LANGUAGES: { value: SupportedLanguage; label: string }[] = [
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const supabase = createClient()
 
   const [displayName, setDisplayName] = useState('')
   const [language, setLanguage] = useState<SupportedLanguage>('en')

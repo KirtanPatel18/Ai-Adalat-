@@ -92,14 +92,9 @@ export async function createSupabaseClient(): Promise<AdminSupabaseClient> {
     throw new Error("Supabase environment variables are not configured");
   }
 
-<<<<<<< HEAD
   const mod = (await import("@supabase/auth-helpers-nextjs").catch(() => null)) as
     | { createRouteHandlerClient?: (opts: { headers: typeof headers; cookies: typeof cookies }) => unknown }
     | null;
-=======
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mod: any = await import("@supabase/auth-helpers-nextjs").catch(() => null);
->>>>>>> agents/evals-real-agent-traces-dashboard
 
   if (mod && typeof mod.createRouteHandlerClient === "function") {
     const client = mod.createRouteHandlerClient({ headers, cookies });

@@ -194,14 +194,9 @@ async function createSupabaseClient(): Promise<AdminSupabaseClient> {
   // At runtime the helper should exist; cast to any to satisfy TS.
   // Fallback: if the helper isn't present, construct a minimal client
   // using the Supabase JS client (not implemented here).
-<<<<<<< HEAD
   const mod = (await import("@supabase/auth-helpers-nextjs").catch(() => null)) as
     | { createRouteHandlerClient?: (opts: { headers: typeof headers; cookies: typeof cookies }) => unknown }
     | null;
-=======
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
-  const mod: any = await import("@supabase/auth-helpers-nextjs").catch(() => null);
->>>>>>> agents/evals-real-agent-traces-dashboard
 
   if (mod && typeof mod.createRouteHandlerClient === "function") {
     const client = mod.createRouteHandlerClient({ headers, cookies });
