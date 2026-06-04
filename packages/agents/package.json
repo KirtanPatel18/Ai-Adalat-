@@ -17,7 +17,8 @@
     "@google/generative-ai": "^0.21.0",
     "openai": "^4.67.0",
     "@trionic/shared": "workspace:*",
-    "@trionic/translation": "workspace:*"
+    "@trionic/translation": "workspace:*",
+    "@trionic/pageindex": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.6.0",
