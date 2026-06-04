@@ -159,7 +159,7 @@ If the glossary data cannot be loaded, `lookupGlossary()` must return a safe deg
 
 ## 7. Gujarati Glossary
 
-The initial Gujarati  should cover the most common legal terms across contract drafting, consumer complaints, RTI workflows, and general procedural language.
+The initial Gujarati glossary should cover the most common legal terms across contract drafting, consumer complaints, RTI workflows, and general procedural language.
 
 | # | English term | Gujarati term | Domain | Suggested source |
 |---|---|---|---|---|
