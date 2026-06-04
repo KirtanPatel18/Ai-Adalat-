@@ -17,7 +17,9 @@
       "@trionic/shared": ["../shared/src/index.ts"],
       "@trionic/shared/*": ["../shared/src/*"],
       "@trionic/translation": ["../translation/src/index.ts"],
-      "@trionic/translation/*": ["../translation/src/*"]
+      "@trionic/translation/*": ["../translation/src/*"],
+      "@trionic/pageindex": ["../pageindex/src/agnoTool.ts"],
+      "@trionic/pageindex/*": ["../pageindex/src/*"]
     }
   },
   "include": ["src/**/*"],

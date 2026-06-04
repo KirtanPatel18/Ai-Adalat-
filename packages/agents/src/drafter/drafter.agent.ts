@@ -32,6 +32,8 @@ import {
 } from "./drafter.prompt.js";
 import { extractCitations, extractNodeIds } from "./citations.js";
 import type { DrafterInput, DrafterResult } from "./types.js";
+import { pageindex } from "@trionic/pageindex";
+import { ROUTER_CONFIG } from "../router/router.config.js";
 
 // ─── runDrafter ───────────────────────────────────────────────────────────────
 
@@ -53,19 +55,81 @@ export async function runDrafter(input: DrafterInput): Promise<DrafterResult> {
   const { plan, intakeText, session_id } = input;
 
   try {
-    const userPrompt = buildDrafterUserPrompt(plan, intakeText);
-
-    // Route through LLM Router — see router.config.ts "drafter" entry:
-    //   Claude 3.5 Sonnet, maxTokens: 4096, temperature: 0.3
-    const llmResponse = await router.run(
-      "drafter",
-      DRAFTER_SYSTEM_PROMPT,
-      userPrompt
+    // 1. Query PageIndex for each hint query in plan.pageindex_queries
+    const searchPromises = plan.pageindex_queries.map((q) =>
+      pageindex.search({ query: q, top_k: 3 }).catch((err) => {
+        console.warn(`[Drafter] PageIndex search failed for query "${q}":`, err);
+        return [];
+      })
     );
+    const searchResults = await Promise.all(searchPromises);
+    const flatResults = searchResults.flat();
+
+    // Deduplicate retrieved nodes by node_id
+    const seenNodes = new Set<string>();
+    const retrievedNodes = flatResults.filter((item) => {
+      if (seenNodes.has(item.node_id)) {
+        return false;
+      }
+      seenNodes.add(item.node_id);
+      return true;
+    });
+
+    const userPrompt = buildDrafterUserPrompt(plan, intakeText, retrievedNodes);
+
+    // 2. Dynamic maxTokens adjustment for employment_contract
+    const originalMaxTokens = ROUTER_CONFIG.drafter?.preferred?.maxTokens ?? 4096;
+    const originalFallbackTokens = ROUTER_CONFIG.drafter?.fallback?.maxTokens ?? 4096;
+
+    if ((plan.document_type as string) === "employment_contract") {
+      if (ROUTER_CONFIG.drafter) {
+        ROUTER_CONFIG.drafter.preferred.maxTokens = 8192;
+        if (ROUTER_CONFIG.drafter.fallback) {
+          ROUTER_CONFIG.drafter.fallback.maxTokens = 8192;
+        }
+      }
+    }
+
+    let llmResponse;
+    try {
+      // Route through LLM Router — see router.config.ts "drafter" entry:
+      //   Claude 3.5 Sonnet, maxTokens: 4096, temperature: 0.3
+      llmResponse = await router.run(
+        "drafter",
+        DRAFTER_SYSTEM_PROMPT,
+        userPrompt
+      );
+    } finally {
+      // Always restore original maxTokens limits to avoid polluting other runs
+      if (ROUTER_CONFIG.drafter) {
+        ROUTER_CONFIG.drafter.preferred.maxTokens = originalMaxTokens;
+        if (ROUTER_CONFIG.drafter.fallback) {
+          ROUTER_CONFIG.drafter.fallback.maxTokens = originalFallbackTokens;
+        }
+      }
+    }
 
     // Extract all [CITE:<node_id>] markers from the raw LLM output
-    const citations = extractCitations(llmResponse.text);
+    const rawCitations = extractCitations(llmResponse.text);
     const citedNodes = extractNodeIds(llmResponse.text);
+
+    // 3. Resolve real snapshot IDs asynchronously
+    const citations = await Promise.all(
+      rawCitations.map(async (citation) => {
+        try {
+          const res = await pageindex.get_text({ node_id: citation.node_id });
+          if (res) {
+            return {
+              ...citation,
+              snapshot_id: res.snapshot_id,
+            };
+          }
+        } catch (err) {
+          console.warn(`[Drafter] Failed to resolve snapshot_id for node_id "${citation.node_id}":`, err);
+        }
+        return citation; // fallback
+      })
+    );
 
     // Assemble the DocumentDraft
     const draft: DocumentDraft = {
@@ -137,8 +201,26 @@ export async function reviseDraft(
       revisionPrompt
     );
 
-    const citations = extractCitations(llmResponse.text);
+    const rawCitations = extractCitations(llmResponse.text);
     const citedNodes = extractNodeIds(llmResponse.text);
+
+    // Resolve real snapshot IDs asynchronously
+    const citations = await Promise.all(
+      rawCitations.map(async (citation) => {
+        try {
+          const res = await pageindex.get_text({ node_id: citation.node_id });
+          if (res) {
+            return {
+              ...citation,
+              snapshot_id: res.snapshot_id,
+            };
+          }
+        } catch (err) {
+          console.warn(`[Drafter] Failed to resolve snapshot_id for node_id "${citation.node_id}":`, err);
+        }
+        return citation;
+      })
+    );
 
     const draft: DocumentDraft = {
       id: randomUUID(),                         // new ID for the revised version

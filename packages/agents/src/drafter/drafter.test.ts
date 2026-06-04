@@ -48,12 +48,32 @@ vi.mock("../tracing/index.js", () => ({
   persistTrace: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("@trionic/pageindex", () => ({
+  pageindex: {
+    search: vi.fn().mockResolvedValue([
+      { node_id: "CPA-2019/CH-I/S-2", snippet: "Mock section 2 text", score: 0.95 },
+      { node_id: "CPA-2019/CH-IV/S-39", snippet: "Mock section 39 text", score: 0.88 },
+      { node_id: "CPA-2019/CH-IV/S-34", snippet: "Mock section 34 text", score: 0.82 }
+    ]),
+    get_text: vi.fn().mockImplementation(async ({ node_id }) => {
+      if (node_id === "RTI-2005/CH-XX/S-99" || node_id === "RTI-FAKE/CH-I/S-999") {
+        return null;
+      }
+      return {
+        text: `Mock text for node: ${node_id}`,
+        snapshot_id: "2024-12-01",
+      };
+    }),
+  },
+}));
+
 // ─── Imports (after mocks) ────────────────────────────────────────────────────
 
 import { runDrafter, reviseDraft, DrafterAgent } from "./drafter.agent.js";
 import { extractCitations, extractNodeIds } from "./citations.js";
 import type { DrafterInput } from "./types.js";
 import type { DocumentDraft } from "@trionic/shared";
+import { runCitator } from "../citator/index.js";
 
 // ─── Mock LLM outputs ─────────────────────────────────────────────────────────
 
@@ -381,5 +401,41 @@ describe("DrafterAgent class", () => {
     );
     expect(result.draft.content).toContain("[CITE:");
     expect(result.trace.agent).toBe("drafter");
+  });
+});
+
+// ─── Tests: Integration (Drafter -> Citator) ──────────────────────────────────
+
+describe("Drafter -> Citator Handoff Integration", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("successfully passes a generated draft with valid citations through Citator", async () => {
+    const { router } = await import("../router/index.js");
+    
+    // Mock Drafter's LLM response
+    vi.mocked(router.run).mockResolvedValueOnce(makeMockLLMResponse(MOCK_DRAFT_CONTENT));
+    
+    // Run Drafter
+    const drafterResult = await runDrafter(mockInput);
+    expect(drafterResult.draft.citations.length).toBeGreaterThan(0);
+    
+    // Mock Citator's LLM response returning approved = true
+    vi.mocked(router.run).mockResolvedValueOnce(makeMockLLMResponse(JSON.stringify({
+      passed: true,
+      validatedCitations: drafterResult.draft.citations,
+    })));
+    
+    // Run Citator with Drafter's output
+    const citatorResult = await runCitator({
+      draft: drafterResult.draft,
+      session_id: "integration-session-001"
+    });
+    
+    // Verify handoff was successful
+    expect(citatorResult.passed).toBe(true);
+    expect(citatorResult.validatedCitations.length).toBe(drafterResult.draft.citations.length);
+    expect(citatorResult.trace.status).toBe("ok");
   });
 });
