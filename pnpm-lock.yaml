@@ -106,6 +106,9 @@ importers:
       '@google/generative-ai':
         specifier: ^0.21.0
         version: 0.21.0
+      '@trionic/pageindex':
+        specifier: workspace:*
+        version: link:../pageindex
       '@trionic/shared':
         specifier: workspace:*
         version: link:../shared
