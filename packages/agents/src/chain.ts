@@ -392,7 +392,7 @@ export async function* runAgentChain(
         );
 
         if (!reviewerResult.approved) {
-          yield stepError("reviewer", reviewerResult.rejection_reason ?? "Draft rejected by reviewer");
+          yield stepError("reviewer", reviewerResult.trace.error_message ?? "Draft rejected by reviewer");
           return; // Abort
         }
 
@@ -405,11 +405,9 @@ export async function* runAgentChain(
 
           try {
             const translatorResult = await runTranslator({
-              draft: {
-                ...drafterResult.draft,
-                citations: citatorResult.validatedCitations,
-              },
-              targetLanguage: target_language,
+              body_markdown: drafterResult.draft.content,
+              target_language: target_language,
+              citations: citatorResult.validatedCitations,
               session_id,
             });
 
@@ -420,7 +418,7 @@ export async function* runAgentChain(
               translatorResult.trace.tokens_in + translatorResult.trace.tokens_out
             );
 
-            finalMarkdown = translatorResult.translatedDraft.content;
+            finalMarkdown = translatorResult.output.translated_markdown;
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             yield stepError("translator", message);
