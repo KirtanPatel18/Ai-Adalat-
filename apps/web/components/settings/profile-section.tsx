@@ -32,11 +32,20 @@ export function ProfileSection({ initialUser, onUpdateUser }: ProfileSectionProp
     setIsSaving(true);
 
     try {
-      // Simulate API saving latency
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      const res = await fetch("/api/users/me", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ display_name: displayName }),
+      });
 
-      // TODO(W3): PATCH /api/users/me
-      onUpdateUser({ display_name: displayName });
+      if (!res.ok) {
+        throw new Error("Failed to save display name");
+      }
+
+      const updatedUser = (await res.json()) as User;
+      onUpdateUser(updatedUser);
       
       toast({
         title: "Profile Updated",

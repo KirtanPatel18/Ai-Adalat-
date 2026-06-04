@@ -1,26 +1,92 @@
-# Week 1 — Sarvak Makani (@sarvakmakani)
+# Week 1 — Tulsi Dhameliya
 
-## Deliverable
-Drafted and opened Draft PR #70 for RFC-auth-onboarding (Issue #4). The RFC 
-covers Supabase Auth email/password for v1, session handling with @supabase/ssr 
-in Next.js 15 App Router, route protection via middleware, 3-step onboarding 
-wizard, public.users table schema, and RLS policies.
+**Team:** Team A — Frontend
+**Module owned:** Dashboard + History
+**Week of:** 2026-05-22
 
-## PR / Commit links
-- PR: https://github.com/Trionic-Interns/trionic-ai-adalat/pull/70
-- Commit: https://github.com/Trionic-Interns/trionic-ai-adalat/commit/b193897
+---
+
+## What I shipped this week
+
+* Opened draft PR `frontend/dashboard-history` with `docs/RFC-dashboard-history.md`
+* Designed the initial frontend UX structure for the Dashboard + History module
+* Proposed dashboard layout strategy using:
+
+  * table layout for desktop
+  * stacked card layout for mobile responsiveness
+* Defined document metadata structure for dashboard history:
+
+  * title
+  * status
+  * language
+  * timestamps
+  * export state
+* Documented supported quick actions:
+
+  * view
+  * edit
+  * export
+  * duplicate
+  * delete
+* Added filtering and sorting considerations:
+
+  * language filter
+  * status filter
+  * search behavior
+  * latest modified sorting
+* Added accessibility considerations:
+
+  * keyboard navigation
+  * semantic HTML
+  * focus states
+  * accessible labels
+* Proposed frontend component structure using shadcn/ui components
+* Updated RFC after reviewer feedback and successfully merged the PR into `main`
 
 ## Demo
-[Add Loom link here after recording — see below]
+
+Suggested 60-second flow:
+
+1. Open merged RFC PR on GitHub
+2. Walk through dashboard layout decisions
+3. Show filtering/sorting planning
+4. Explain dashboard navigation flow
+5. Show merged PR status
 
 ## Metrics
-- RFC covers 6 protected routes, 1 DB table, 2 RLS policies, 3-step onboarding 
-  wizard, 7 files to be created in Week 2
+
+| Metric                         | Value | Notes                                                      |
+| ------------------------------ | ----- | ---------------------------------------------------------- |
+| RFCs created                   | 1     | Dashboard + History RFC                                    |
+| PRs merged                     | 1     | Week-1 frontend RFC PR                                     |
+| UX sections documented         | 8+    | Layout, filters, accessibility, responsive design, actions |
+| GitHub review cycles completed | 1     | Reviewer feedback incorporated successfully                |
+
+## Learnings
+
+* Learned GitHub collaboration workflow
+* Learned feature branches and PR handling
+* Understood RFC-based engineering planning
+* Explored monorepo frontend structure
+* Learned basics of frontend architecture planning
+* Understood review/update workflow in collaborative development
 
 ## Blockers
-- Waiting on Om Patel (Backend) to confirm where the users insert trigger lives 
-  in packages/db migrations
-- Waiting on RFC review/approval from Sohil before marking PR ready for review
 
-## Plan for Week 2
-- Implement login + signup pages using shadcn/ui Form + Supabase browser client
+* Initial difficulty understanding GitHub workflow and PR updates
+* Local dependency installation issues during frontend setup
+* Understanding monorepo workspace structure for the first time
+
+## Next week
+
+* Complete frontend local setup fully
+* Explore existing frontend component structure
+* Understand routing and layout flow inside `apps/web`
+* Begin actual dashboard/history implementation planning
+* Learn more about Next.js App Router, Tailwind CSS, and shadcn/ui
+
+---
+
+### Mentor feedback (filled by repo manager Friday 7 PM IST)
+
+> *Pending*

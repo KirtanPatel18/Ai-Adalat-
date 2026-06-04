@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { Shield, Laptop, Monitor, LogOut, Loader2 } from "lucide-react";
+import { createBrowserClient } from "@supabase/auth-helpers-nextjs";
 
 export function SessionsSection() {
   const [isRevoking, setIsRevoking] = useState(false);
@@ -11,11 +12,15 @@ export function SessionsSection() {
   const handleSignOutOtherDevices = async () => {
     setIsRevoking(true);
     try {
-      // Simulate API latency
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      const { error } = await supabase.auth.signOut({ scope: "others" });
 
-      // TODO(W3):
-      // Integrate Supabase revoke-other-sessions
+      if (error) {
+        throw error;
+      }
 
       setOtherDevicesCleared(true);
       toast({
@@ -23,10 +28,12 @@ export function SessionsSection() {
         description: "Successfully signed out from all other devices.",
         variant: "success",
       });
-    } catch {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Could not revoke other sessions. Please try again.";
+      console.error("Failed to revoke other sessions:", message);
       toast({
         title: "Action Failed",
-        description: "Could not revoke other sessions. Please try again.",
+        description: message,
         variant: "destructive",
       });
     } finally {
