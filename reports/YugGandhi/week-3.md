@@ -39,7 +39,7 @@ it("transparently retries with fallback if DeepSeek cost cap is exceeded", async
 | DeepSeek Pricing | Input: $0.14/1M; Output: $0.28/1M | Accurate standard API pricing captured |
 | Daily Cost Cap | $5.00 USD/day | Honor cap; throws and triggers fallback when hit |
 | Failover Speed | Immediate | Transparently fallbacks without delay |
-| Unit Tests Passing | 149 / 149 green | DeepSeek resolving, success, 503 retry, and cost cap paths fully covered |
+| Unit Tests Passing | 153 / 153 green | DeepSeek resolving, success, 503 retry, and cost cap paths fully covered |
 | Package Build Status | passing | Built cleanly with `pnpm --filter @trionic/agents build` |
 
 ## Blockers
