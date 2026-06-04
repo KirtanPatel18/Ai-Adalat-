@@ -15,6 +15,8 @@ import { ROUTER_CONFIG, DEFAULT_ROUTE_CONFIG, type ModelConfig, type StepRouteCo
 import { callClaude } from "./providers/claude.js";
 import { callGemini } from "./providers/gemini.js";
 import { callGPT } from "./providers/gpt.js";
+import { callDeepSeek } from "./providers/deepseek.js";
+import { CostCapTracker } from "./costCapTracker.js";
 
 // ─── Public Types ─────────────────────────────────────────────────────────────
 
@@ -146,6 +148,12 @@ export class LLMRouter {
           return callGemini(req);
         case "gpt":
           return callGPT(req);
+        case "deepseek":
+          CostCapTracker.verifyUnderCap();
+          return callDeepSeek(req).then((res) => {
+            CostCapTracker.addCost(res.cost_usd);
+            return res;
+          });
         default:
           throw new Error(`[LLMRouter] Unknown provider: ${config.provider}`);
       }
