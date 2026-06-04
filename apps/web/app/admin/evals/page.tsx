@@ -6,15 +6,7 @@ import Link from "next/link";
 import type { EvalRunResult } from "@trionic/shared";
 import { BudgetTracker } from "@/components/admin/BudgetTracker";
 
-const MODEL_OPTIONS = [
-  "all",
-  "claude-opus",
-  "claude-sonnet",
-  "gpt-4",
-  "gemini-pro",
-] as const;
-
-type ModelFilter = (typeof MODEL_OPTIONS)[number];
+// MODEL_OPTIONS has been removed in favor of dynamic model options computed from trace results
 
 type ClientTraceRow = {
   model?: string | null;
@@ -49,7 +41,7 @@ function formatDate(isoDate: string): string {
 
 export default function AdminEvalsPage() {
   const [runs, setRuns] = useState<EvalRunResult[]>([]);
-  const [selectedModel, setSelectedModel] = useState<ModelFilter>("all");
+  const [selectedModel, setSelectedModel] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -82,6 +74,27 @@ export default function AdminEvalsPage() {
               const clientRows = rows as ClientTraceRow[];
               const runs = buildEvalRunsClient(clientRows);
               setRuns(runs);
+
+              // Daily budget tracking and warnings (console/alerting for W3)
+              const BUDGET_CAP_USD = 5.0;
+              const modelSpendsByBucket: { [key: string]: number } = {};
+              clientRows.forEach((row) => {
+                if (!row.model || !row.timestamp) return;
+                const ts = new Date(row.timestamp);
+                if (Number.isNaN(ts.getTime())) return;
+                const date = ts.toISOString().slice(0, 10);
+                const key = `${date}::${row.model}`;
+                modelSpendsByBucket[key] = (modelSpendsByBucket[key] ?? 0) + Number(row.cost_usd ?? 0);
+              });
+
+              Object.entries(modelSpendsByBucket).forEach(([key, spend]) => {
+                const [date, model] = key.split("::");
+                if (spend > BUDGET_CAP_USD) {
+                  console.warn(
+                    `[BUDGET ALERT] Model ${model} exceeded daily budget on ${date}: $${spend.toFixed(2)} > $${BUDGET_CAP_USD.toFixed(2)}`
+                  );
+                }
+              });
             }
           } catch (e) {
             // If direct Supabase fetch fails, fallback to internal API route.
@@ -165,9 +178,9 @@ export default function AdminEvalsPage() {
               <select
                 className="min-w-48 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
                 value={selectedModel}
-                onChange={(event) => setSelectedModel(event.target.value as ModelFilter)}
+                onChange={(event) => setSelectedModel(event.target.value)}
               >
-                {MODEL_OPTIONS.map((m) => (
+                {["all", ...Array.from(new Set(runs.map((r) => r.model))).sort()].map((m) => (
                   <option key={m} value={m}>
                     {m === "all" ? "All models" : m}
                   </option>

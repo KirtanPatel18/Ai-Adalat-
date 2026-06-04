@@ -53,7 +53,7 @@ export function BudgetTracker({
             Daily Budget Tracker
           </h2>
           <p className="text-sm text-slate-600 mt-1">
-            Today's cumulative cost across all models
+            Cumulative cost across all models today. Daily cap is $5.00 per model.
           </p>
         </div>
         <div
@@ -85,7 +85,7 @@ export function BudgetTracker({
 
         {/* Daily limit display */}
         <div className="flex items-center justify-between text-sm text-slate-600">
-          <span>Daily Limit</span>
+          <span>Daily Limit (Per Model)</span>
           <span className="font-medium">{CURRENCY_FORMATTER.format(dailyBudgetUsd)}</span>
         </div>
 
@@ -135,10 +135,24 @@ export function BudgetTracker({
           <div className="space-y-2">
             {todayRuns.map((run) => {
               const modelCost = run.metrics.find((m) => m.name === "total_cost_usd")?.value ?? 0;
+              const hasExceededModelBudget = modelCost > dailyBudgetUsd;
+              const hasExceededModelAlert = modelCost >= (dailyBudgetUsd * alertThresholdPct) / 100;
               return (
                 <div key={run.run_id} className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">{run.model}</span>
-                  <span className="font-medium text-slate-900">
+                  <span className="text-slate-600 flex items-center gap-2">
+                    {run.model}
+                    {hasExceededModelBudget && (
+                      <span className="text-xs font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                        ⚠️ Over Budget
+                      </span>
+                    )}
+                    {!hasExceededModelBudget && hasExceededModelAlert && (
+                      <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                        ⚠️ Nearing Cap
+                      </span>
+                    )}
+                  </span>
+                  <span className={`font-medium ${hasExceededModelBudget ? "text-rose-600 font-bold" : "text-slate-900"}`}>
                     {CURRENCY_FORMATTER.format(modelCost)}
                   </span>
                 </div>

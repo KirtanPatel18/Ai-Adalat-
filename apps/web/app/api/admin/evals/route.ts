@@ -68,12 +68,12 @@ type EvalBucket = {
 const WINDOW_DAYS = 14;
 const WINDOW_MS = WINDOW_DAYS * 24 * 60 * 60 * 1000;
 
-function isAdminUser(user: AdminUser | undefined): boolean {
+export function isAdminUser(user: AdminUser | undefined): boolean {
   const role = user?.user_metadata?.role ?? user?.app_metadata?.role;
   return role === "admin";
 }
 
-function percentile(values: number[], quantile: number): number {
+export function percentile(values: number[], quantile: number): number {
   if (values.length === 0) {
     return 0;
   }
@@ -101,7 +101,7 @@ function getMetricValue(
   return run.metrics.find((metric) => metric.name === metricName)?.value ?? 0;
 }
 
-function buildEvalRuns(
+export function buildEvalRuns(
   rows: TraceRow[],
   now = new Date(),
 ): EvalRunResult[] {
@@ -271,7 +271,7 @@ function warnIfBudgetExceeded(runs: EvalRunResult[]): void {
   }
 }
 
-async function handleAdminEvals(
+export async function handleAdminEvals(
   supabase: AdminSupabaseClient,
   now = new Date(),
 ) {
