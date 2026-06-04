@@ -1,6 +1,6 @@
 /**
  * providers/deepseek.ts
- * Owner: Yug Gandhi (LLM Router)
+ * Owner: Yug Gandhi (LLM Router) & Jenil Sutariya
  *
  * DeepSeek provider — FUNCTIONAL in Week 3.
  * Requires DEEPSEEK_API_KEY in environment.
@@ -22,7 +22,7 @@ function getClient(): OpenAI {
     }
     client = new OpenAI({
       apiKey,
-      baseURL: "https://api.deepseek.com/v1"
+      baseURL: "https://api.deepseek.com",
     });
   }
   return client;
@@ -30,7 +30,7 @@ function getClient(): OpenAI {
 
 /**
  * Call DeepSeek with the given prompt and return a structured LLMResponse.
- * This is the ONLY function other agents should call — do not import OpenAI SDK for DeepSeek elsewhere.
+ * This is the ONLY function other agents should call — do not import OpenAI SDK directly elsewhere.
  */
 export async function callDeepSeek(req: LLMRequest): Promise<LLMResponse> {
   const deepseek = getClient();
@@ -52,9 +52,8 @@ export async function callDeepSeek(req: LLMRequest): Promise<LLMResponse> {
   const tokens_in = completion.usage?.prompt_tokens || 0;
   const tokens_out = completion.usage?.completion_tokens || 0;
 
-  // DeepSeek pricing (as of May 2026 / standard API prices)
-  // Input: $0.14 per 1M tokens ($0.00014 per 1K)
-  // Output: $0.28 per 1M tokens ($0.00028 per 1K)
+  // DeepSeek pricing (standard DeepSeek-V3 pricing):
+  // Input $0.00014 / 1K (cache miss), Output $0.00028 / 1K
   const INPUT_COST_PER_1K = 0.00014;
   const OUTPUT_COST_PER_1K = 0.00028;
 

@@ -382,7 +382,8 @@ export async function* runAgentChain(
             citations: citatorResult.validatedCitations,
           },
           session_id,
-        });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any);
 
         const reviewerDuration = Date.now() - reviewerStartTime;
         yield stepDone(
@@ -406,8 +407,8 @@ export async function* runAgentChain(
           try {
             const translatorResult = await runTranslator({
               body_markdown: drafterResult.draft.content,
-              target_language: target_language,
               citations: citatorResult.validatedCitations,
+              target_language: target_language,
               session_id,
             });
 
