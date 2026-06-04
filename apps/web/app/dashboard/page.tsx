@@ -1,11 +1,11 @@
 "use client";
-
 import { useEffect, useState, useCallback } from "react";
 import type { Document } from "@trionic/shared";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Plus } from "lucide-react";
-import { FilterBar, type FilterState } from "./_components/filter-bar";
+import { Plus, LogOut } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";import { FilterBar, type FilterState } from "./_components/filter-bar";
 import { DocumentTable } from "./_components/document-table";
 import { EmptyState } from "./_components/empty-state";
 
@@ -18,6 +18,15 @@ type FetchState = "idle" | "loading" | "error" | "done";
 export default function DashboardPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [fetchState, setFetchState] = useState<FetchState>("idle");
+
+const router = useRouter()
+const supabase = createClient()
+
+async function handleSignOut() {
+  await supabase.auth.signOut()
+  router.push('/auth/sign-in')
+  router.refresh()
+}
 
   const [filters, setFilters] = useState<FilterState>({
     search:   "",
@@ -80,12 +89,18 @@ export default function DashboardPage() {
             All your legal drafts in one place
           </p>
         </div>
-        <Button asChild className="gap-2">
-          <Link href="/new">
-            <Plus className="h-4 w-4" />
-            New Draft
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+  <Button asChild className="gap-2">
+    <Link href="/new">
+      <Plus className="h-4 w-4" />
+      New Draft
+    </Link>
+  </Button>
+  <Button variant="outline" className="gap-2" onClick={handleSignOut}>
+    <LogOut className="h-4 w-4" />
+    Sign out
+  </Button>
+</div>
       </div>
 
       {/* Filters */}
