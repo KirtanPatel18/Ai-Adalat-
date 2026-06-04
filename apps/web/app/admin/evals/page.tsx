@@ -56,7 +56,7 @@ export default function AdminEvalsPage() {
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-              if (supabaseUrl && supabaseAnonKey) {
+        if (supabaseUrl && supabaseAnonKey) {
           try {
             const supabase = createClient(supabaseUrl, supabaseAnonKey);
             const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();

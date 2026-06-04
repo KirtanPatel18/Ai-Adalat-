@@ -1,4 +1,4 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
@@ -9,14 +9,36 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next({ request })
   }
 
-  const response = NextResponse.next({ request })
-  const supabase = createMiddlewareClient({ req: request, res: response })
+  let supabaseResponse = NextResponse.next({
+    request,
+  })
 
-  const { data: { session } } = await supabase.auth.getSession()
+  const supabase = createServerClient(
+    supabaseUrl,
+    supabaseAnonKey,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          )
+          supabaseResponse = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
+  const { data: { user } } = await supabase.auth.getUser()
 
   // If no user and trying to access protected route → redirect to sign-in
   if (
-    !session &&
+    !user &&
     !request.nextUrl.pathname.startsWith('/auth') &&
     !request.nextUrl.pathname.startsWith('/_next') &&
     request.nextUrl.pathname !== '/'
@@ -26,7 +48,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  return response
+  return supabaseResponse
 }
 
 export const config = {

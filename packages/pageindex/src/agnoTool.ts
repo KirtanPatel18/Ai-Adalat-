@@ -1,4 +1,7 @@
 import { PageIndexNodeId, SnapshotId } from "@trionic/shared";
+import { search as localSearch } from "./search.js";
+import { descend as localDescend } from "./descend.js";
+import { getText as localGetText } from "./getText.js";
 
 // Structure for the descend() method response.
 export interface TreeNode {
@@ -40,24 +43,14 @@ export const pageindex = {
   search: async ({ query, scope, top_k = 5 }: SearchArgs): Promise<SearchResult[]> => {
     console.log(`[PageIndex] Searching for: "${query}" (top_k: ${top_k})`);
 
-    // TODO: Implement your actual retrieval logic here (e.g., Supabase pgvector or BM25)
+    const rawResults = localSearch(query);
+    const results: SearchResult[] = rawResults.map((r) => ({
+      node_id: r.node_id as PageIndexNodeId,
+      snippet: r.snippet,
+      score: r.score,
+    }));
 
-    // Dummy response matching the expected shape and sorting
-    const results: SearchResult[] = [
-      {
-        node_id: "RTI-2005/CH-II/S-6" as PageIndexNodeId,
-        snippet: "Request for obtaining information.—(1) A person, who desires to obtain any information under this Act, shall make a request...",
-        score: 0.92,
-      },
-      {
-        node_id: "RTI-2005/CH-II/S-7" as PageIndexNodeId,
-        snippet: "Disposal of request.—(1) Subject to the proviso to sub-section (2) of section 5 or the proviso to sub-section (3) of section 6...",
-        score: 0.85,
-      }
-    ];
-
-    // Ordered by score descending
-    return results.sort((a, b) => b.score - a.score).slice(0, top_k);
+    return results.slice(0, top_k);
   },
 
   /**
@@ -66,14 +59,12 @@ export const pageindex = {
   descend: async ({ node_id }: DescendArgs): Promise<{ children: TreeNode[] }> => {
     console.log(`[PageIndex] Descending into node: ${node_id}`);
 
-    // TODO: Implement DB query to fetch children of the given node_id
-    const children: TreeNode[] = [
-      {
-        node_id: `${node_id}/SUB-1` as PageIndexNodeId,
-        title: "Sub-section 1",
-        has_children: false
-      }
-    ];
+    const rawChildren = localDescend(node_id) || [];
+    const children: TreeNode[] = rawChildren.map((child: any) => ({
+      node_id: child.node_id as PageIndexNodeId,
+      title: child.title || "",
+      has_children: !!(child.children && child.children.length > 0),
+    }));
 
     return { children };
   },
@@ -85,18 +76,14 @@ export const pageindex = {
   get_text: async ({ node_id }: GetTextArgs): Promise<{ text: string; snapshot_id: SnapshotId } | null> => {
     console.log(`[PageIndex] Fetching text for node: ${node_id}`);
 
-    // TODO: Implement DB query to fetch the exact text for the node
-    // If the database query returns no rows (meaning the LLM hallucinated the citation), return null.
-
-    // Mocking the Evals team's hallucinated citation test case to return null
-    if (node_id === "RTI-2005/CH-XX/S-99" || node_id === "RTI-FAKE/CH-I/S-999") {
+    const found = localGetText(node_id);
+    if (!found) {
       return null;
     }
 
-    // Default valid mock response
     return {
-      text: "Mock text for the requested legal section.",
-      snapshot_id: "2024-12-01" as SnapshotId
+      text: found.text,
+      snapshot_id: found.snapshot_id as SnapshotId,
     };
-  }
+  },
 };

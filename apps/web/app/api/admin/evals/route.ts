@@ -291,7 +291,7 @@ export async function handleAdminEvals(
   const cutoff = new Date(now.getTime() - WINDOW_MS);
   const { data: traces, error: queryError } = await supabase
     .from("agent_traces")
-    .select("*")
+    .select("model,tokens_in,tokens_out,cost_usd,latency_ms,timestamp")
     .gte("timestamp", cutoff.toISOString())
     .order("timestamp", { ascending: false });
 
@@ -300,9 +300,11 @@ export async function handleAdminEvals(
     // Log for server-side visibility
     // eslint-disable-next-line no-console
     console.error("Query error:", queryError);
-    return NextResponse.json(
-      { error: "query_failed", message: queryError.message ?? "unknown" },
-      { status: 500 },
+    return errorResponse(
+      500,
+      "internal_error",
+      queryError.message ?? "Failed to query agent_traces",
+      null,
     );
   }
 
@@ -351,6 +353,7 @@ export async function handleAdminEvals(
   });
 
   const aggregatedRuns = buildEvalRuns(traces as TraceRow[], now);
+  warnIfBudgetExceeded(aggregatedRuns);
 
   type BudgetAlert = {
     model: string;
@@ -373,8 +376,8 @@ export async function handleAdminEvals(
 
     const metrics = [
       ...run.metrics,
-      { name: "daily_cost_usd", value: modelSpend, unit: "USD" },
-      { name: "budget_cap_usd", value: BUDGET_CAP_USD, unit: "USD" },
+      { name: "daily_cost_usd", value: modelSpend, unit: "usd" },
+      { name: "budget_cap_usd", value: BUDGET_CAP_USD, unit: "usd" },
       { name: "budget_used_pct", value: BUDGET_CAP_USD > 0 ? (modelSpend / BUDGET_CAP_USD) * 100 : 0, unit: "%" },
     ];
 
