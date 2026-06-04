@@ -3,7 +3,6 @@ import urllib.request
 import re
 import time
 from pathlib import Path
-import os
 
 SNAPSHOT_ID = "2026-05-28"
 
@@ -24,7 +23,15 @@ CHAPTER_TITLES = {
     4: "Powers of Superior Officers of Police and Aid to the Magistrates and the Police",
     5: "Arrest of Persons",
     6: "Processes to Compel Appearance",
-    7: "Processes to Compel the Production of Things"
+    7: "Processes to Compel the Production of Things",
+    8: "Security for Keeping the Peace and for Good Behaviour",
+    9: "Order for Maintenance of Wives, Children and Parents",
+    10: "Maintenance of Public Order and Tranquillity",
+    11: "Preventive Action of the Police",
+    12: "Information to the Police and their Powers to Investigate",
+    13: "Jurisdiction of Criminal Courts in Inquiries and Trials",
+    14: "Conditions Requisite for Initiation of Proceedings",
+    15: "Complaints to Magistrates"
 }
 
 ROMAN_NUMERALS = {
@@ -37,7 +44,12 @@ ROMAN_NUMERALS = {
     7: "VII",
     8: "VIII",
     9: "IX",
-    10: "X"
+    10: "X",
+    11: "XI",
+    12: "XII",
+    13: "XIII",
+    14: "XIV",
+    15: "XV"
 }
 
 def get_base_section(sec_val):
@@ -63,16 +75,14 @@ def main():
     all_data = json.loads(response.read().decode('utf-8'))
     print(f"Downloaded {len(all_data)} raw items.")
 
-    # Step 2: Filter the first 100 sections
-    # According to requirements: "Persist first 100 sections".
-    # This means sections 1 to 100, including alphabetical suffixes.
+    # Step 2: Filter the first 200 sections
     filtered_items = []
     for item in all_data:
         sec_num = get_base_section(item.get("section"))
-        if sec_num <= 100:
+        if sec_num <= 200:
             filtered_items.append(item)
 
-    print(f"Filtered {len(filtered_items)} items for sections 1 to 100.")
+    print(f"Filtered {len(filtered_items)} items for sections 1 to 200.")
 
     # Step 3: Create corpus folder and cleaned-text.md
     CORPUS_DIR.mkdir(parents=True, exist_ok=True)
@@ -100,12 +110,11 @@ def main():
     print(f"Saved cleaned text to {CLEANED_TEXT_FILE}")
 
     # Step 4: Build hierarchical tree
-    # Act -> Part -> Chapter -> Section
-    # Node IDs: CRPC-1973/PART-I/CHAPTER-I/SECTION-1
+    # Act -> Chapter -> Section
+    # Node IDs: CRPC-1973/CH-I/S-1
     nodes = []
 
     act_id = "CRPC-1973"
-    part_id = f"{act_id}/PART-I"
 
     # 4.1 Build Act Node (Root)
     act_node = {
@@ -117,33 +126,14 @@ def main():
         "snapshot_id": SNAPSHOT_ID,
         "text": "Code of Criminal Procedure, 1973\nAn Act to consolidate and amend the law relating to criminal procedure.",
         "parent_id": None,
-        "children": [part_id],
-        "children_ids": [part_id],
+        "children": [],  # Will be populated with chapters
+        "children_ids": [],
         "path": [act_id],
         "act_code": act_id,
         "act_name": "Code of Criminal Procedure, 1973",
         "number": "1973"
     }
     nodes.append(act_node)
-
-    # 4.2 Build Part Node
-    part_node = {
-        "id": part_id,
-        "node_id": part_id,
-        "type": "part",
-        "level": "part",
-        "title": "Part I",
-        "snapshot_id": SNAPSHOT_ID,
-        "text": "PART I",
-        "parent_id": act_id,
-        "children": [],  # Will be populated with chapters
-        "children_ids": [],
-        "path": [act_id, part_id],
-        "act_code": act_id,
-        "act_name": "Code of Criminal Procedure, 1973",
-        "number": "I"
-    }
-    nodes.append(part_node)
 
     # 4.3 Group sections by Chapter
     sections_by_chapter = {}
@@ -158,12 +148,12 @@ def main():
 
     for ch in sorted_chapters:
         ch_roman = int_to_roman(ch)
-        ch_id = f"{part_id}/CHAPTER-{ch_roman}"
+        ch_id = f"{act_id}/CH-{ch_roman}"
         ch_title = CHAPTER_TITLES.get(ch, f"Chapter {ch_roman}")
         
-        # Add to part children
-        part_node["children"].append(ch_id)
-        part_node["children_ids"].append(ch_id)
+        # Add to act children
+        act_node["children"].append(ch_id)
+        act_node["children_ids"].append(ch_id)
 
         # 4.4 Build Chapter Node
         ch_node = {
@@ -174,10 +164,10 @@ def main():
             "title": f"Chapter {ch_roman} — {ch_title}",
             "snapshot_id": SNAPSHOT_ID,
             "text": f"CHAPTER {ch_roman}\n{ch_title.upper()}",
-            "parent_id": part_id,
+            "parent_id": act_id,
             "children": [],  # Will be populated with sections
             "children_ids": [],
-            "path": [act_id, part_id, ch_id],
+            "path": [act_id, ch_id],
             "act_code": act_id,
             "act_name": "Code of Criminal Procedure, 1973",
             "number": ch_roman
@@ -187,7 +177,7 @@ def main():
         # 4.5 Build Section Nodes for this chapter
         for sec_item in sections_by_chapter[ch]:
             sec_num_str = str(sec_item.get("section")).strip()
-            sec_id = f"{ch_id}/SECTION-{sec_num_str}"
+            sec_id = f"{ch_id}/S-{sec_num_str}"
             sec_title = sec_item.get("section_title", "").strip()
             sec_desc = sec_item.get("section_desc", "").strip()
 
@@ -206,7 +196,7 @@ def main():
                 "parent_id": ch_id,
                 "children": [],
                 "children_ids": [],
-                "path": [act_id, part_id, ch_id, sec_id],
+                "path": [act_id, ch_id, sec_id],
                 "act_code": act_id,
                 "act_name": "Code of Criminal Procedure, 1973",
                 "number": sec_num_str
@@ -226,7 +216,7 @@ def main():
         "snapshot_id": SNAPSHOT_ID,
         "total_nodes": len(nodes),
         "act_nodes": 1,
-        "part_nodes": 1,
+        "part_nodes": 0,
         "chapter_nodes": len(sorted_chapters),
         "section_nodes": len(filtered_items),
         "build_time_seconds": round(elapsed_time, 4)

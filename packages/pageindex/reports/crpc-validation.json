@@ -1,39 +1,38 @@
 {
   "status": "PASS",
-  "total_nodes": 113,
+  "total_nodes": 237,
   "node_counts": {
     "act": 1,
-    "part": 1,
-    "chapter": 7,
-    "section": 104
+    "chapter": 15,
+    "section": 221
   },
   "errors": [],
   "warnings": [],
   "sampled_sections": [
     {
-      "id": "CRPC-1973/PART-I/CHAPTER-VI/SECTION-78",
-      "title": "Warrant forwarded for execution outside jurisdiction",
-      "text_length": 946
+      "id": "CRPC-1973/CH-X/S-148",
+      "title": "Local inquiry",
+      "text_length": 939
     },
     {
-      "id": "CRPC-1973/PART-I/CHAPTER-II/SECTION-15",
-      "title": "Subordination of Judicial Magistrates",
-      "text_length": 467
+      "id": "CRPC-1973/CH-III/S-28",
+      "title": "Sentences which High Courts and Sessions Judges may pass",
+      "text_length": 482
     },
     {
-      "id": "CRPC-1973/PART-I/CHAPTER-I/SECTION-4",
-      "title": "Trial of offences under the Indian Penal Code and other laws",
-      "text_length": 547
+      "id": "CRPC-1973/CH-II/S-7",
+      "title": "Territorial divisions",
+      "text_length": 789
     },
     {
-      "id": "CRPC-1973/PART-I/CHAPTER-VII/SECTION-91",
-      "title": "Summons to produce document or other thing",
-      "text_length": 1151
+      "id": "CRPC-1973/CH-XII/S-171",
+      "title": "Complainant and witnesses not to be required to accompany police officer and not to be subject to restraint",
+      "text_length": 659
     },
     {
-      "id": "CRPC-1973/PART-I/CHAPTER-III/SECTION-35",
-      "title": "Powers of Judges and Magistrates exercisable by their successors-in-office",
-      "text_length": 931
+      "id": "CRPC-1973/CH-VI/S-67",
+      "title": "Service of summons outside local limits",
+      "text_length": 303
     }
   ]
 }

@@ -98,6 +98,48 @@ function loadNodes() {
   } catch (err) {
     console.warn("Warning: Could not load crpc-tree.json", err);
   }
+
+  // Load RTI Act Tree
+  try {
+    let rtiPath = join(artifactsDir, "rti-act-2005.json");
+    if (!require("fs").existsSync(rtiPath)) {
+      rtiPath = join(__dirname, "..", "data", "rti-act-2005.json");
+    }
+    const rtiData = readFileSync(rtiPath, "utf-8");
+    const rtiTree = JSON.parse(rtiData);
+
+    const flattenRtiNode = (node: any, parentId: string | null = null, path: string[] = []) => {
+      const currentPath = [...path, node.node_id];
+      const childrenIds = node.children ? node.children.map((c: any) => c.node_id) : [];
+      
+      const normalizedNode: PageIndexNode = {
+        node_id: node.node_id,
+        snapshot_id: node.snapshot_id || "2026-05-28",
+        act_code: "RTI-2005",
+        act_name: "Right to Information Act, 2005",
+        level: (node.level || "section") as NodeLevel,
+        number: node.section_number || node.node_id.split("-").pop() || "",
+        title: node.title || "",
+        text: node.text || "",
+        parent_id: node.parent_id || parentId,
+        children_ids: childrenIds,
+        path: currentPath,
+        source_url: "https://indiacode.nic.in"
+      };
+      
+      allNodesMap.set(normalizedNode.node_id, normalizedNode);
+      
+      if (node.children) {
+        for (const child of node.children) {
+          flattenRtiNode(child, node.node_id, currentPath);
+        }
+      }
+    };
+
+    flattenRtiNode(rtiTree);
+  } catch (err) {
+    console.warn("Warning: Could not load rti-act-2005.json", err);
+  }
 }
 
 /** Retrieve the exact canonical legal text of a specific node by its ID. */

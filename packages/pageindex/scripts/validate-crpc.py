@@ -1,6 +1,7 @@
 import json
 import re
 import random
+import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -29,9 +30,8 @@ def main():
     # Formats to check
     id_patterns = {
         "act": re.compile(r"^CRPC-1973$"),
-        "part": re.compile(r"^CRPC-1973/PART-[A-Z]+$"),
-        "chapter": re.compile(r"^CRPC-1973/PART-[A-Z]+/CHAPTER-[I|V|X|L|C|D|M]+$"),
-        "section": re.compile(r"^CRPC-1973/PART-[A-Z]+/CHAPTER-[I|V|X|L|C|D|M]+/SECTION-\d+[A-Z]?$")
+        "chapter": re.compile(r"^CRPC-1973/CH-[I|V|X|L|C|D|M]+$"),
+        "section": re.compile(r"^CRPC-1973/CH-[I|V|X|L|C|D|M]+/S-\d+[A-Z]?$")
     }
 
     # 1. Structural checks
@@ -88,23 +88,53 @@ def main():
 
     print(f"Node counts by type: {node_counts_by_type}")
 
-    # 2. Pick 5 random sections and validate their text
+    # 2. Pick 5 random sections and validate their text against IndiaCode source
     sections = [n for n in nodes if n["type"] == "section"]
-    print(f"\nChecking 5 random sections out of {len(sections)}:")
+    print(f"\nChecking 5 random sections out of {len(sections)} against IndiaCode ground truth:")
     random.seed(42) # Set seed for reproducible validation run
     sampled_sections = random.sample(sections, min(len(sections), 5))
-    
-    for sec in sampled_sections:
-        print(f"\n- Section Node ID: {sec['id']}")
-        print(f"  Title: {sec['title']}")
-        print(f"  Path: {' -> '.join(sec['path'])}")
-        snippet = sec['text'].replace('\n', ' ')[:100]
-        print(f"  Text snippet: {snippet}...")
-        
-        if not sec['text'].strip():
-            errors.append(f"Section {sec['id']} has empty text content")
-        if not sec['title'].strip():
-            errors.append(f"Section {sec['id']} has empty title")
+
+    # Fetch source IndiaCode JSON
+    url = "https://raw.githubusercontent.com/civictech-India/Indian-Law-Penal-Code-Json/master/crpc.json"
+    source_data = []
+    try:
+        response = urllib.request.urlopen(url, timeout=10)
+        source_data = json.loads(response.read().decode('utf-8'))
+        print("Successfully downloaded IndiaCode source dataset.")
+    except Exception as e:
+        errors.append(f"Could not fetch online IndiaCode source for validation: {e}")
+
+    if source_data:
+        for sec in sampled_sections:
+            sec_num_str = sec["number"]
+            print(f"\n- Section Node ID: {sec['id']}")
+            print(f"  Title: {sec['title']}")
+            
+            # Find matching item in source_data
+            source_item = next((item for item in source_data if str(item.get("section")).strip() == sec_num_str), None)
+            if not source_item:
+                errors.append(f"Section {sec['id']} (number {sec_num_str}) not found in IndiaCode source data")
+                continue
+            
+            source_title = source_item.get("section_title", "").strip()
+            source_desc = source_item.get("section_desc", "").strip()
+            
+            # Standardize for matching (remove extra whitespace/newlines)
+            clean_tree_title = " ".join(sec['title'].split()).strip().lower()
+            clean_source_title = " ".join(source_title.split()).strip().lower()
+            
+            if clean_tree_title != clean_source_title:
+                errors.append(f"Section {sec['id']} title does not match IndiaCode source.\n  Tree: {sec['title']}\n  Source: {source_title}")
+            else:
+                print("  Title Match: PASS")
+                
+            clean_tree_text = " ".join(sec['text'].split()).strip().lower()
+            clean_source_desc = " ".join(source_desc.split()).strip().lower()
+            
+            if clean_source_desc not in clean_tree_text:
+                errors.append(f"Section {sec['id']} text content does not match/contain IndiaCode source description.")
+            else:
+                print("  Text Match: PASS")
 
     # 3. Write validation report
     validation_status = "PASS" if not errors else "FAIL"
