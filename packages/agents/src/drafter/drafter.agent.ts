@@ -27,6 +27,7 @@ import { router } from "../router/index.js";
 import { buildTrace, buildErrorTrace, persistTrace } from "../tracing/index.js";
 import {
   DRAFTER_SYSTEM_PROMPT,
+  RTI_DRAFTER_SYSTEM_PROMPT,
   buildDrafterUserPrompt,
   buildDrafterRevisionPrompt,
 } from "./drafter.prompt.js";
@@ -90,13 +91,16 @@ export async function runDrafter(input: DrafterInput): Promise<DrafterResult> {
       }
     }
 
+    const isRti = plan.document_type === "rti_application";
+    const systemPrompt = isRti ? RTI_DRAFTER_SYSTEM_PROMPT : DRAFTER_SYSTEM_PROMPT;
+
     let llmResponse;
     try {
       // Route through LLM Router — see router.config.ts "drafter" entry:
       //   Claude 3.5 Sonnet, maxTokens: 4096, temperature: 0.3
       llmResponse = await router.run(
         "drafter",
-        DRAFTER_SYSTEM_PROMPT,
+        systemPrompt,
         userPrompt
       );
     } finally {
@@ -195,9 +199,12 @@ export async function reviseDraft(
       revisionHint
     );
 
+    const isRti = original.document_type === "rti_application";
+    const systemPrompt = isRti ? RTI_DRAFTER_SYSTEM_PROMPT : DRAFTER_SYSTEM_PROMPT;
+
     const llmResponse = await router.run(
       "drafter",
-      DRAFTER_SYSTEM_PROMPT,
+      systemPrompt,
       revisionPrompt
     );
 

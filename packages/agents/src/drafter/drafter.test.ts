@@ -112,10 +112,12 @@ The Opposite Party's acts constitute a deficiency in service [CITE:CPA-2019/CH-I
 const makeMockLLMResponse = (text: string) => ({
   text,
   model: "claude-3-5-sonnet-20241022",
+  provider: "claude" as const,
   tokens_in: 350,
   tokens_out: 820,
   cost_usd: 0.004,
   latency_ms: 1200,
+  fallback_used: false,
 });
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -301,6 +303,60 @@ describe("runDrafter()", () => {
       mockInput.session_id
     );
     expect(vi.mocked(persistTrace)).toHaveBeenCalled();
+  });
+
+  it("acceptance: given a canned planner output + retrieved RTI nodes, returns a draft with 3+ valid markers and uses the RTI system prompt", async () => {
+    const { router } = await import("../router/index.js");
+    const { RTI_DRAFTER_SYSTEM_PROMPT } = await import("./drafter.prompt.js");
+    
+    const rtiLlmResponse = `---
+**AI-generated draft — not legal advice.** This document was produced by Trionic Adalat to assist with drafting only. It is not a substitute for advice from a qualified legal professional. Verify all citations and facts before use.
+---
+
+## Right to Information Application
+
+To: The Public Information Officer [CITE:RTI-2005/S-5]
+
+I hereby request information regarding municipal expenditures under Section 6(1) of the RTI Act [CITE:RTI-2005/S-6].
+
+Please provide the disposal status in accordance with Section 7(1) [CITE:RTI-2005/S-7].`;
+
+    vi.mocked(router.run).mockResolvedValueOnce(makeMockLLMResponse(rtiLlmResponse));
+
+    const rtiInput: DrafterInput = {
+      plan: {
+        document_type: "rti_application",
+        template_id: "rti-template-v1",
+        pageindex_queries: ["RTI Section 6(1)", "RTI Section 7(1)"],
+        applicable_acts: ["RTI-2005"],
+        notes: "Municipal expenditures seek",
+      },
+      intakeText: "I want to file an RTI to get details about municipal expenditures.",
+      session_id: "rti-session-001",
+    };
+
+    const result = await runDrafter(rtiInput);
+
+    // Verify dynamic system prompt selection
+    expect(router.run).toHaveBeenCalledWith(
+      "drafter",
+      RTI_DRAFTER_SYSTEM_PROMPT,
+      expect.any(String)
+    );
+
+    // Verify draft and citations
+    expect(result.draft.document_type).toBe("rti_application");
+    expect(result.draft.citations.length).toBe(3);
+    
+    // Verify node ID normalization to real tree nodes
+    const nodeIds = result.draft.citations.map((c) => c.node_id);
+    expect(nodeIds).toContain("RTI-2005/CH-II/S-5");
+    expect(nodeIds).toContain("RTI-2005/CH-II/S-6");
+    expect(nodeIds).toContain("RTI-2005/CH-II/S-7");
+
+    expect(result.trace.cited_nodes).toContain("RTI-2005/CH-II/S-5");
+    expect(result.trace.cited_nodes).toContain("RTI-2005/CH-II/S-6");
+    expect(result.trace.cited_nodes).toContain("RTI-2005/CH-II/S-7");
   });
 });
 

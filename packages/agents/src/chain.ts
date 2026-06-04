@@ -406,8 +406,8 @@ export async function* runAgentChain(
           try {
             const translatorResult = await runTranslator({
               body_markdown: drafterResult.draft.content,
-              target_language: target_language,
               citations: citatorResult.validatedCitations,
+              target_language: target_language,
               session_id,
             });
 
