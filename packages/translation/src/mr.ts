@@ -1,4 +1,3 @@
-
 export const mr = {
   login: "लॉगिन",
   signup: "नोंदणी",
@@ -15,6 +14,39 @@ export const mr = {
   previous: "मागील",
   document: "दस्तऐवज",
   language: "भाषा",
-  legal_help: "कायदेशीर मदत"
-};
+  legal_help: "कायदेशीर मदत",
 
+  // Week 3 additions
+  create_document: "दस्तऐवज तयार करा",
+  edit_document: "दस्तऐवज संपादित करा",
+  delete_document: "दस्तऐवज हटवा",
+  save: "जतन करा",
+  download: "डाउनलोड करा",
+  generate: "तयार करा",
+  generate_draft: "मसुदा तयार करा",
+  export_pdf: "PDF निर्यात करा",
+  export_docx: "DOCX निर्यात करा",
+  citations: "संदर्भ",
+  loading: "लोड होत आहे",
+  processing: "प्रक्रिया सुरू आहे",
+  success: "यशस्वी",
+  error: "त्रुटी",
+  retry: "पुन्हा प्रयत्न करा",
+  draft: "मसुदा",
+  documents: "दस्तऐवज",
+  status: "स्थिती",
+  title: "शीर्षक",
+  description: "वर्णन",
+  user: "वापरकर्ता",
+  notification: "सूचना",
+  help: "मदत",
+  back: "मागे",
+  continue: "सुरू ठेवा",
+
+  // RTI-specific
+  rti_application: "माहिती अधिकार अर्ज",
+  public_authority: "सार्वजनिक प्राधिकरण",
+  information_officer: "माहिती अधिकारी",
+  first_appeal: "प्रथम अपील",
+  second_appeal: "द्वितीय अपील"
+};

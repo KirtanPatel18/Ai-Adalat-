@@ -5,7 +5,8 @@
   "main": "src/agnoTool.ts",
   "scripts": {
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "validate": "node scripts/validate-tree.mjs"
   },
   "dependencies": {
     "@trionic/shared": "workspace:*"
