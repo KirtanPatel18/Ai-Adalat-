@@ -2,16 +2,23 @@
   "name": "@trionic/pageindex",
   "version": "0.0.1",
   "private": true,
+  "description": "Tree-based retrieval over authoritative Indian legal texts",
   "main": "src/agnoTool.ts",
   "scripts": {
-    "lint": "eslint .",
+    "build": "tsc --project tsconfig.json",
+    "dev": "tsc --project tsconfig.json --watch",
     "typecheck": "tsc --noEmit",
-    "validate": "node scripts/validate-tree.mjs"
+    "test": "vitest run",
+    "lint": "eslint .",
+    "ingest:crpc": "python scripts/ingest-crpc.py",
+    "validate:crpc": "python scripts/validate-crpc.py"
   },
   "dependencies": {
     "@trionic/shared": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0",
+    "@types/node": "^22.0.0"
   }
 }
