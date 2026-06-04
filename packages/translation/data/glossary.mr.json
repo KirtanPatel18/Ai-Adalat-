@@ -325,6 +325,169 @@
     "language": "mr",
     "domain": "general",
     "status": "approved"
+  },
+  {
+    "id": "mr-rti-right-to-information",
+    "term_en": "right to information",
+    "term_indic": "माहितीचा अधिकार",
+    "language": "mr",
+    "node_id": "RTI-2005/S-3",
+    "domain": "rti",
+    "status": "approved"
+  },
+  {
+    "id": "mr-rti-public-authority",
+    "term_en": "public authority",
+    "term_indic": "सार्वजनिक प्राधिकरण",
+    "language": "mr",
+    "node_id": "RTI-2005/S-2",
+    "domain": "rti",
+    "status": "approved"
+  },
+  {
+    "id": "mr-rti-public-information-officer",
+    "term_en": "public information officer",
+    "term_indic": "सार्वजनिक माहिती अधिकारी",
+    "language": "mr",
+    "domain": "rti",
+    "status": "approved"
+  },
+  {
+    "id": "mr-rti-assistant-public-information-officer",
+    "term_en": "assistant public information officer",
+    "term_indic": "सहायक सार्वजनिक माहिती अधिकारी",
+    "language": "mr",
+    "domain": "rti",
+    "status": "approved"
+  },
+  {
+    "id": "mr-rti-information-commission",
+    "term_en": "information commission",
+    "term_indic": "माहिती आयोग",
+    "language": "mr",
+    "domain": "rti",
+    "status": "approved"
+  },
+  {
+    "id": "mr-rti-chief-information-commissioner",
+    "term_en": "chief information commissioner",
+    "term_indic": "मुख्य माहिती आयुक्त",
+    "language": "mr",
+    "domain": "rti",
+    "status": "approved"
+  },
+  {
+    "id": "mr-rti-state-information-commission",
+    "term_en": "state information commission",
+    "term_indic": "राज्य माहिती आयोग",
+    "language": "mr",
+    "domain": "rti",
+    "status": "approved"
+  },
+  {
+    "id": "mr-rti-applicant",
+    "term_en": "applicant",
+    "term_indic": "अर्जदार",
+    "language": "mr",
+    "domain": "rti",
+    "status": "approved"
+  },
+  {
+    "id": "mr-rti-citizen",
+    "term_en": "citizen",
+    "term_indic": "नागरिक",
+    "language": "mr",
+    "domain": "rti",
+    "status": "approved"
+  },
+  {
+    "id": "mr-rti-record",
+    "term_en": "record",
+    "term_indic": "अभिलेख",
+    "language": "mr",
+    "domain": "rti",
+    "status": "approved"
+  },
+  {
+    "id": "mr-rti-document",
+    "term_en": "document",
+    "term_indic": "दस्तऐवज",
+    "language": "mr",
+    "domain": "rti",
+    "status": "approved"
+  },
+  {
+    "id": "mr-rti-certified-copy",
+    "term_en": "certified copy",
+    "term_indic": "प्रमाणित प्रत",
+    "language": "mr",
+    "domain": "rti",
+    "status": "approved"
+  },
+  {
+    "id": "mr-rti-inspection",
+    "term_en": "inspection",
+    "term_indic": "तपासणी",
+    "language": "mr",
+    "domain": "rti",
+    "status": "approved"
+  },
+  {
+    "id": "mr-rti-disclosure",
+    "term_en": "disclosure",
+    "term_indic": "उघड करणे",
+    "language": "mr",
+    "domain": "rti",
+    "status": "approved"
+  },
+  {
+    "id": "mr-rti-exemption",
+    "term_en": "exemption",
+    "term_indic": "अपवाद",
+    "language": "mr",
+    "domain": "rti",
+    "status": "approved"
+  },
+  {
+    "id": "mr-rti-fee",
+    "term_en": "fee",
+    "term_indic": "शुल्क",
+    "language": "mr",
+    "domain": "rti",
+    "status": "approved"
+  },
+  {
+    "id": "mr-rti-first-appeal",
+    "term_en": "first appeal",
+    "term_indic": "प्रथम अपील",
+    "language": "mr",
+    "domain": "rti",
+    "status": "approved"
+  },
+  {
+    "id": "mr-rti-second-appeal",
+    "term_en": "second appeal",
+    "term_indic": "द्वितीय अपील",
+    "language": "mr",
+    "domain": "rti",
+    "status": "approved"
+  },
+  {
+    "id": "mr-rti-response",
+    "term_en": "response",
+    "term_indic": "उत्तर",
+    "language": "mr",
+    "domain": "rti",
+    "status": "approved"
+  },
+  {
+    "id": "mr-rti-information-request",
+    "term_en": "information request",
+    "term_indic": "माहिती विनंती",
+    "language": "mr",
+    "domain": "rti",
+    "status": "approved"
   }
+  
 ]
 
