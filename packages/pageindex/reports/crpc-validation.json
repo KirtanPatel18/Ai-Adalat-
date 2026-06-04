@@ -1,0 +1,39 @@
+{
+  "status": "PASS",
+  "total_nodes": 113,
+  "node_counts": {
+    "act": 1,
+    "part": 1,
+    "chapter": 7,
+    "section": 104
+  },
+  "errors": [],
+  "warnings": [],
+  "sampled_sections": [
+    {
+      "id": "CRPC-1973/PART-I/CHAPTER-VI/SECTION-78",
+      "title": "Warrant forwarded for execution outside jurisdiction",
+      "text_length": 946
+    },
+    {
+      "id": "CRPC-1973/PART-I/CHAPTER-II/SECTION-15",
+      "title": "Subordination of Judicial Magistrates",
+      "text_length": 467
+    },
+    {
+      "id": "CRPC-1973/PART-I/CHAPTER-I/SECTION-4",
+      "title": "Trial of offences under the Indian Penal Code and other laws",
+      "text_length": 547
+    },
+    {
+      "id": "CRPC-1973/PART-I/CHAPTER-VII/SECTION-91",
+      "title": "Summons to produce document or other thing",
+      "text_length": 1151
+    },
+    {
+      "id": "CRPC-1973/PART-I/CHAPTER-III/SECTION-35",
+      "title": "Powers of Judges and Magistrates exercisable by their successors-in-office",
+      "text_length": 931
+    }
+  ]
+}
