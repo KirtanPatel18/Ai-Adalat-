@@ -16,9 +16,10 @@
     "dev": "tsc --project tsconfig.json --watch",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "ingest:crpc": "python scripts/ingest-crpc.py",
-    "validate:crpc": "python scripts/validate-crpc.py"
+"test": "vitest run",
+"ingest:crpc": "python scripts/ingest-crpc.py",
+"validate:crpc": "python scripts/validate-crpc.py",
+"validate": "node scripts/validate-tree.mjs"
   },
   "dependencies": {
     "@trionic/shared": "workspace:*"
