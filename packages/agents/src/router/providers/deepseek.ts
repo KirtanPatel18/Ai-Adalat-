@@ -4,6 +4,7 @@
  *
  * DeepSeek provider — FUNCTIONAL in Week 3.
  * Requires DEEPSEEK_API_KEY in environment.
+ * DeepSeek is fully OpenAI-API-compatible.
  */
 
 import OpenAI from "openai";

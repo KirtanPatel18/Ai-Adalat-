@@ -69,8 +69,8 @@ export const ROUTER_CONFIG: Record<string, StepRouteConfig> = {
       temperature: 0.3,
     },
     fallback: {
-      provider: "gpt",
-      model: "gpt-4o",
+      provider: "claude",
+      model: "claude-3-5-sonnet-20241022",
       maxTokens: 4096,
       temperature: 0.3,
     }

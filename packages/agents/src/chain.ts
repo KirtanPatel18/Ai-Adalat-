@@ -382,7 +382,8 @@ export async function* runAgentChain(
             citations: citatorResult.validatedCitations,
           },
           session_id,
-        });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any);
 
         const reviewerDuration = Date.now() - reviewerStartTime;
         yield stepDone(

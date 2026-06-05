@@ -50,3 +50,7 @@ venv/
 # Supabase local
 .supabase/
 supabase/.temp/
+
+# DeepSeek Cost Tracker local cache
+.deepseek-cost.json
+
