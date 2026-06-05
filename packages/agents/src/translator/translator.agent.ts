@@ -222,12 +222,15 @@ export async function runTranslator(input: TranslatorInput): Promise<TranslatorR
       llmResponse: {
         text: body_markdown,
         model: "pass-through",
+        provider: "claude" as const,
         tokens_in: 0,
         tokens_out: 0,
         cost_usd: 0,
         latency_ms: 0,
+        fallback_used: false,
       },
       cited_nodes: [],
+
       status: "ok",
       session_id,
     });

@@ -1,3 +1,4 @@
+
 /**
  * packages/translation/src/index.ts
  * Owner: Team E — Indic
@@ -7,14 +8,17 @@
  */
 
 // ─── Glossary ─────────────────────────────────────────────────────────────────
-export { lookupGlossary } from "./glossary.js";
+export { glossary, lookupGlossary } from "./glossary.js";
 export type {
   GlossaryEntry,
   GlossaryLookupInput,
   GlossaryLookupResult,
+  GlossaryTermLookupResult,
   GlossaryStatus,
   IndicLanguage,
 } from "./glossary.js";
 
 // ─── Post-processing ──────────────────────────────────────────────────────────
 export { postProcessIndicText, splitAroundCiteMarkers } from "./postprocess.js";
+// ─── Marathi Translations ─────────────────────────────────────────────────────
+export { mr } from "./mr.js";

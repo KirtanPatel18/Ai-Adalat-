@@ -319,7 +319,7 @@ export async function* runAgentChain(
       if (!result.approved) {
         yield stepError(
           "reviewer",
-          result.rejection_reason ?? "Reviewer rejected the draft — quality check failed."
+          result.trace.error_message ?? "Reviewer rejected the draft — quality check failed."
         );
         return; // chain aborted
       }
@@ -341,12 +341,13 @@ export async function* runAgentChain(
 
     try {
       const result = await runTranslator({
-        draft,
-        targetLanguage: req.target_language,
+        body_markdown: draft.content,
+        target_language: req.target_language,
+        citations: draft.citations,
         session_id,
       });
       allTraces.push(result.trace);
-      finalMarkdown = result.translatedDraft.content;
+      finalMarkdown = result.output.translated_markdown;
       yield stepDone("translator", Date.now() - t0, result.trace.tokens_in + result.trace.tokens_out);
     } catch (_err) {
       // Translator not yet implemented — return English draft with warning

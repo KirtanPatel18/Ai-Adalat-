@@ -11,6 +11,7 @@
     "declarationMap": true,
     "sourceMap": true,
     "resolveJsonModule": true,
+    "types": ["node"],
     "paths": {
       "@trionic/shared": ["../shared/src/index.ts"],
       "@trionic/shared/*": ["../shared/src/*"]

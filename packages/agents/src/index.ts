@@ -62,5 +62,39 @@ export type {
   PlannerResult as PlannerResultV2,
 } from "./agents/planner.js";
 
+// ─── Week-2: DrafterAgent (agents/drafter.ts) ────────────────────────────────
+export {
+  DrafterAgent as DrafterAgentV2,
+  runDrafterAgent,
+} from "./agents/drafter.js";
+export type {
+  DrafterAgentInput,
+  PageIndexNodeInput,
+} from "./agents/drafter.js";
+
 // ─── Week-2: runAgentChain orchestrator ──────────────────────────────────────
 export { runAgentChain } from "./orchestrator.js";
+
+// ─── Week-3: Memory API (Yatri Dungarani — Issue #39) ────────────────────────
+// Team B's POST /api/draft handler imports these to wire the correct store:
+//
+//   import { Memory, SupabaseStore } from "@trionic/agents";
+//   const memory = new Memory(new SupabaseStore(supabaseClient));
+//   // pass memoryStore into runAgentChain options
+//
+export {
+  Memory,
+  InMemoryStore,
+  SupabaseStore,
+  MemoryConflictError,
+  createInitialState,
+  hashIntakeText,
+} from "./memory.js";
+export type { MemoryStore, MemoryApi } from "./memory.js";
+
+// Memory-aware runAgentChain (from chain.ts).
+// Preferred over the orchestrator.ts version for production use —
+// this one reads/writes ConversationState on every step.
+export { runAgentChain as runAgentChainWithMemory } from "./chain.js";
+export type { ChainInput, ChainOptions } from "./chain.js";
+

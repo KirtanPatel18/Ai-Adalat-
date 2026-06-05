@@ -11,6 +11,7 @@
  *   node_id format: <ACT_CODE>/<CHAPTER>/<SECTION>  e.g. RTI-2005/CH-II/S-3
  */
 
+import type { SearchResult } from "@trionic/pageindex";
 import type { PlannerOutput } from "../types.js";
 
 // ─── System Prompt ────────────────────────────────────────────────────────────
@@ -78,13 +79,15 @@ This is a drafting aid — NOT legal advice. Write in this spirit at all times.`
 /**
  * Build the user prompt for the Drafter given a PlannerOutput and user's intake text.
  *
- * @param plan        - Structured plan from the Planner agent.
- * @param intakeText  - The user's original intake text (for context).
- * @returns           - The user prompt string to pass to the LLM.
+ * @param plan           - Structured plan from the Planner agent.
+ * @param intakeText     - The user's original intake text (for context).
+ * @param retrievedNodes - Verified search results from the PageIndex tool.
+ * @returns              - The user prompt string to pass to the LLM.
  */
 export function buildDrafterUserPrompt(
   plan: PlannerOutput,
-  intakeText: string
+  intakeText: string,
+  retrievedNodes: SearchResult[] = []
 ): string {
   const queriesBlock =
     plan.pageindex_queries.length > 0
@@ -95,6 +98,16 @@ export function buildDrafterUserPrompt(
     plan.applicable_acts.length > 0
       ? plan.applicable_acts.map((a) => `  - ${a}`).join("\n")
       : "  (none specified)";
+
+  const retrievedNodesBlock =
+    retrievedNodes.length > 0
+      ? retrievedNodes
+          .map(
+            (n) =>
+              `- [CITE:${n.node_id}]\n  Snippet: "${n.snippet}"`
+          )
+          .join("\n\n")
+      : "  (none retrieved)";
 
   return `## Drafting Request
 
@@ -109,6 +122,9 @@ ${intakeText}
 ### Applicable Acts (use ONLY these act codes in your [CITE:...] markers)
 ${actsBlock}
 
+### Retrieved Legal Sections from PageIndex (use these exact citation markers where applicable)
+${retrievedNodesBlock}
+
 ### PageIndex Retrieval Hints (relevant sections to cite)
 ${queriesBlock}
 
@@ -119,7 +135,7 @@ Draft a complete ${plan.document_type.replace(/_/g, " ")} document in Markdown.
 MANDATORY:
 1. First paragraph MUST be the "AI-generated draft — not legal advice" banner (verbatim as instructed).
 2. Every legal claim MUST have a [CITE:<node_id>] marker immediately after it.
-3. Derive node IDs from the applicable acts above using the format: <ACT_CODE>/<CHAPTER_OR_PART>/<SECTION>
+3. Use the exact [CITE:<node_id>] markers from the retrieved legal sections above where applicable. If not present in the retrieved sections list, derive node IDs from the applicable acts above using the format: <ACT_CODE>/<CHAPTER_OR_PART>/<SECTION>
    For example, if the act is RTI-2005 and you cite Section 7, use: [CITE:RTI-2005/CH-II/S-7]
 4. Use TODAY'S date (${new Date().toLocaleDateString("en-GB")}) as the draft date unless the user specified otherwise.
 5. Use placeholder text [FULL NAME], [ADDRESS], [DATE], [DESIGNATION] where the user must fill in personal details.
