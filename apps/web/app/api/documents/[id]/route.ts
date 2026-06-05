@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import type { DocumentVersion } from "@trionic/shared";
 
 interface PatchPayload {
   content: string;
