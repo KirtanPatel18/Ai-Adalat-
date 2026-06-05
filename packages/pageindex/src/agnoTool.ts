@@ -1,7 +1,6 @@
 import { PageIndexNodeId, SnapshotId } from "@trionic/shared";
 import { search, descend, get_text } from "./query.js";
 
-// Structure for the descend() method response.
 export interface TreeNode {
   node_id: PageIndexNodeId;
   title: string;
@@ -35,14 +34,28 @@ export const pageindex = {
     top_k = 5
   }: SearchArgs): Promise<SearchResult[]> => {
     console.log(`[PageIndex] Searching for: "${query}"`);
-    
-    // Parse scope array into SearchScope object
+
     const searchScope: any = {};
+
     if (scope && scope.length > 0) {
       for (const item of scope) {
-        if (item === "CRPC-1973" || item === "IPC-1860" || item === "RTI-2005" || item === "ICA-1872") {
+        if (
+          item === "CRPC-1973" ||
+          item === "IPC-1860" ||
+          item === "RTI-2005" ||
+          item === "ICA-1872"
+        ) {
           searchScope.act_code = item;
-        } else if (["act", "part", "chapter", "section", "sub_section", "clause"].includes(item)) {
+        } else if (
+          [
+            "act",
+            "part",
+            "chapter",
+            "section",
+            "sub_section",
+            "clause"
+          ].includes(item)
+        ) {
           searchScope.level = item;
         }
       }
@@ -61,7 +74,9 @@ export const pageindex = {
     node_id
   }: DescendArgs): Promise<{ children: TreeNode[] }> => {
     console.log(`[PageIndex] Descending into: ${node_id}`);
+
     const childrenNodes = await descend(node_id);
+
     return {
       children: childrenNodes.map(c => ({
         node_id: c.node_id as PageIndexNodeId,
@@ -75,8 +90,10 @@ export const pageindex = {
     node_id
   }: GetTextArgs): Promise<{ text: string; snapshot_id: SnapshotId } | null> => {
     console.log(`[PageIndex] Fetching text for: ${node_id}`);
+
     try {
       const node = await get_text(node_id);
+
       return {
         text: node.text,
         snapshot_id: node.snapshot_id as SnapshotId

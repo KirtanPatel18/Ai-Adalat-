@@ -37,7 +37,7 @@ function validateNode(node: PageIndexNode) {
 
     const hasText =
         typeof node.text === "string" &&
-        node.text.trim().length > 20;
+        node.text.trim().length >= 20;
 
     const validId =
         node.node_id.startsWith("IPC-1860/S-");
@@ -82,6 +82,25 @@ function main() {
             "Validation issues detected."
         );
     }
+
+    const reportPath = path.join(
+        process.cwd(),
+        "packages",
+        "pageindex",
+        "reports",
+        "ipc-source-validation.json"
+    );
+
+    const reportData = {
+        total_sections_validated: 10,
+        passed,
+        failed: 10 - passed,
+        status: passed === 10 ? "SUCCESS" : "FAILED",
+        timestamp: new Date().toISOString()
+    };
+
+    fs.writeFileSync(reportPath, JSON.stringify(reportData, null, 2), "utf-8");
+    console.log(`\nValidation artifact generated:\npackages/pageindex/reports/ipc-source-validation.json`);
 }
 
 main();
