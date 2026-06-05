@@ -7,7 +7,7 @@
  * no code changes required in the agents themselves.
  */
 
-export type ModelProvider = "claude" | "gemini" | "gpt";
+export type ModelProvider = "claude" | "gemini" | "gpt" | "deepseek";
 
 export interface ModelConfig {
   /** Which provider to use. */
@@ -63,8 +63,8 @@ export const ROUTER_CONFIG: Record<string, StepRouteConfig> = {
   },
   drafter: {
     preferred: {
-      provider: "claude",
-      model: "claude-3-5-sonnet-20241022",
+      provider: "deepseek",
+      model: "deepseek-chat",
       maxTokens: 4096,
       temperature: 0.3,
     },
