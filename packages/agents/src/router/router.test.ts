@@ -11,6 +11,7 @@ import { ROUTER_CONFIG } from "./router.config.js";
 import { callClaude } from "./providers/claude.js";
 import { callGemini } from "./providers/gemini.js";
 import { callGPT } from "./providers/gpt.js";
+import { callDeepSeek } from "./providers/deepseek.js";
 
 vi.mock("./providers/claude.js", () => ({
   callClaude: vi.fn(),
@@ -22,6 +23,10 @@ vi.mock("./providers/gemini.js", () => ({
 
 vi.mock("./providers/gpt.js", () => ({
   callGPT: vi.fn(),
+}));
+
+vi.mock("./providers/deepseek.js", () => ({
+  callDeepSeek: vi.fn(),
 }));
 
 describe("LLMRouter.resolve()", () => {
@@ -43,7 +48,7 @@ describe("LLMRouter.resolve()", () => {
   });
 
   it("all configured steps have a valid provider", () => {
-    const validProviders = ["claude", "gemini", "gpt"];
+    const validProviders = ["claude", "gemini", "gpt", "deepseek"];
     for (const [_, cfg] of Object.entries(ROUTER_CONFIG)) {
       expect(validProviders).toContain(cfg.preferred.provider);
       if (cfg.fallback) {
