@@ -131,6 +131,9 @@ importers:
 
   packages/evals:
     dependencies:
+      '@trionic/pageindex':
+        specifier: workspace:*
+        version: link:../pageindex
       '@trionic/shared':
         specifier: workspace:*
         version: link:../shared
