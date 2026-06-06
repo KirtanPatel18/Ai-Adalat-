@@ -12,12 +12,8 @@
     "declarationMap": true,
     "sourceMap": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "baseUrl": ".",
-    "paths": {
-      "@trionic/shared": ["../shared/src/index.ts"],
-      "@trionic/shared/*": ["../shared/src/*"]
-    }
+    "rootDir": "src",
+    "resolveJsonModule": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

@@ -33,7 +33,7 @@ import {
 } from "./drafter.prompt.js";
 import { extractCitations, extractNodeIds } from "./citations.js";
 import type { DrafterInput, DrafterResult } from "./types.js";
-import { pageindex } from "@trionic/pageindex";
+import { pageindex, type AgnoSearchResult } from "@trionic/pageindex";
 import { ROUTER_CONFIG } from "../router/router.config.js";
 
 // ─── runDrafter ───────────────────────────────────────────────────────────────
@@ -58,9 +58,9 @@ export async function runDrafter(input: DrafterInput): Promise<DrafterResult> {
   try {
     // 1. Query PageIndex for each hint query in plan.pageindex_queries
     const searchPromises = plan.pageindex_queries.map((q) =>
-      pageindex.search({ query: q, top_k: 3 }).catch((err) => {
+      pageindex.search({ query: q, top_k: 3 }).catch((err: any) => {
         console.warn(`[Drafter] PageIndex search failed for query "${q}":`, err);
-        return [];
+        return [] as AgnoSearchResult[];
       })
     );
     const searchResults = await Promise.all(searchPromises);
@@ -68,7 +68,7 @@ export async function runDrafter(input: DrafterInput): Promise<DrafterResult> {
 
     // Deduplicate retrieved nodes by node_id
     const seenNodes = new Set<string>();
-    const retrievedNodes = flatResults.filter((item) => {
+    const retrievedNodes = flatResults.filter((item: AgnoSearchResult) => {
       if (seenNodes.has(item.node_id)) {
         return false;
       }
