@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import type { EvalRunResult } from "@trionic/shared";
 
-export const MODEL_OPTIONS = [
+const MODEL_OPTIONS = [
   "all",
   "claude-opus",
   "claude-sonnet",
