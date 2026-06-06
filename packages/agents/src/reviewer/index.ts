@@ -7,19 +7,24 @@
  * drafting pipeline. It runs AFTER the Citator-gatekeeper has approved
  * all citations. It performs three checks:
  *
- *   1. Banner check   — deterministic: is the "not legal advice" disclaimer present?
- *   2. Completeness   — deterministic: are all required sections for the doc type present?
+ *   1. Banner check   — deterministic: exact-string match for disclaimer
+ *   2. Completeness   — LLM-scored: semantic section detection via Router
  *   3. Tone check     — LLM-based: is the language formal, professional, non-advisory?
  *
  * Returns ReviewerOutput (from @trionic/shared) + AgentTrace.
  *
- * See: docs/RFC-reviewer-agent.md, Issue #112
+ * See: docs/RFC-reviewer-agent.md, Issue #112, Issue #185
  */
 
 import type { AgentTrace, DocumentDraft, DocumentType, ReviewerOutput } from "@trionic/shared";
 import { router } from "../router/index.js";
 import { buildTrace, buildErrorTrace, persistTrace } from "../tracing/index.js";
-import { REVIEWER_TONE_SYSTEM_PROMPT, buildToneUserPrompt } from "./reviewer.prompt.js";
+import {
+  REVIEWER_TONE_SYSTEM_PROMPT,
+  buildToneUserPrompt,
+  REVIEWER_SECTION_SYSTEM_PROMPT,
+  buildSectionScoringUserPrompt,
+} from "./reviewer.prompt.js";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -33,17 +38,18 @@ export const LEGAL_DISCLAIMER_BANNER =
   `from a qualified legal professional. Verify all citations and facts before use.\n---`;
 
 /**
- * Regex to match the bold lead-in of the banner.
- * Handles em-dash (—), en-dash (–), and hyphen (-); whitespace-insensitive; case-insensitive.
+ * Exact-string to match in the first 2,000 characters.
+ * Week 3: tightened from regex to exact match per AC5 (#185).
  */
-const BANNER_LEAD = /ai[-–—\s]*generated\s+draft\s*[-–—]+\s*not\s+legal\s+advice/i;
+const BANNER_EXACT = "AI-generated draft \u2014 not legal advice";
 
 /**
  * Per-doc-type required sections.
- * Week 2: only RTI is populated; all others are empty (always pass).
+ * Week 3: RTI now includes "Date and Signature" (5 sections total).
+ * Others remain empty for W3.
  */
 export const REQUIRED_SECTIONS: Record<DocumentType, string[]> = {
-  rti_application: ["Address", "Subject", "Information Sought", "Declaration"],
+  rti_application: ["Address", "Subject", "Information Sought", "Declaration", "Date and Signature"],
   legal_notice: [],
   nda: [],
   consumer_complaint: [],
@@ -60,29 +66,44 @@ export interface ReviewerInput {
 }
 
 /**
- * Extends the locked ReviewerOutput from @trionic/shared with the audit trace.
- * Fields: approved, banner_present, missing_required_sections, tone_issues, trace.
+ * Extends the locked ReviewerOutput from @trionic/shared with the audit trace
+ * and integration fields from docs/agents-package.md.
  */
 export interface ReviewerResult extends ReviewerOutput {
+  /** Human-readable summary of the review outcome. */
+  feedback: string;
+  /** If approved is false, the reason for rejection. Used by chain.ts to emit step.error. */
+  rejection_reason?: string;
   /** Audit trace for this agent call. */
   trace: AgentTrace;
 }
 
-// ─── Pure check functions ─────────────────────────────────────────────────────
+// ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
- * Deterministic banner check.
- * Returns true if the "not legal advice" lead-in appears in the first 2,000 chars.
+ * Returns the list of required section names for a given document type.
+ * AC1 (#185): Reviewer.requiredSections('rti_application') → 5 items.
+ */
+export function requiredSections(docType: DocumentType): string[] {
+  return REQUIRED_SECTIONS[docType] ?? [];
+}
+
+// ─── Check functions ──────────────────────────────────────────────────────────
+
+/**
+ * Exact-string banner check.
+ * Returns true if the canonical banner lead-in appears in the first 2,000 chars.
+ * Week 3: tightened from regex to exact match per AC5 (#185).
  */
 export function checkBanner(draftMarkdown: string): boolean {
   const head = draftMarkdown.slice(0, 2000);
-  return BANNER_LEAD.test(head);
+  return head.includes(BANNER_EXACT);
 }
 
 /**
- * Deterministic completeness check.
- * Returns the list of MISSING required section names for the given doc type.
- * Empty array = all sections present (or doc type has no required sections in W2).
+ * Deterministic completeness check (fallback).
+ * Returns the list of MISSING required section names using simple string matching.
+ * Used as fallback when LLM scoring is unavailable.
  */
 export function checkCompleteness(
   draftMarkdown: string,
@@ -93,19 +114,57 @@ export function checkCompleteness(
   return required.filter((section) => !lower.includes(section.toLowerCase()));
 }
 
+/**
+ * LLM-scored completeness check.
+ * Calls the Router to semantically match required section headings or equivalents.
+ * Falls back to deterministic checkCompleteness() on LLM failure.
+ * AC2 (#185): "use the LLM to score" semantic equivalents.
+ */
+export async function checkCompletenessLLM(
+  draftMarkdown: string,
+  docType: DocumentType
+): Promise<{ missing: string[]; llmResponse?: any }> {
+  const required = REQUIRED_SECTIONS[docType] ?? [];
+  if (required.length === 0) return { missing: [] };
+
+  try {
+    const userPrompt = buildSectionScoringUserPrompt(draftMarkdown, required);
+    const llmResponse = await router.run(
+      "reviewer",
+      REVIEWER_SECTION_SYSTEM_PROMPT,
+      userPrompt
+    );
+
+    const parsed = JSON.parse(llmResponse.text);
+    if (parsed.sections && typeof parsed.sections === "object") {
+      const missing = required.filter(
+        (section) => parsed.sections[section] !== "found"
+      );
+      return { missing, llmResponse };
+    }
+  } catch {
+    // LLM call failed or returned invalid JSON — fall back to deterministic
+  }
+
+  // Deterministic fallback
+  const lower = draftMarkdown.toLowerCase();
+  const missing = required.filter((s) => !lower.includes(s.toLowerCase()));
+  return { missing };
+}
+
 // ─── Agent ────────────────────────────────────────────────────────────────────
 
 /**
  * Run the Reviewer agent on a citator-approved draft.
  *
  * Steps:
- *   1. checkBanner()       — deterministic, no LLM
- *   2. checkCompleteness() — deterministic, no LLM
- *   3. Tone analysis       — real LLM call via Router ("reviewer" step)
+ *   1. checkBanner()          — deterministic exact-string match
+ *   2. checkCompletenessLLM() — LLM-scored semantic section detection
+ *   3. Tone analysis          — LLM call via Router ("reviewer" step)
  *   4. Aggregate → ReviewerResult
  *   5. Build and persist AgentTrace
  *
- * @throws On infrastructure errors (LLM call fails). Business failures
+ * @throws On infrastructure errors (both LLM calls fail). Business failures
  *         (banner missing, sections missing, tone issues) are returned as
  *         approved: false, trace.status: "rejected".
  */
@@ -113,18 +172,19 @@ export async function runReviewer(input: ReviewerInput): Promise<ReviewerResult>
   const { draft, session_id } = input;
 
   try {
-    // 1. Banner check (deterministic)
+    // 1. Banner check (deterministic exact-string)
     const banner_present = checkBanner(draft.content);
 
-    // 2. Completeness check (deterministic)
-    const missing_required_sections = checkCompleteness(
+    // 2. Completeness check (LLM-scored with deterministic fallback)
+    const completenessResult = await checkCompletenessLLM(
       draft.content,
       draft.document_type
     );
+    const missing_required_sections = completenessResult.missing;
 
     // 3. Tone check (LLM call via Router)
     const userPrompt = buildToneUserPrompt(draft.content);
-    const llmResponse = await router.run(
+    const toneLlmResponse = await router.run(
       "reviewer",
       REVIEWER_TONE_SYSTEM_PROMPT,
       userPrompt
@@ -133,7 +193,7 @@ export async function runReviewer(input: ReviewerInput): Promise<ReviewerResult>
     // Parse tone issues from LLM response — graceful fallback on invalid JSON
     let tone_issues: string[] = [];
     try {
-      const parsed = JSON.parse(llmResponse.text);
+      const parsed = JSON.parse(toneLlmResponse.text);
       if (Array.isArray(parsed.tone_issues)) {
         tone_issues = parsed.tone_issues.filter(
           (issue: unknown): issue is string =>
@@ -141,7 +201,7 @@ export async function runReviewer(input: ReviewerInput): Promise<ReviewerResult>
         );
       }
     } catch {
-      // LLM returned non-JSON (expected with Gemini stub) — no tone issues flagged
+      // LLM returned non-JSON — no tone issues flagged
     }
 
     // 4. Aggregate
@@ -167,10 +227,17 @@ export async function runReviewer(input: ReviewerInput): Promise<ReviewerResult>
       error_message = reasons.join(" | ");
     }
 
-    // 5. Build and persist trace
+    // Build feedback and rejection_reason per docs/agents-package.md spec
+    const feedback = approved
+      ? "Draft approved — all checks passed."
+      : error_message!;
+    const rejection_reason = approved ? undefined : error_message;
+
+    // 5. Build and persist trace — use the tone LLM response for tracing
+    //    (completeness LLM response is optional and may not exist on fallback)
     const trace = buildTrace({
       agent: "reviewer",
-      llmResponse,
+      llmResponse: toneLlmResponse,
       cited_nodes: [], // Reviewer does not emit citations
       status: traceStatus,
       session_id,
@@ -183,6 +250,8 @@ export async function runReviewer(input: ReviewerInput): Promise<ReviewerResult>
       banner_present,
       missing_required_sections,
       tone_issues,
+      feedback,
+      rejection_reason,
       trace,
     };
   } catch (error) {
@@ -197,6 +266,11 @@ export async function runReviewer(input: ReviewerInput): Promise<ReviewerResult>
 
 export class ReviewerAgent {
   readonly name = "reviewer";
+
+  /** Returns the list of required section names for a given document type. */
+  requiredSections(docType: DocumentType): string[] {
+    return requiredSections(docType);
+  }
 
   async run(input: ReviewerInput): Promise<ReviewerResult> {
     return runReviewer(input);

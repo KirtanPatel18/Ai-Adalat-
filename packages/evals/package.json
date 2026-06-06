@@ -10,7 +10,8 @@
         "test": "tsx src/run.ts"
     },
     "dependencies": {
-        "@trionic/shared": "workspace:*"
+        "@trionic/shared": "workspace:*",
+        "@trionic/pageindex": "workspace:*"
     },
     "devDependencies": {
         "@types/node": "^25.8.0",

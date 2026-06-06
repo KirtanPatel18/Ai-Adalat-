@@ -189,18 +189,16 @@ async function createSupabaseClient(): Promise<AdminSupabaseClient> {
     throw new Error("Supabase environment variables are not configured");
   }
 
-  // Dynamically import the auth helpers to avoid type errors if the
-  // installed package doesn't export the expected named helper types.
-  // At runtime the helper should exist; cast to any to satisfy TS.
-  // Fallback: if the helper isn't present, construct a minimal client
-  // using the Supabase JS client (not implemented here).
-  const mod = (await import("@supabase/auth-helpers-nextjs").catch(() => null)) as
-    | { createRouteHandlerClient?: (opts: { headers: typeof headers; cookies: typeof cookies }) => unknown }
-    | null;
+  const mod = (await import("@supabase/auth-helpers-nextjs").catch(() => null)) as {
+    createRouteHandlerClient?: unknown;
+  } | null;
 
   if (mod && typeof mod.createRouteHandlerClient === "function") {
-    const client = mod.createRouteHandlerClient({ headers, cookies });
-    return client as unknown as AdminSupabaseClient;
+    const createRouteHandlerClient = mod.createRouteHandlerClient as (args: {
+      headers: typeof headers;
+      cookies: typeof cookies;
+    }) => unknown;
+    return createRouteHandlerClient({ headers, cookies }) as AdminSupabaseClient;
   }
 
   // If the helper is unavailable, throw an error so the caller knows.

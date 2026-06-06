@@ -17,6 +17,7 @@ type ClientTraceRow = {
   timestamp?: string | null;
 };
 
+
 const NUMBER_FORMATTER = new Intl.NumberFormat("en-US");
 const CURRENCY_FORMATTER = new Intl.NumberFormat("en-US", {
   style: "currency",

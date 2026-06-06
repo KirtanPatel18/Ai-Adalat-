@@ -40,11 +40,11 @@ export default function OnboardingPage() {
     })
 
 if (!response.ok) {
-      // API not ready yet (waiting on backend migration #103)
-      // Redirect to dashboard anyway for now
-      router.push('/dashboard')
-      return
-    }
+  const data = await response.json()
+  setError(data.message || 'Something went wrong. Please try again.')
+  setLoading(false)
+  return
+}
 
     router.push('/dashboard')
   }

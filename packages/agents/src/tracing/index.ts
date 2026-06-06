@@ -6,49 +6,59 @@
  * Persists AgentTrace records to Supabase `agent_traces` table.
  */
 
-// Local minimal AgentTrace type to avoid importing shared package during build.
-// Keep in sync with packages/shared/src when that package is used by the build.
-type AgentTrace = {
-  agent: string;
-  model: string;
-  tokens_in: number;
-  tokens_out: number;
-  cost_usd: number;
-  latency_ms: number;
-  status: string;
-};
-import { redactPII } from "./tracer.js";
+import type { AgentTrace } from "@trionic/shared";
+import { createClient } from "@supabase/supabase-js";
 
-// ─── Exports ──────────────────────────────────────────────────────────────────
-// Everything other agents need is exported from here
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+);
+import { redactPII } from "./tracer.js";
 
 export { Tracer } from "./tracer.js";
 export { buildTrace, buildErrorTrace, redactPII } from "./tracer.js";
 export type { TraceInput, TraceHandle, EndOptions } from "./tracer.js";
 
-// ─── persistTrace ─────────────────────────────────────────────────────────────
-
 /**
- * Save a trace to Supabase agent_traces table.
- *
- * Week 2: Supabase insert is stubbed — ready to wire when @trionic/db is available.
- *
- * IMPORTANT:
- * - Full content (including PII) is saved to DB — this is allowed per spec
- * - PII is redacted ONLY before sending errors to Sentry
+ * Persist a trace to Supabase agent_traces table.
+ * Uses supabaseAdmin (service role) — bypasses RLS.
+ * PII is redacted before any Sentry error logging.
+ * Full content is saved to DB as-is.
  */
-export async function persistTrace(trace: AgentTrace): Promise<void> {
+export async function persistTrace(
+  trace: AgentTrace,
+  context: {
+    user_id: string;
+    document_id?: string;
+  }
+): Promise<void> {
   try {
 
-    // ── TODO: Replace this stub with real Supabase client ──────────────────
-    // import { supabase } from "@trionic/db";
-    // const { error } = await supabase
-    //   .from("agent_traces")
-    //   .insert(trace);
-    // if (error) throw error;
-    // ───────────────────────────────────────────────────────────────────────
+    // Map AgentTrace fields → agent_traces DB columns
+    const { error } = await supabaseAdmin
+      .from("agent_traces")
+      .insert({
+        user_id:           context.user_id,
+        document_id:       context.document_id ?? null,
+        agent_name:        trace.agent as "planner" | "classifier" | "drafter" | "citator" | "reviewer" | "translator",
+        llm_provider:      trace.model.split("-")[0],   // e.g. "claude", "gpt", "gemini"
+        model_name:        trace.model,
+        prompt_tokens:     trace.tokens_in,
+        completion_tokens: trace.tokens_out,
+        cost_usd:          trace.cost_usd,
+        latency_ms:        trace.latency_ms,
+        status:            trace.status === "ok" ? "ok" : trace.status === "error" ? "error" : "ok",
+        error_msg:         trace.error_message ?? null,
+        metadata: {
+          cited_nodes: trace.cited_nodes,
+          session_id:  trace.session_id,
+          timestamp:   trace.timestamp,
+        },
+      });
 
-    // Stub: print to console so we can verify during development
+    if (error) throw error;
+
     console.log(
       `[Trace] agent=${trace.agent}` +
       ` model=${trace.model}` +
@@ -59,7 +69,7 @@ export async function persistTrace(trace: AgentTrace): Promise<void> {
     );
 
   } catch (err) {
-    // Redact PII before sending to Sentry
+    // Redact PII before Sentry
     const safeMessage = redactPII(
       err instanceof Error ? err.message : String(err)
     );

@@ -41,5 +41,20 @@
     "welcome": "Trionic Adalat में आपका स्वागत है",
     "displayName": "हम आपको क्या कहकर पुकारें?",
     "preferredLanguage": "आप मसौदों के लिए कौन सी भाषा पसंद करते हैं?"
+  },
+  "auth": {
+    "signUp": "साइन अप",
+    "email": "ईमेल",
+    "password": "पासवर्ड",
+    "signOut": "साइन आउट"
+  },
+  "landing": {
+    "getStarted": "शुरू करें",
+    "features": "सुविधाएँ"
+  },
+  "intake": {
+    "title": "आपकी कानूनी समस्या क्या है?",
+    "placeholder": "अपना मामला यहाँ लिखें...",
+    "submit": "समस्या दर्ज करें"
   }
 }
