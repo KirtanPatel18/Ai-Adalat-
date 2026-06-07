@@ -1,8 +1,9 @@
-import { AlertCircle, CheckCircle2, Loader2, Save, PanelRight, ArrowLeft } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, Save, PanelRight, ArrowLeft, Languages, Download } from "lucide-react";
 import { SaveStatus } from "../../hooks/use-autosave";
 import { useDraftStore } from "../../hooks/use-draft-store";
 import { StatusBadge } from "../../app/dashboard/_components/status-badge";
 import Link from "next/link";
+import { Button } from "../ui/button";
 
 interface DraftHeaderProps {
   saveStatus: SaveStatus;
@@ -41,7 +42,7 @@ export function DraftHeader({ saveStatus }: DraftHeaderProps) {
 
       <div className="flex items-center gap-4">
         {/* Autosave Indicator */}
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground hidden sm:flex">
           {saveStatus === "idle" && (
             <>
               <Save className="h-4 w-4" />
@@ -51,7 +52,7 @@ export function DraftHeader({ saveStatus }: DraftHeaderProps) {
           {saveStatus === "unsaved" && (
             <>
               <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-              <span>Unsaved changes</span>
+              <span>Unsaved</span>
             </>
           )}
           {saveStatus === "saving" && (
@@ -69,27 +70,37 @@ export function DraftHeader({ saveStatus }: DraftHeaderProps) {
           {saveStatus === "error" && (
             <>
               <AlertCircle className="h-4 w-4 text-destructive" />
-              <span className="text-destructive">Failed to save</span>
+              <span className="text-destructive">Error</span>
             </>
           )}
         </div>
 
         {/* Divider */}
-        <div className="h-6 w-px bg-border" />
+        <div className="h-6 w-px bg-border hidden sm:block" />
 
-        {/* Citation Drawer Toggle */}
-        <button
-          onClick={toggleCitationDrawer}
-          className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-            isCitationDrawerOpen 
-              ? "bg-primary/10 text-primary hover:bg-primary/20" 
-              : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-          }`}
-          aria-label="Toggle citation drawer"
-        >
-          <PanelRight className="h-4 w-4" />
-          <span>{isCitationDrawerOpen ? "Hide Citations" : "View Citations"}</span>
-        </button>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="hidden sm:flex" disabled>
+            <Languages className="mr-2 h-4 w-4" />
+            Translate
+          </Button>
+          
+          <Button variant="default" size="sm" disabled>
+            Export
+            <Download className="ml-2 h-4 w-4" />
+          </Button>
+
+          <Button
+            variant={isCitationDrawerOpen ? "secondary" : "outline"}
+            size="sm"
+            onClick={toggleCitationDrawer}
+            className="hidden lg:flex"
+            aria-label="Toggle citation drawer"
+          >
+            <PanelRight className="mr-2 h-4 w-4" />
+            {isCitationDrawerOpen ? "Hide Citations" : "Citations"}
+          </Button>
+        </div>
       </div>
     </header>
   );
