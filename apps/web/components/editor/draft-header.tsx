@@ -1,8 +1,9 @@
-import { AlertCircle, CheckCircle2, Loader2, Save, PanelRight, ArrowLeft } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, Save, PanelRight, ArrowLeft, Languages, Download } from "lucide-react";
 import { SaveStatus } from "../../hooks/use-autosave";
 import { useDraftStore } from "../../hooks/use-draft-store";
 import { StatusBadge } from "../../app/dashboard/_components/status-badge";
 import Link from "next/link";
+import { Button } from "../ui/button";
 
 interface DraftHeaderProps {
   saveStatus: SaveStatus;
