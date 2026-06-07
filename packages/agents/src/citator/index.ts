@@ -116,7 +116,10 @@ export async function runCitator(input: CitatorInput): Promise<CitatorResult> {
       status: "rejected",
       session_id,
     });
-    await persistTrace(trace);
+    await persistTrace(trace, {
+      user_id: session_id || "system",
+      document_id: draft.id,
+    });
 
     const verdict: CitatorVerdict = {
       approved: false,
@@ -172,7 +175,10 @@ export async function runCitator(input: CitatorInput): Promise<CitatorResult> {
       } else {
         // Unexpected error — propagate with trace attached
         const trace = buildErrorTrace("citator", error, session_id);
-        await persistTrace(trace);
+        await persistTrace(trace, {
+          user_id: session_id || "system",
+          document_id: draft.id,
+        });
         const err = error instanceof Error ? error : new Error(String(error));
         (err as any).trace = trace;
         throw err;
@@ -190,7 +196,10 @@ export async function runCitator(input: CitatorInput): Promise<CitatorResult> {
     status: traceStatus,
     session_id,
   });
-  await persistTrace(trace);
+  await persistTrace(trace, {
+    user_id: session_id || "system",
+    document_id: draft.id,
+  });
 
   const verdict: CitatorVerdict = {
     approved,

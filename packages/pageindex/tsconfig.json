@@ -14,10 +14,7 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "baseUrl": ".",
-    "paths": {
-      "@trionic/shared": ["../shared/src/index.ts"],
-      "@trionic/shared/*": ["../shared/src/*"]
-    }
+    "rootDir": "src"
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

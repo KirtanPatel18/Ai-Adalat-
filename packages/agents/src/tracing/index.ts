@@ -10,8 +10,8 @@ import type { AgentTrace } from "@trionic/shared";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder-url.supabase.co",
+  process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder-key",
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 import { redactPII } from "./tracer.js";
@@ -28,8 +28,8 @@ export type { TraceInput, TraceHandle, EndOptions } from "./tracer.js";
  */
 export async function persistTrace(
   trace: AgentTrace,
-  context: {
-    user_id: string;
+  context?: {
+    user_id?: string;
     document_id?: string;
   }
 ): Promise<void> {
@@ -39,8 +39,8 @@ export async function persistTrace(
     const { error } = await supabaseAdmin
       .from("agent_traces")
       .insert({
-        user_id:           context.user_id,
-        document_id:       context.document_id ?? null,
+        user_id:           context?.user_id ?? trace.session_id ?? "system",
+        document_id:       context?.document_id ?? null,
         agent_name:        trace.agent as "planner" | "classifier" | "drafter" | "citator" | "reviewer" | "translator",
         llm_provider:      trace.model.split("-")[0],   // e.g. "claude", "gpt", "gemini"
         model_name:        trace.model,
