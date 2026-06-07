@@ -1,6 +1,8 @@
 "use client";
 
-import { AlertCircle, CheckCircle2, Loader2, Save, PanelRight } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, Save, PanelRight, ArrowLeft, Download, Languages } from "lucide-react";
+import Link from "next/link";
+import { Button } from "../ui/button";
 import { SaveStatus } from "../../hooks/use-autosave";
 import { useDraftStore } from "../../hooks/use-draft-store";
 
@@ -11,21 +13,61 @@ interface DraftHeaderProps {
 export function DraftHeader({ saveStatus }: DraftHeaderProps) {
   const isCitationDrawerOpen = useDraftStore((state) => state.isCitationDrawerOpen);
   const toggleCitationDrawer = useDraftStore((state) => state.toggleCitationDrawer);
+  const document = useDraftStore((state) => state.document);
+
+  const renderStatusBadge = () => {
+    if (!document) return null;
+    
+    switch (document.status) {
+      case "generating":
+        return (
+          <div className="flex items-center gap-1.5 rounded-md bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-950/50 dark:text-blue-400">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            <span>Generating</span>
+          </div>
+        );
+      case "final":
+        return (
+          <div className="flex items-center gap-1.5 rounded-md bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-950/50 dark:text-green-400">
+            <CheckCircle2 className="h-3 w-3" />
+            <span>Final</span>
+          </div>
+        );
+      case "failed":
+        return (
+          <div className="flex items-center gap-1.5 rounded-md bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-950/50 dark:text-red-400">
+            <AlertCircle className="h-3 w-3" />
+            <span>Failed</span>
+          </div>
+        );
+      default:
+        return (
+          <div className="flex items-center gap-1.5 rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950/50 dark:text-amber-400">
+            <AlertCircle className="h-3 w-3" />
+            <span>Draft</span>
+          </div>
+        );
+    }
+  };
+
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between border-b bg-background px-6 py-3">
       <div className="flex items-center gap-4">
-        <h1 className="text-lg font-semibold">Legal Draft</h1>
-        
-        {/* Pinned AI Banner */}
-        <div className="flex items-center gap-2 rounded-md bg-amber-100 px-3 py-1 text-sm font-medium text-amber-800 dark:bg-amber-950/50 dark:text-amber-400">
-          <AlertCircle className="h-4 w-4" />
-          <span>AI-generated draft — not legal advice</span>
-        </div>
+        <Link 
+          href="/dashboard"
+          className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Link>
+        <div className="h-4 w-px bg-border" />
+        <h1 className="text-lg font-semibold">{document?.title || "Legal Draft"}</h1>
+        {renderStatusBadge()}
       </div>
 
       <div className="flex items-center gap-4">
         {/* Autosave Indicator */}
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground hidden sm:flex">
           {saveStatus === "idle" && (
             <>
               <Save className="h-4 w-4" />
@@ -35,7 +77,7 @@ export function DraftHeader({ saveStatus }: DraftHeaderProps) {
           {saveStatus === "unsaved" && (
             <>
               <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-              <span>Unsaved changes</span>
+              <span>Unsaved</span>
             </>
           )}
           {saveStatus === "saving" && (
@@ -53,27 +95,37 @@ export function DraftHeader({ saveStatus }: DraftHeaderProps) {
           {saveStatus === "error" && (
             <>
               <AlertCircle className="h-4 w-4 text-destructive" />
-              <span className="text-destructive">Failed to save</span>
+              <span className="text-destructive">Error</span>
             </>
           )}
         </div>
 
         {/* Divider */}
-        <div className="h-6 w-px bg-border" />
+        <div className="h-6 w-px bg-border hidden sm:block" />
 
-        {/* Citation Drawer Toggle */}
-        <button
-          onClick={toggleCitationDrawer}
-          className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-            isCitationDrawerOpen 
-              ? "bg-primary/10 text-primary hover:bg-primary/20" 
-              : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-          }`}
-          aria-label="Toggle citation drawer"
-        >
-          <PanelRight className="h-4 w-4" />
-          <span>{isCitationDrawerOpen ? "Hide Citations" : "View Citations"}</span>
-        </button>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="hidden sm:flex" disabled>
+            <Languages className="mr-2 h-4 w-4" />
+            Translate
+          </Button>
+          
+          <Button variant="default" size="sm" disabled>
+            Export
+            <Download className="ml-2 h-4 w-4" />
+          </Button>
+
+          <Button
+            variant={isCitationDrawerOpen ? "secondary" : "outline"}
+            size="sm"
+            onClick={toggleCitationDrawer}
+            className="hidden lg:flex"
+            aria-label="Toggle citation drawer"
+          >
+            <PanelRight className="mr-2 h-4 w-4" />
+            {isCitationDrawerOpen ? "Hide Citations" : "Citations"}
+          </Button>
+        </div>
       </div>
     </header>
   );

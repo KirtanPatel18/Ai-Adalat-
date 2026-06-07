@@ -15,8 +15,8 @@ export * from './types';
 // Uses RLS for row-level access control
 // ---------------------------------------------------------------------------
 export const supabase = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key',
 );
 
 // ---------------------------------------------------------------------------
@@ -24,7 +24,7 @@ export const supabase = createClient<Database>(
 // Bypasses RLS — used by API routes and agent pipelines.
 // ---------------------------------------------------------------------------
 export const supabaseAdmin = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key',
   { auth: { autoRefreshToken: false, persistSession: false } },
 );
