@@ -29,6 +29,16 @@ export function useAutosave({ documentId, value, debounceMs = 1500 }: UseAutosav
     }
 
     setSaveStatus("saving");
+
+    // DEMO MODE: Intercept mock documents to prevent 400 errors from backend
+    if (documentId.startsWith("mock-")) {
+      await new Promise(resolve => setTimeout(resolve, 600)); // Simulate network latency
+      lastSavedValue.current = contentToSave;
+      setLastSavedAt(new Date());
+      setSaveStatus("saved");
+      return;
+    }
+
     try {
       const response = await fetch(`/api/documents/${documentId}`, {
         method: "PATCH",

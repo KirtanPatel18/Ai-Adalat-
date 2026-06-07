@@ -127,9 +127,9 @@ export default async function DraftPage({ params }: { params: Promise<{ id: stri
   return (
     <DraftWorkspace
       documentId={id}
-      initialDocument={data.document}
-      initialContent={data.content}
-      initialCitations={data.citations}
+      initialDocument={document as Document}
+      initialContent={content}
+      initialCitations={[]}
     />
   );
 }

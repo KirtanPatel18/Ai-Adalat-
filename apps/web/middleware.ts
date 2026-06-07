@@ -6,9 +6,18 @@ export async function middleware(request: NextRequest) {
     request,
   })
 
+  // Fallback check to safely bypass middleware if Supabase env vars are missing
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('Supabase environment variables missing. Bypassing authentication middleware.');
+    return supabaseResponse;
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {
@@ -29,7 +38,8 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // If no user and trying to access protected route → redirect to sign-in
+  // DEMO MODE: Bypass auth redirect so the frontend lead can show the UI without Supabase credentials.
+  /*
   if (
     !user &&
     !request.nextUrl.pathname.startsWith('/auth') &&
@@ -40,6 +50,7 @@ export async function middleware(request: NextRequest) {
     url.pathname = '/auth/sign-in'
     return NextResponse.redirect(url)
   }
+  */
 
   return supabaseResponse
 }
