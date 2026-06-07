@@ -21,7 +21,6 @@ export function CitationDrawer() {
   const activeCitationNodeId = useDraftStore((state) => state.activeCitationNodeId);
   const setActiveCitationNodeId = useDraftStore((state) => state.setActiveCitationNodeId);
   const toggleCitationDrawer = useDraftStore((state) => state.toggleCitationDrawer);
-  const selectedCitationNodeId = useDraftStore((state) => state.selectedCitationNodeId);
 
   const [expanded, setExpanded] = React.useState<Record<string, boolean>>({});
   const [activeTileId, setActiveTileId] = React.useState<string | null>(null);
