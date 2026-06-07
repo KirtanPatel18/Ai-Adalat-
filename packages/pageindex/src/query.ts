@@ -250,7 +250,7 @@ export async function search(query: string, scope?: SearchScope): Promise<Search
     if (titleLower.includes('request') && textLower.includes('right to information')) {
       score += 5.0;
     }
-
+    if (score > 0) {
       if (!matchReason) {
         matchReason = `Matched ${termMatchesInTitle} terms in title, ${termMatchesInText} in text`;
       }
