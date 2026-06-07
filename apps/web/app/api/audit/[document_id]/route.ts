@@ -67,7 +67,7 @@ export async function GET(
 
   // Map DB columns → AgentTrace shape from @trionic/shared.
   // cited_nodes come from metadata JSONB (written by Umrania's tracing layer).
-  const traces: AgentTrace[] = (rows ?? []).map((t) => ({
+  const traces: AgentTrace[] = (rows ?? []).map((t: any) => ({
     agent: t.agent_name,
     model: `${t.llm_provider}/${t.model_name}`,
     tokens_in: t.prompt_tokens ?? 0,
