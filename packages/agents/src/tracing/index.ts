@@ -7,14 +7,27 @@
  */
 
 import type { AgentTrace } from "@trionic/shared";
+import { redactPII } from "./tracer.js";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } }
-);
-import { redactPII } from "./tracer.js";
+let supabaseAdmin: ReturnType<typeof createClient> | null = null;
+function getSupabaseAdmin() {
+  if (!supabaseAdmin) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) {
+      return createClient(
+        url || "http://localhost:54321",
+        key || "placeholder-key",
+        { auth: { autoRefreshToken: false, persistSession: false } }
+      );
+    }
+    supabaseAdmin = createClient(url, key, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+  }
+  return supabaseAdmin;
+}
 
 export { Tracer } from "./tracer.js";
 export { buildTrace, buildErrorTrace, redactPII } from "./tracer.js";
@@ -28,19 +41,19 @@ export type { TraceInput, TraceHandle, EndOptions } from "./tracer.js";
  */
 export async function persistTrace(
   trace: AgentTrace,
-  context: {
-    user_id: string;
+  context?: {
+    user_id?: string;
     document_id?: string;
   }
 ): Promise<void> {
   try {
 
     // Map AgentTrace fields → agent_traces DB columns
-    const { error } = await supabaseAdmin
+    const { error } = await getSupabaseAdmin()
       .from("agent_traces")
       .insert({
-        user_id:           context.user_id,
-        document_id:       context.document_id ?? null,
+        user_id:           context?.user_id ?? trace.session_id ?? "00000000-0000-0000-0000-000000000000",
+        document_id:       context?.document_id ?? null,
         agent_name:        trace.agent as "planner" | "classifier" | "drafter" | "citator" | "reviewer" | "translator",
         llm_provider:      trace.model.split("-")[0],   // e.g. "claude", "gpt", "gemini"
         model_name:        trace.model,

@@ -137,3 +137,62 @@ export async function PATCH(
 
   return NextResponse.json(response, { status: 200 })
 }
+
+// ─── GET /api/documents/{id} ─────────────────────────────────────────────────
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: documentId } = await params
+  const supabase = await createClient()
+
+  // Auth
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return errorResponse('unauthorized', 'Authentication required', 401)
+  }
+
+  // Fetch document
+  const { data: document, error: docError } = await supabase
+    .from('documents')
+    .select('*')
+    .eq('id', documentId)
+    .single()
+
+  if (docError || !document) {
+    return errorResponse('not_found', 'Document not found', 404)
+  }
+
+  // Fetch latest version
+  const { data: versions } = await supabase
+    .from('document_versions')
+    .select('*')
+    .eq('document_id', documentId)
+    .order('version_num', { ascending: false })
+    .limit(1)
+
+  const currentVersion = versions?.[0] || null
+
+  let currentVersionDetails: DocumentVersion | null = null
+  if (currentVersion) {
+    currentVersionDetails = {
+      id: currentVersion.id,
+      document_id: currentVersion.document_id,
+      version_num: currentVersion.version_num,
+      body_markdown: currentVersion.body_markdown,
+      citations: [],
+      created_by: currentVersion.created_by,
+      created_at: currentVersion.created_at,
+    }
+  }
+
+  return NextResponse.json({
+    document,
+    current_version: currentVersionDetails
+  }, { status: 200 })
+}

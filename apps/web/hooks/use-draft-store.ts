@@ -9,13 +9,13 @@ interface DraftStore {
   
   // UI State
   isCitationDrawerOpen: boolean;
-  selectedCitationNodeId: string | null;
+  activeCitationNodeId: string | null;
   
   // Actions
   setDocument: (doc: Document, content: string, citations: Citation[]) => void;
   setContent: (content: string) => void;
   toggleCitationDrawer: () => void;
-  selectCitation: (nodeId: string) => void;
+  setActiveCitationNodeId: (nodeId: string | null) => void;
 }
 
 export const useDraftStore = create<DraftStore>((set) => ({
@@ -23,7 +23,7 @@ export const useDraftStore = create<DraftStore>((set) => ({
   content: "",
   citations: [],
   isCitationDrawerOpen: true,
-  selectedCitationNodeId: null,
+  activeCitationNodeId: null,
 
   setDocument: (doc, content, citations) => 
     set({ document: doc, content, citations }),
@@ -34,6 +34,6 @@ export const useDraftStore = create<DraftStore>((set) => ({
   toggleCitationDrawer: () => 
     set((state) => ({ isCitationDrawerOpen: !state.isCitationDrawerOpen })),
 
-  selectCitation: (nodeId) =>
-    set({ selectedCitationNodeId: nodeId, isCitationDrawerOpen: true }),
+  setActiveCitationNodeId: (nodeId) =>
+    set({ activeCitationNodeId: nodeId }),
 }));

@@ -37,6 +37,12 @@
       ],
       "@trionic/agents/*": [
         "../../packages/agents/src/*"
+      ],
+      "@trionic/pageindex": [
+        "../../packages/pageindex/src/index.ts"
+      ],
+      "@trionic/pageindex/*": [
+        "../../packages/pageindex/src/*"
       ]
     }
   },

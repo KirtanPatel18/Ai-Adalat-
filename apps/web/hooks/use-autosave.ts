@@ -45,7 +45,7 @@ export function useAutosave({ documentId, value, debounceMs = 1500 }: UseAutosav
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ content: contentToSave }),
+        body: JSON.stringify({ body_markdown: contentToSave }),
       });
 
       if (!response.ok) {

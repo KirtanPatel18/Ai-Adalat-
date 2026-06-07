@@ -29,7 +29,14 @@ export function DraftWorkspace({
 
   // Initialize store with server data on mount
   useEffect(() => {
-    setDocument(initialDocument, initialContent, initialCitations);
+    const resolvedCitations = initialCitations && initialCitations.length > 0
+      ? initialCitations
+      : Array.from(initialContent.matchAll(/\[CITE:([^\]]+)\]/g)).map((match) => ({
+          node_id: match[1],
+          snapshot_id: "2026-05-28",
+          span: [match.index!, match.index! + match[0].length] as [number, number]
+        }));
+    setDocument(initialDocument, initialContent, resolvedCitations);
   }, [initialDocument, initialContent, initialCitations, setDocument]);
 
   // Activate decoupled autosave hook
