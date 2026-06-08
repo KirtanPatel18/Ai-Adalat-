@@ -343,7 +343,7 @@ export async function* runAgentChain(
       const result = await runTranslator({
         body_markdown: draft.content,
         target_language: req.target_language,
-        citations: draft.citations,
+        citations: allCitations,
         session_id,
       });
       allTraces.push(result.trace);

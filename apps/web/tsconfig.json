@@ -43,6 +43,12 @@
       ],
       "@trionic/pageindex/*": [
         "../../packages/pageindex/src/*"
+      ],
+      "@trionic/translation": [
+        "../../packages/translation/src/index.ts"
+      ],
+      "@trionic/translation/*": [
+        "../../packages/translation/src/*"
       ]
     }
   },

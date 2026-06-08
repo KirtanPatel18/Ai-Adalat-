@@ -1,60 +1,82 @@
-import { createServerClient } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
+import createMiddleware from "next-intl/middleware";
+import { routing } from "./i18n/routing";
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
 
-export async function middleware(request: NextRequest) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const intlMiddleware = createMiddleware(routing);
+
+export default async function middleware(request: NextRequest) {
+  // 1. Run the intl middleware first
+  const response = intlMiddleware(request);
+
+  // 2. Fallback check to safely bypass middleware if Supabase env vars are missing
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    return NextResponse.next({ request })
+    console.warn('Supabase environment variables missing. Bypassing authentication middleware.');
+    return response;
   }
-
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
-
   const supabase = createServerClient(
     supabaseUrl,
     supabaseAnonKey,
     {
       cookies: {
         getAll() {
-          return request.cookies.getAll()
+          return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
-          )
-          supabaseResponse = NextResponse.next({ request })
+          );
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
+            response.cookies.set(name, value, options)
+          );
         },
       },
     }
-  )
+  );
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // 3. Get user session
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  // DEMO MODE: Bypass auth redirect so the frontend lead can show the UI without Supabase credentials.
-  /*
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/auth') &&
-    !request.nextUrl.pathname.startsWith('/_next') &&
-    request.nextUrl.pathname !== '/'
-  ) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/auth/sign-in'
-    return NextResponse.redirect(url)
+  // 4. Auth redirects (protected routes check)
+  const pathname = request.nextUrl.pathname;
+  
+  // We can strip the locale prefix to get the clean pathname (e.g. '/dashboard')
+  const localePrefixRegex = /^\/(en|hi|gu|mr|ta)(\/|$)/;
+  const cleanPathname = pathname.replace(localePrefixRegex, "/");
+
+  // Determine if it's a public path
+  const isPublicPath =
+    cleanPathname === "/" ||
+    cleanPathname.startsWith("/auth/") ||
+    cleanPathname.startsWith("/api/") || // let API routes handle their own auth
+    pathname.startsWith("/_next") ||
+    pathname.includes("."); // static assets
+
+  if (!user && !isPublicPath) {
+    // Redirect to sign-in page, preserving the locale!
+    const match = pathname.match(localePrefixRegex);
+    const locale = match ? match[1] : "en";
+    
+    const url = request.nextUrl.clone();
+    url.pathname = `/${locale}/auth/sign-in`;
+    return NextResponse.redirect(url);
   }
-  */
 
-  return supabaseResponse
+  return response;
 }
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    // Match the root
+    "/",
+    // Match all localized path prefixes
+    "/(en|hi|gu|mr|ta)/:path*",
+    // Exclude Next.js internals, static assets (images, fonts, favicon), and API routes
+    "/((?!api|_next|_vercel|.*\\..*).*)",
   ],
-}
+};
