@@ -63,7 +63,7 @@ export async function persistTrace(
     const rawDocId = context?.document_id ?? trace.session_id ?? null;
     const document_id = (rawDocId && uuidRegex.test(rawDocId)) ? rawDocId : null;
 
-    const { error } = await supabaseAdmin
+    const { error } = await (supabaseAdmin as any)
       .from("agent_traces")
       .insert({
         user_id,
