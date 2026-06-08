@@ -5,8 +5,8 @@ import {
   errorResponse,
   handleAdminEvals,
   warnIfBudgetExceeded,
-  TraceRow,
 } from "./lib";
+import type { TraceRow } from "./lib";
 
 export async function GET() {
   try {

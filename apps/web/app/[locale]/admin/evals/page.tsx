@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 import type { EvalRunResult } from "@trionic/shared";
 import { BudgetTracker } from "@/components/admin/BudgetTracker";
 type ClientTraceRow = {

@@ -50,15 +50,6 @@ export type TraceQueryResult = {
   error: { message?: string } | null;
 };
 
-type EvalRunInsertRow = {
-  id: string;
-};
-
-type EvalRunInsertQueryResult = {
-  data: EvalRunInsertRow | null;
-  error: { message?: string } | null;
-};
-
 export const WINDOW_DAYS = 14;
 export const WINDOW_MS = WINDOW_DAYS * 24 * 60 * 60 * 1000;
 
@@ -89,12 +80,21 @@ export async function createSupabaseClient(): Promise<AdminSupabaseClient> {
   return client as unknown as AdminSupabaseClient;
 }
 
-type EvalRunRequestBody = {
+export type EvalRunRequestBody = {
   dataset_id: string;
   models: string[];
 };
 
-function isEvalRunRequestBody(value: unknown): value is EvalRunRequestBody {
+export type EvalRunInsertData = {
+  id: string;
+};
+
+export type EvalRunInsertQueryResult = {
+  data: EvalRunInsertData | null;
+  error: { message?: string } | null;
+};
+
+export function isEvalRunRequestBody(value: unknown): value is EvalRunRequestBody {
   if (typeof value !== "object" || value === null) {
     return false;
   }
@@ -108,11 +108,11 @@ function isEvalRunRequestBody(value: unknown): value is EvalRunRequestBody {
   );
 }
 
-function badRequestResponse(message: string) {
+export function badRequestResponse(message: string) {
   return errorResponse(400, "bad_request", message, null);
 }
 
-function internalErrorResponse() {
+export function internalEvalErrorResponse() {
   return errorResponse(500, "internal_error", "Failed to queue eval run", null);
 }
 
@@ -151,15 +151,24 @@ export async function handleAdminEvalRun(
       status: "running",
     })
     .select("id")
-    .single()) as any;
+    .single()) as EvalRunInsertQueryResult;
 
   if (insertResult.error || !insertResult.data?.id) {
-    return internalErrorResponse();
+    return internalEvalErrorResponse();
   }
 
   return NextResponse.json({ run_id: insertResult.data.id }, { status: 202 });
 }
 
+export type EvalBucket = {
+  date: string;
+  model: string;
+  calls: number;
+  tokensIn: number;
+  tokensOut: number;
+  costUsd: number;
+  latencies: number[];
+};
 export function percentile(values: number[], quantile: number): number {
   if (values.length === 0) {
     return 0;
@@ -187,16 +196,6 @@ export function getMetricValue(
 ): number {
   return run.metrics.find((metric) => metric.name === metricName)?.value ?? 0;
 }
-
-type EvalBucket = {
-  date: string;
-  model: string;
-  calls: number;
-  tokensIn: number;
-  tokensOut: number;
-  costUsd: number;
-  latencies: number[];
-};
 
 export function buildEvalRuns(
   rows: TraceRow[],
@@ -268,10 +267,6 @@ export function buildEvalRuns(
     });
 }
 
-function dashboardInternalErrorResponse() {
-  return errorResponse(500, "internal_error", "Failed to load eval dashboard", null);
-}
-
 export function warnIfBudgetExceeded(runs: EvalRunResult[]): void {
   const budgetUsd = Number(process.env.EVAL_DAILY_BUDGET_USD ?? "5.0");
   const alertThresholdPct = Number(process.env.EVAL_DAILY_BUDGET_ALERT_THRESHOLD ?? "100");
@@ -324,6 +319,9 @@ export function warnIfBudgetExceeded(runs: EvalRunResult[]): void {
   }
 }
 
+export function internalEvalsErrorResponse() {
+  return errorResponse(500, "internal_error", "Failed to load eval dashboard", null);
+}
 export async function handleAdminEvals(
   supabase: AdminSupabaseClient,
   now = new Date(),
@@ -446,3 +444,4 @@ export async function handleAdminEvals(
 
   return NextResponse.json({ runs: runsWithBudget });
 }
+
