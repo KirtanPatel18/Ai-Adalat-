@@ -5,9 +5,6 @@ import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import type { EvalRunResult } from "@trionic/shared";
 import { BudgetTracker } from "@/components/admin/BudgetTracker";
-
-// MODEL_OPTIONS has been removed in favor of dynamic model options computed from trace results
-
 type ClientTraceRow = {
   model?: string | null;
   tokens_in?: number | null;

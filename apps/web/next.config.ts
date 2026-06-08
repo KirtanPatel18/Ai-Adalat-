@@ -11,6 +11,12 @@ const nextConfig: NextConfig = {
     // errors from blocking successful Next.js builds.
     ignoreDuringBuilds: true,
   },
+  webpack: (config) => {
+    config.resolve.extensionAlias = {
+      ".js": [".ts", ".tsx", ".js", ".jsx"],
+    };
+    return config;
+  },
 };
 
 export default nextConfig;

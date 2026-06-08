@@ -25,6 +25,24 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@trionic/shared": [
+        "../../packages/shared/src/index.ts"
+      ],
+      "@trionic/shared/*": [
+        "../../packages/shared/src/*"
+      ],
+      "@trionic/agents": [
+        "../../packages/agents/src/index.ts"
+      ],
+      "@trionic/agents/*": [
+        "../../packages/agents/src/*"
+      ],
+      "@trionic/pageindex": [
+        "../../packages/pageindex/src/index.ts"
+      ],
+      "@trionic/pageindex/*": [
+        "../../packages/pageindex/src/*"
       ]
     }
   },

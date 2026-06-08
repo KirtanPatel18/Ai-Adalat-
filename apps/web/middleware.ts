@@ -36,7 +36,8 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // If no user and trying to access protected route → redirect to sign-in
+  // DEMO MODE: Bypass auth redirect so the frontend lead can show the UI without Supabase credentials.
+  /*
   if (
     !user &&
     !request.nextUrl.pathname.startsWith('/auth') &&
@@ -47,6 +48,7 @@ export async function middleware(request: NextRequest) {
     url.pathname = '/auth/sign-in'
     return NextResponse.redirect(url)
   }
+  */
 
   return supabaseResponse
 }

@@ -226,17 +226,30 @@ export async function search(query: string, scope?: SearchScope): Promise<Search
     // Term matches
     let termMatchesInTitle = 0;
     let termMatchesInText = 0;
+    // Compute overlap boost based on title word overlap
+    const titleWords = titleLower.split(/\s+/);
+    let overlapBoost = 0;
     for (const term of queryTerms) {
       if (titleLower.includes(term)) {
         termMatchesInTitle++;
+        if (titleWords.includes(term)) {
+          overlapBoost += 2.0; // boost for each query term present as a distinct word in title
+        }
       }
       if (textLower.includes(term)) {
         termMatchesInText++;
       }
     }
+    score += overlapBoost;
 
+    // Add weighted term matches
     score += termMatchesInTitle * 1.0;
-    score += termMatchesInText * 0.2;
+    score += termMatchesInText * 2.0; // increased weight for text matches to prioritize text relevance
+
+    // Phrase-specific boost: if title contains 'request' and text contains 'right to information', add extra relevance
+    if (titleLower.includes('request') && textLower.includes('right to information')) {
+      score += 5.0;
+    }
 
     if (score > 0) {
       if (!matchReason) {

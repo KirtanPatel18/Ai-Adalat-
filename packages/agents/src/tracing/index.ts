@@ -7,20 +7,20 @@
  */
 
 import type { AgentTrace } from "@trionic/shared";
+import { redactPII } from "./tracer.js";
 import { createClient } from "@supabase/supabase-js";
 
-let supabaseAdminInstance: any = null;
-function getSupabaseAdmin() {
-  if (supabaseAdminInstance) return supabaseAdminInstance;
+let supabaseAdmin: ReturnType<typeof createClient> | null = null;
+function getSupabaseAdmin(): ReturnType<typeof createClient> | null {
+  if (supabaseAdmin) return supabaseAdmin;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return null;
-  supabaseAdminInstance = createClient(url, key, {
+  supabaseAdmin = createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false }
   });
-  return supabaseAdminInstance;
+  return supabaseAdmin;
 }
-import { redactPII } from "./tracer.js";
 
 export { Tracer } from "./tracer.js";
 export { buildTrace, buildErrorTrace, redactPII } from "./tracer.js";
@@ -42,30 +42,6 @@ export async function persistTrace(
   try {
 
     // Map AgentTrace fields → agent_traces DB columns
-    const insertData: any = {
-      agent_name:        trace.agent as "planner" | "classifier" | "drafter" | "citator" | "reviewer" | "translator",
-      llm_provider:      trace.model.split("-")[0],   // e.g. "claude", "gpt", "gemini"
-      model_name:        trace.model,
-      prompt_tokens:     trace.tokens_in,
-      completion_tokens: trace.tokens_out,
-      cost_usd:          trace.cost_usd,
-      latency_ms:        trace.latency_ms,
-      status:            trace.status === "ok" ? "ok" : trace.status === "error" ? "error" : "ok",
-      error_msg:         trace.error_message ?? null,
-      metadata: {
-        cited_nodes: trace.cited_nodes,
-        session_id:  trace.session_id,
-        timestamp:   trace.timestamp,
-      },
-    };
-
-    if (context?.user_id) {
-      insertData.user_id = context.user_id;
-    }
-    if (context?.document_id) {
-      insertData.document_id = context.document_id;
-    }
-
     const supabaseAdmin = getSupabaseAdmin();
     if (!supabaseAdmin) {
       console.warn("[Trace] Supabase credentials not configured — trace log skipped");
@@ -80,9 +56,33 @@ export async function persistTrace(
       return;
     }
 
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const rawUserId = context?.user_id ?? trace.session_id ?? "00000000-0000-0000-0000-000000000000";
+    const user_id = uuidRegex.test(rawUserId) ? rawUserId : "00000000-0000-0000-0000-000000000000";
+
+    const rawDocId = context?.document_id ?? trace.session_id ?? null;
+    const document_id = (rawDocId && uuidRegex.test(rawDocId)) ? rawDocId : null;
+
     const { error } = await supabaseAdmin
       .from("agent_traces")
-      .insert(insertData);
+      .insert({
+        user_id,
+        document_id,
+        agent_name:        trace.agent as "planner" | "classifier" | "drafter" | "citator" | "reviewer" | "translator",
+        llm_provider:      trace.model.split("-")[0],   // e.g. "claude", "gpt", "gemini"
+        model_name:        trace.model,
+        prompt_tokens:     trace.tokens_in,
+        completion_tokens: trace.tokens_out,
+        cost_usd:          trace.cost_usd,
+        latency_ms:        trace.latency_ms,
+        status:            trace.status === "ok" ? "ok" : trace.status === "error" ? "error" : "ok",
+        error_msg:         trace.error_message ?? null,
+        metadata: {
+          cited_nodes: trace.cited_nodes,
+          session_id:  trace.session_id,
+          timestamp:   trace.timestamp,
+        },
+      });
 
     if (error) throw error;
 
