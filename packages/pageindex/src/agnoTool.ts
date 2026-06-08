@@ -13,7 +13,7 @@ export interface SearchArgs {
   top_k?: number;
 }
 
-export interface SearchResult {
+export interface AgnoSearchResult {
   node_id: PageIndexNodeId;
   snippet: string;
   score: number;
@@ -32,7 +32,7 @@ export const pageindex = {
     query,
     scope,
     top_k = 5
-  }: SearchArgs): Promise<SearchResult[]> => {
+  }: SearchArgs): Promise<AgnoSearchResult[]> => {
     console.log(`[PageIndex] Searching for: "${query}"`);
 
     const searchScope: any = {};

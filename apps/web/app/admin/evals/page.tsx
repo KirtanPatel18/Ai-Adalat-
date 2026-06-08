@@ -4,25 +4,16 @@ import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import type { EvalRunResult } from "@trionic/shared";
-
-const MODEL_OPTIONS = [
-  "all",
-  "claude-opus",
-  "claude-sonnet",
-  "gpt-4",
-  "gemini-pro",
-] as const;
-
-type ModelFilter = (typeof MODEL_OPTIONS)[number];
-
-interface TraceRow {
+import { BudgetTracker } from "@/components/admin/BudgetTracker";
+type ClientTraceRow = {
   model?: string | null;
   tokens_in?: number | null;
   tokens_out?: number | null;
   cost_usd?: number | null;
   latency_ms?: number | null;
   timestamp?: string | null;
-}
+};
+
 
 const NUMBER_FORMATTER = new Intl.NumberFormat("en-US");
 const CURRENCY_FORMATTER = new Intl.NumberFormat("en-US", {
@@ -48,7 +39,7 @@ function formatDate(isoDate: string): string {
 
 export default function AdminEvalsPage() {
   const [runs, setRuns] = useState<EvalRunResult[]>([]);
-  const [selectedModel, setSelectedModel] = useState<ModelFilter>("all");
+  const [selectedModel, setSelectedModel] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,8 +69,30 @@ export default function AdminEvalsPage() {
             }
 
             if (!cancelled) {
-              const runs = buildEvalRunsClient(rows as unknown as TraceRow[]);
+              const clientRows = rows as ClientTraceRow[];
+              const runs = buildEvalRunsClient(clientRows);
               setRuns(runs);
+
+              // Daily budget tracking and warnings (console/alerting for W3)
+              const BUDGET_CAP_USD = 5.0;
+              const modelSpendsByBucket: { [key: string]: number } = {};
+              clientRows.forEach((row) => {
+                if (!row.model || !row.timestamp) return;
+                const ts = new Date(row.timestamp);
+                if (Number.isNaN(ts.getTime())) return;
+                const date = ts.toISOString().slice(0, 10);
+                const key = `${date}::${row.model}`;
+                modelSpendsByBucket[key] = (modelSpendsByBucket[key] ?? 0) + Number(row.cost_usd ?? 0);
+              });
+
+              Object.entries(modelSpendsByBucket).forEach(([key, spend]) => {
+                const [date, model] = key.split("::");
+                if (spend > BUDGET_CAP_USD) {
+                  console.warn(
+                    `[BUDGET ALERT] Model ${model} exceeded daily budget on ${date}: $${spend.toFixed(2)} > $${BUDGET_CAP_USD.toFixed(2)}`
+                  );
+                }
+              });
             }
           } catch (e) {
             // If direct Supabase fetch fails, fallback to internal API route.
@@ -163,13 +176,13 @@ export default function AdminEvalsPage() {
               <select
                 className="min-w-48 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
                 value={selectedModel}
-                onChange={(event) => setSelectedModel(event.target.value as ModelFilter)}
+                onChange={(event) => setSelectedModel(event.target.value)}
               >
-                <option value="all">All models</option>
-                <option value="claude-opus">claude-opus</option>
-                <option value="claude-sonnet">claude-sonnet</option>
-                <option value="gpt-4">gpt-4</option>
-                <option value="gemini-pro">gemini-pro</option>
+                {["all", ...Array.from(new Set(runs.map((r) => r.model))).sort()].map((m) => (
+                  <option key={m} value={m}>
+                    {m === "all" ? "All models" : m}
+                  </option>
+                ))}
               </select>
             </label>
           </div>
@@ -184,7 +197,14 @@ export default function AdminEvalsPage() {
             {error}
           </div>
         ) : (
-          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <>
+            <BudgetTracker
+              runs={runs}
+              dailyBudgetUsd={5.0}
+              alertThresholdPct={100}
+            />
+
+            <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
             <div className="overflow-x-auto">
               <table className="min-w-[960px] w-full border-collapse text-left">
                 <thead className="bg-slate-950 text-xs uppercase tracking-[0.22em] text-slate-200">
@@ -226,13 +246,14 @@ export default function AdminEvalsPage() {
               </table>
             </div>
           </div>
+          </>
         )}
       </section>
     </main>
   );
 }
 
-function buildEvalRunsClient(rows: TraceRow[], now = new Date()): EvalRunResult[] {
+function buildEvalRunsClient(rows: ClientTraceRow[], now = new Date()): EvalRunResult[] {
   const WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
   const windowStart = new Date(now.getTime() - WINDOW_MS);
   type Bucket = {
