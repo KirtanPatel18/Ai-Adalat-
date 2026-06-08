@@ -17,7 +17,7 @@ const BANNER_TEXT = "AI-generated draft — not legal advice";
 // ----------------------------------------------------------------------
 // MAIN API HANDLER
 // ----------------------------------------------------------------------
-export async function POST(req: NextRequest, context: { params: { id: string } }) {
+export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
