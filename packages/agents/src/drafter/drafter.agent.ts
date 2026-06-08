@@ -154,7 +154,7 @@ export async function runDrafter(input: DrafterInput): Promise<DrafterResult> {
       status: "ok",
       session_id,
     });
-    await persistTrace(trace);
+    await persistTrace(trace, { user_id: session_id || "00000000-0000-0000-0000-000000000000", document_id: draft.id });
 
     // Attach this trace to the draft so downstream agents see the full chain
     draft.traces = [trace];
@@ -162,7 +162,7 @@ export async function runDrafter(input: DrafterInput): Promise<DrafterResult> {
     return { draft, trace };
   } catch (error) {
     const trace = buildErrorTrace("drafter", error, session_id);
-    await persistTrace(trace);
+    await persistTrace(trace, { user_id: session_id || "00000000-0000-0000-0000-000000000000" });
 
     // Re-throw with trace attached so the pipeline orchestrator can surface it
     const err = error instanceof Error ? error : new Error(String(error));
@@ -246,14 +246,14 @@ export async function reviseDraft(
       status: "ok",
       session_id,
     });
-    await persistTrace(trace);
+    await persistTrace(trace, { user_id: session_id || "00000000-0000-0000-0000-000000000000", document_id: original.id });
 
     draft.traces.push(trace);
 
     return { draft, trace };
   } catch (error) {
     const trace = buildErrorTrace("drafter", error, session_id);
-    await persistTrace(trace);
+    await persistTrace(trace, { user_id: session_id || "00000000-0000-0000-0000-000000000000", document_id: original.id });
 
     const err = error instanceof Error ? error : new Error(String(error));
     (err as any).trace = trace;

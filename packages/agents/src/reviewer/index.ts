@@ -243,7 +243,7 @@ export async function runReviewer(input: ReviewerInput): Promise<ReviewerResult>
       session_id,
       error_message,
     });
-    await persistTrace(trace);
+    await persistTrace(trace, { user_id: session_id || "00000000-0000-0000-0000-000000000000", document_id: draft.id });
 
     return {
       approved,
@@ -256,7 +256,7 @@ export async function runReviewer(input: ReviewerInput): Promise<ReviewerResult>
     };
   } catch (error) {
     const trace = buildErrorTrace("reviewer", error, session_id);
-    await persistTrace(trace);
+    await persistTrace(trace, { user_id: session_id || "00000000-0000-0000-0000-000000000000", document_id: draft.id });
 
     const err = error instanceof Error ? error : new Error(String(error));
     (err as any).trace = trace;

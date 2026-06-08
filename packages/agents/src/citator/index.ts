@@ -71,7 +71,7 @@ export async function runCitator(input: CitatorInput): Promise<CitatorResult> {
       status: "rejected",
       session_id,
     });
-    await persistTrace(trace);
+    await persistTrace(trace, { user_id: session_id || "00000000-0000-0000-0000-000000000000", document_id: draft.id });
 
     return {
       approved: false,
@@ -107,7 +107,7 @@ export async function runCitator(input: CitatorInput): Promise<CitatorResult> {
         rejected_spans.push(citation.span);
       } else {
         const trace = buildErrorTrace("citator", error, session_id);
-        await persistTrace(trace);
+        await persistTrace(trace, { user_id: session_id || "00000000-0000-0000-0000-000000000000", document_id: draft.id });
         const err = error instanceof Error ? error : new Error(String(error));
         (err as any).trace = trace;
         throw err;
@@ -125,7 +125,7 @@ export async function runCitator(input: CitatorInput): Promise<CitatorResult> {
     session_id,
   });
 
-  await persistTrace(trace);
+  await persistTrace(trace, { user_id: session_id || "00000000-0000-0000-0000-000000000000", document_id: draft.id });
 
   return {
     approved,

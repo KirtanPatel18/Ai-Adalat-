@@ -234,7 +234,7 @@ export async function runTranslator(input: TranslatorInput): Promise<TranslatorR
       status: "ok",
       session_id,
     });
-    await persistTrace(trace);
+    await persistTrace(trace, { user_id: session_id || "00000000-0000-0000-0000-000000000000" });
     return { output, trace };
   }
 
@@ -338,12 +338,12 @@ export async function runTranslator(input: TranslatorInput): Promise<TranslatorR
       status: "ok",
       session_id,
     });
-    await persistTrace(trace);
+    await persistTrace(trace, { user_id: session_id || "00000000-0000-0000-0000-000000000000" });
 
     return { output, trace };
   } catch (error) {
     const trace = buildErrorTrace("translator", error, session_id);
-    await persistTrace(trace);
+    await persistTrace(trace, { user_id: session_id || "00000000-0000-0000-0000-000000000000" });
 
     const err = error instanceof Error ? error : new Error(String(error));
     (err as any).trace = trace;
