@@ -1,0 +1,60 @@
+{
+  "app": {
+    "name": "Trionic Adalat",
+    "tagline": "ભારતીય કાનૂની ડ્રાફ્ટિંગ, વાસ્તવિક કાયદાના આધાર પર।",
+    "notLegalAdvice": "AI તરફથી બનાવેલ ડ્રાફ્ટ — આ કાનૂની સલાહ નથી. દાખલ કરતા પહેલાં સમીક્ષા કરો."
+  },
+  "navigation": {
+    "dashboard": "ડેશબોર્ડ",
+    "newDraft": "નવો ડ્રાફ્ટ",
+    "settings": "સેટિંગ્સ",
+    "auditLog": "ઓડિટ લોગ",
+    "signIn": "સાઈન ઇન"
+  },
+  "actions": {
+    "continue": "ચાલુ રાખો",
+    "generateDraft": "ડ્રાફ્ટ બનાવો",
+    "translate": "અનુવાદ કરો",
+    "export": "નિકાસ કરો",
+    "cancel": "રદ કરો",
+    "save": "સેવ કરો"
+  },
+  "languages": {
+    "en": "English",
+    "hi": "हिन्दी",
+    "gu": "ગુજરાતી",
+    "mr": "मराठी",
+    "ta": "தமிழ்"
+  },
+  "dashboard": {
+    "title": "તમારા ડ્રાફ્ટ",
+    "empty": "હજી કોઈ ડ્રાફ્ટ નથી. નવો ડ્રાફ્ટ શરૂ કરો.",
+    "search": "શોધો"
+  },
+  "draft": {
+    "title": "ડ્રાફ્ટ",
+    "citations": "ઉલ્લેખો",
+    "generating": "તમારું ડ્રાફ્ટ બનાવવામાં આવી રહ્યું છે...",
+    "reviewBeforeFiling": "ફાઇલ કરવા પહેલાં તમામ ઉલ્લેખો અને તથ્યો તપાસો."
+  },
+  "onboarding": {
+    "welcome": "Trionic Adalat માં આપનું સ્વાગત",
+    "displayName": "અમે તમને શું કહેવા જોઈએ?",
+    "preferredLanguage": "તમે ડ્રાફ્ટ માટે કયા ભાષા પસંદ કરશો?"
+  },
+  "auth": {
+    "signUp": "સાઇન અપ",
+    "email": "ઈમેઇલ",
+    "password": "પાસવર્ડ",
+    "signOut": "સાઇન આઉટ"
+  },
+  "landing": {
+    "getStarted": "શરૂઆત",
+    "features": "વિશેષતાઓ"
+  },
+  "intake": {
+    "title": "તમારી કાનૂની સમસ્યા શું છે?",
+    "placeholder": "તમારું કેસ અહીં ટાઈપ કરો...",
+    "submit": "સમસીયા દાખલ કરો"
+  }
+}
