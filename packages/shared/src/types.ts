@@ -70,6 +70,8 @@ export type AgentTrace = {
    /** Optional: trace ID of the parent agent call. Used for nested call linking.
    *  e.g. Drafter's child PageIndex calls set this to the Drafter's trace ID. */
   parent_trace_id?: string;
+  /** Optional: document type this trace belongs to. */
+  doc_type?: "rti_application" | "legal_notice" | "nda" | "consumer_complaint" | "cheque_bounce_notice";
 };
 
 // ─── Document Draft ───────────────────────────────────────────────────────────
