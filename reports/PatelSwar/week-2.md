@@ -1,4 +1,4 @@
-# Week-2 Report — Patel Swar
+# Week‑2 Report — Patel Swar
 
 **Team:** Team E — Indic
 
@@ -8,31 +8,41 @@
 
 **Week of:** 2026-05-26
 
-Summary
-- Seeded the first 30 English → Gujarati legal glossary entries and added a Gujarati glossary file so translation infra can consume Gujarati terms during Week-2 work.
+---
 
-What I changed
-- Added Gujarati glossary file: `packages/translation/data/glossary.gu.json` (30 draft entries).
-- Seeded Gujarati entries into `packages/translation/data/glossary.json` as part of the shared seed set.
+## Summary
 
-Files added/updated
-- `packages/translation/data/glossary.gu.json` — 30 draft Gujarati entries (EN→GU) (draft status).
-- `packages/translation/data/glossary.json` — updated seed entries (EN→GU entries appended).
+- Seeded the first Gujarati glossary fixture and added entries to the shared seed so translation infra can consume Gujarati terms during Week‑2 work.
 
-Acceptance criteria (from issue)
-- First 30 EN→Gujarati legal terms present in glossary (seeded) — Complete (draft entries added).
-- i18n message file for Gujarati seeded (matches next-intl setup) — Glossary file added; next-intl message integration pending Vraj's setup validation.
+## What I changed
 
-How I tested
-- Verified JSON validity for the new file in `packages/translation/data/`.
-- Ensured entry shape matches `glossary.hi.json` contract used by translation lookup.
+- Added `packages/translation/data/glossary.gu.json` — initial Gujarati seed entries (EN→GU).
+- Appended Gujarati entries into `packages/translation/data/glossary.json` (shared seed).
 
-Next steps
-- Create the `/-week-2` branch, commit these changes, and push a draft PR for review.
-- Coordinate with Megh to confirm any node_id/snapshot differences and update translations if required.
-- Prepare a 60-second demo note and include it in `reports/week-2.md` for Demo Day.
+## Files added/updated
 
+- `packages/translation/data/glossary.gu.json` — Gujarati glossary entries (draft + approved statuses).
+- `packages/translation/data/glossary.json` — shared seed updated with Gujarati entries.
 
+## Acceptance criteria (from issue)
 
+- [ ] First 30 EN→Gujarati legal terms present in `packages/translation/data/glossary.gu.json` (seeded).
+- [ ] At least 5 terms anchored to PageIndex node IDs (Contract Act if Mahi's tree is ready) — pending review; several entries include `node_id` but please confirm anchors with Megh.
+- [ ] i18n message file for Gujarati seeded with 30 UI strings (coordinate with @vrajmevawala) — pending (see `apps/web/messages/gu.json` for current seed; confirm keys with Vraj).
+
+## How I tested
+
+- Validated JSON syntax for `packages/translation/data/glossary.gu.json` and `packages/translation/data/glossary.json`.
+- Manually inspected entry shape to match `glossary.hi.json` contract used by the translation lookup.
+
+## Next steps
+
+1. Confirm `node_id` anchors with Megh and update entries where necessary.
+2. Seed/verify `apps/web/messages/gu.json` contains 30 UI strings and matches `hi.json` key structure; coordinate with @vrajmevawala.
+3. Create branch `/-week-2`, commit any remaining edits and push a draft PR for review.
+
+## Notes
+
+- Entries currently use `status: "draft"` where translations need signoff. Reviewers should update statuses to `approved` after review.
 
 Owner: Patel Swar
