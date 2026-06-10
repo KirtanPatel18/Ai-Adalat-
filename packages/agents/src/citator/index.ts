@@ -117,7 +117,7 @@ export async function runCitator(input: CitatorInput): Promise<CitatorResult> {
       session_id,
     });
     await persistTrace(trace, {
-      user_id: session_id || "system",
+      user_id: session_id || "00000000-0000-0000-0000-000000000000",
       document_id: draft.id,
     });
 
@@ -176,7 +176,7 @@ export async function runCitator(input: CitatorInput): Promise<CitatorResult> {
         // Unexpected error — propagate with trace attached
         const trace = buildErrorTrace("citator", error, session_id);
         await persistTrace(trace, {
-          user_id: session_id || "system",
+          user_id: session_id || "00000000-0000-0000-0000-000000000000",
           document_id: draft.id,
         });
         const err = error instanceof Error ? error : new Error(String(error));
@@ -197,7 +197,7 @@ export async function runCitator(input: CitatorInput): Promise<CitatorResult> {
     session_id,
   });
   await persistTrace(trace, {
-    user_id: session_id || "system",
+    user_id: session_id || "00000000-0000-0000-0000-000000000000",
     document_id: draft.id,
   });
 

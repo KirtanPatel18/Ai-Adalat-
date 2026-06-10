@@ -11,7 +11,7 @@
  *   node_id format: <ACT_CODE>/<CHAPTER>/<SECTION>  e.g. RTI-2005/CH-II/S-3
  */
 
-import type { SearchResult } from "@trionic/pageindex";
+import type { AgnoSearchResult } from "@trionic/pageindex";
 import type { PlannerOutput } from "../types.js";
 
 // ─── System Prompt ────────────────────────────────────────────────────────────
@@ -150,7 +150,7 @@ This is a drafting aid — NOT legal advice. Write in this spirit at all times.`
 export function buildDrafterUserPrompt(
   plan: PlannerOutput,
   intakeText: string,
-  retrievedNodes: SearchResult[] = []
+  retrievedNodes: AgnoSearchResult[] = []
 ): string {
   const queriesBlock =
     plan.pageindex_queries.length > 0

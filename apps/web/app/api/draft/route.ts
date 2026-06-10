@@ -1,132 +1,345 @@
 import { NextResponse } from "next/server";
-// @ts-expect-error - Expected error from createRouteHandlerClient
+// @ts-expect-error - Expected error from createRouteHandlerClient (nextjs-auth-helpers signature)
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
-import type { DraftRequest, AgentStreamEvent, Citation } from "@trionic/shared";
-import { runAgentChain } from "@trionic/agents";
+import type { DraftRequest, AgentStreamEvent } from "@trionic/shared";
+// @ts-ignore - Ignore module import if agents package is not compiled yet in monorepo bootstrap
+import { runAgentChainWithMemory, SupabaseStore } from "@trionic/agents";
 
+// Ensure Node.js runtime and set maximum duration for long-running agent chains
 export const runtime = "nodejs";
-export const maxDuration = 300; // Allow 5 minutes since agents take time
+export const maxDuration = 300; // Allow 5 minutes since agent pipelines involve multiple sequential LLM calls
 
+/**
+ * Validates the DraftRequest request body.
+ */
+function validateDraftRequest(body: unknown): { error?: string; validatedData?: DraftRequest } {
+  if (!body || typeof body !== "object") {
+    return { error: "Request body must be a JSON object" };
+  }
+
+  const req = body as Record<string, unknown>;
+
+  // Validate document_id
+  if (!req.document_id || typeof req.document_id !== "string") {
+    return { error: "Missing or invalid document_id" };
+  }
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(req.document_id)) {
+    return { error: "document_id must be a valid UUID" };
+  }
+
+  // Validate intake_text
+  if (!req.intake_text || typeof req.intake_text !== "string") {
+    return { error: "Missing or invalid intake_text" };
+  }
+  if (req.intake_text.trim().length === 0) {
+    return { error: "intake_text cannot be empty" };
+  }
+
+  // Validate target_language
+  if (!req.target_language || typeof req.target_language !== "string") {
+    return { error: "Missing or invalid target_language" };
+  }
+  const allowedLanguages = ["en", "hi", "gu", "mr", "ta"];
+  if (!allowedLanguages.includes(req.target_language)) {
+    return { error: `target_language must be one of: ${allowedLanguages.join(", ")}` };
+  }
+
+  // Validate doc_type (optional)
+  if (req.doc_type !== undefined) {
+    if (typeof req.doc_type !== "string") {
+      return { error: "doc_type must be a string" };
+    }
+    const allowedDocTypes = ["rti_application", "legal_notice", "nda", "consumer_complaint", "cheque_bounce_notice"];
+    if (!allowedDocTypes.includes(req.doc_type)) {
+      return { error: `doc_type must be one of: ${allowedDocTypes.join(", ")}` };
+    }
+  }
+
+  // Validate user_context (optional)
+  if (req.user_context !== undefined) {
+    if (typeof req.user_context !== "object" || req.user_context === null) {
+      return { error: "user_context must be a JSON object" };
+    }
+    for (const [key, value] of Object.entries(req.user_context)) {
+      if (typeof key !== "string" || typeof value !== "string") {
+        return { error: "user_context keys and values must be strings" };
+      }
+    }
+  }
+
+  return { validatedData: body as DraftRequest };
+}
+
+/**
+ * POST /api/draft
+ * 
+ * Generation Endpoint: Wires the agent chain orchestrator to the SSE stream.
+ * Resolves authentication, parses user instructions, retrieves or initializes
+ * conversation memory, executes classifier -> planner -> pageindex -> drafter -> citator -> reviewer -> translator,
+ * and streams AgentStreamEvent frames to the client in real-time.
+ */
 export async function POST(req: Request) {
-  let supabase;
+  // 1. Initialize Supabase Route Handler client using request cookies context
+  let supabase: ReturnType<typeof createRouteHandlerClient>;
   try {
     supabase = createRouteHandlerClient({ cookies });
-  } catch {
-    return NextResponse.json({ error: "Supabase client initialization failed" }, { status: 500 });
+  } catch (err) {
+    return NextResponse.json(
+      { 
+        error: "internal", 
+        message: "Supabase client initialization failed", 
+        details: err instanceof Error ? err.message : String(err) 
+      },
+      { status: 500 }
+    );
   }
 
-  const { data: { session } } = await supabase.auth.getSession();
+  // 2. Authenticate the caller and ensure session validity
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError) {
+    console.error("Supabase getSession error:", sessionError);
+    return NextResponse.json(
+      { error: "unauthorized", message: "Failed to get session", details: sessionError.message },
+      { status: 401 }
+    );
+  }
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      { error: "unauthorized", message: "Unauthorized session: active session is required" },
+      { status: 401 }
+    );
   }
 
-  let draftReq: DraftRequest;
+  // 3. Parse and validate the incoming DraftRequest JSON body
+  let bodyJson: unknown;
   try {
-    draftReq = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    bodyJson = await req.json();
+  } catch (err) {
+    return NextResponse.json(
+      { 
+        error: "bad_request", 
+        message: "Invalid request payload: valid JSON body is required", 
+        details: err instanceof Error ? err.message : String(err) 
+      },
+      { status: 400 }
+    );
   }
 
-  if (!draftReq?.document_id) {
-    return NextResponse.json({ error: "Missing document_id" }, { status: 400 });
+  const validation = validateDraftRequest(bodyJson);
+  if (validation.error || !validation.validatedData) {
+    return NextResponse.json(
+      { error: "bad_request", message: validation.error || "Validation failed" },
+      { status: 400 }
+    );
+  }
+
+  const draftReq = validation.validatedData;
+
+  // 3.5. Verify document exists and belongs to the authenticated user (Security check)
+  const { data: document, error: docError } = await supabase
+    .from("documents")
+    .select("id, owner_id")
+    .eq("id", draftReq.document_id)
+    .single();
+
+  if (docError || !document) {
+    console.error("Document not found or access denied:", docError);
+    return NextResponse.json(
+      { error: "not_found", message: "Document not found or access denied" },
+      { status: 404 }
+    );
+  }
+
+  // 3.6. Set document status to "generating" (State machine transition)
+  const { error: generatingError } = await supabase
+    .from("documents")
+    .update({ status: "generating" })
+    .eq("id", draftReq.document_id);
+
+  if (generatingError) {
+    console.error("Failed to update status to generating:", generatingError);
+    return NextResponse.json(
+      { error: "internal", message: "Failed to update document status to generating" },
+      { status: 500 }
+    );
   }
 
   const encoder = new TextEncoder();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const generator = runAgentChain(draftReq) as any;
 
+  // 4. Initialize Yatri's multi-turn conversation memory store using SupabaseStore
+  // We feed the active Supabase client to the production memory store wrapper.
+  const memoryStore = new SupabaseStore(supabase);
+
+  // 5. Initialize Malay's memory-aware agent chain generator
+  const generator: AsyncGenerator<AgentStreamEvent> = runAgentChainWithMemory(
+    {
+      document_id: draftReq.document_id,
+      intake_text: draftReq.intake_text,
+      target_language: draftReq.target_language,
+      doc_type: draftReq.doc_type,
+      session_id: session.user.id, // Feed authenticated user id as the session identifier
+    },
+    {
+      memoryStore,
+    }
+  );
+
+  // 6. Construct the ReadableStream to pipe generator emissions as Server-Sent Events (SSE)
   const stream = new ReadableStream({
     async start(controller) {
-      // Abort agent chain if client disconnects
+      // Graceful cancellation support: Abort agent chain mid-flight if client disconnects
       req.signal.addEventListener("abort", () => {
-        generator.return(undefined).catch(() => {});
+        generator.return?.(undefined).catch(() => {});
       });
 
       try {
+        // Iterate over the generator's async iterable stream
         for await (const event of generator) {
+          // Break immediately if request is already aborted
           if (req.signal.aborted) {
             break;
           }
 
+          // Format each event as a standard SSE frame
           const data = `data: ${JSON.stringify(event)}\n\n`;
           controller.enqueue(encoder.encode(data));
 
+          // Handle pipeline milestones / terminations
           if (event.type === "draft.final") {
-            // Write new DocumentVersion row
-            // Get current max version number
-            const { data: latestVersion } = await supabase
+            // Write a new DocumentVersion record inside Supabase to persist the draft
+            // A. Fetch current maximum version number for the document (monotonically increasing)
+            const { data: latestVersion, error: selectError } = await supabase
               .from("document_versions")
-              .select("version_number")
+              .select("version_num")
               .eq("document_id", draftReq.document_id)
-              .order("version_number", { ascending: false })
+              .order("version_num", { ascending: false })
               .limit(1)
-              .single();
+              .maybeSingle();
 
-            const nextVersion = (latestVersion?.version_number || 0) + 1;
+            if (selectError) {
+              console.error("Failed to query latest version:", selectError);
+              throw selectError;
+            }
 
-            const snapshotIds = Array.from(new Set(event.response.citations.map((c: Citation) => c.snapshot_id)));
-            const agentTraceId = event.response.trace_ids.length > 0 ? event.response.trace_ids[event.response.trace_ids.length - 1] : null;
-            
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const rowData: any = {
-              document_id: draftReq.document_id,
-              version_number: nextVersion,
-              content_md: event.response.body_markdown,
-              is_agent_draft: true,
-              created_by: session.user.id,
-              snapshot_ids: snapshotIds,
-            };
-            if (agentTraceId) rowData.agent_trace_id = agentTraceId;
+            const nextVersion = (latestVersion?.version_num || 0) + 1;
 
-            await supabase.from("document_versions").insert(rowData);
+            // B. Perform concurrency protected insertion (retry up to 3 times on unique constraint violation)
+            let insertSuccess = false;
+            let currentNextVersion = nextVersion;
+            let insertAttempts = 0;
+            let newVersion = null;
 
-            // Update document status to final
-            await supabase.from("documents")
-              .update({ status: "final" })
+            while (!insertSuccess && insertAttempts < 3) {
+              insertAttempts++;
+              const { data: insertedData, error: insertError } = await supabase
+                .from("document_versions")
+                .insert({
+                  document_id: draftReq.document_id,
+                  version_num: currentNextVersion,
+                  body_markdown: event.response.body_markdown,
+                  created_by: session.user.id,
+                })
+                .select("id")
+                .single();
+
+              if (!insertError && insertedData) {
+                newVersion = insertedData;
+                insertSuccess = true;
+              } else if (insertError && insertError.code === "23505") {
+                // Unique key violation: concurrent edit inserted a version first.
+                // Fetch the latest version number again and increment it.
+                console.warn(`Concurrency conflict detected on version_num ${currentNextVersion} (attempt ${insertAttempts}). Retrying version increment...`);
+                const { data: latestV, error: selectRetryError } = await supabase
+                  .from("document_versions")
+                  .select("version_num")
+                  .eq("document_id", draftReq.document_id)
+                  .order("version_num", { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+
+                if (selectRetryError) {
+                  console.error("Failed to query latest version during concurrency retry:", selectRetryError);
+                  throw selectRetryError;
+                }
+                currentNextVersion = (latestV?.version_num || 0) + 1;
+              } else {
+                console.error("Failed to insert document version:", insertError);
+                throw insertError || new Error("Failed to insert document version");
+              }
+            }
+
+            if (!insertSuccess || !newVersion) {
+              throw new Error("Failed to save draft version due to persistent concurrency conflicts.");
+            }
+
+            // C. Set document status to final and update current_version_id
+            const { error: updateError } = await supabase.from("documents")
+              .update({ 
+                status: "final",
+                current_version_id: newVersion.id,
+                updated_at: new Date().toISOString()
+              })
               .eq("id", draftReq.document_id);
 
+            if (updateError) {
+              console.error("Failed to update document status to final:", updateError);
+              throw updateError;
+            }
+
+            // D. Close connection
             controller.close();
             break;
           } else if (event.type === "step.error") {
-            // Update status to failed
-            await supabase.from("documents")
+            // Pipeline failed (e.g., Citator rejection). Mark status as failed and close stream.
+            const { error: updateError } = await supabase.from("documents")
               .update({ status: "failed" })
               .eq("id", draftReq.document_id);
+            if (updateError) {
+              console.error("Failed to update document status to failed:", updateError);
+            }
 
             controller.close();
             break;
           }
         }
       } catch (err) {
+        // Enqueue system-level step.error fallback in case of unexpected exceptions
         console.error("Agent chain error:", err);
         const errorEvent: AgentStreamEvent = {
           type: "step.error",
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          agent: "system" as any, // fallback or safe cast since it's an unexpected error
+          agent: "system", 
           message: err instanceof Error ? err.message : String(err),
           ts: new Date().toISOString()
         };
         const data = `data: ${JSON.stringify(errorEvent)}\n\n`;
         controller.enqueue(encoder.encode(data));
 
-        await supabase.from("documents")
+        // Mark document as failed in the database
+        const { error: updateError } = await supabase.from("documents")
           .update({ status: "failed" })
           .eq("id", draftReq.document_id);
+        if (updateError) {
+          console.error("Failed to update document status to failed in catch block:", updateError);
+        }
           
         controller.close();
       }
     },
     cancel() {
-      generator.return(undefined).catch(() => {});
+      // Abort agent pipeline if client breaks the stream reader explicitly
+      generator.return?.(undefined).catch(() => {});
     }
   });
 
+  // Return standard text/event-stream headers to keep stream connection active
   return new Response(stream, {
     headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache, no-transform",
       "Connection": "keep-alive",
+      "X-Accel-Buffering": "no", // Prevent buffering in Vercel/Nginx proxies
     },
   });
 }

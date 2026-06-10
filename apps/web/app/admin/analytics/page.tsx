@@ -123,7 +123,7 @@ export default function AnalyticsDashboard() {
 
         // ── Cell 1: Doc-type popularity ──────────────────────────────────
         const dtMap: Partial<Record<DocumentType, number>> = {};
-        docs.forEach((d) => {
+        docs.forEach((d: any) => {
           const type = d.doc_type as DocumentType;
           dtMap[type] = (dtMap[type] ?? 0) + 1;
         });
@@ -135,7 +135,7 @@ export default function AnalyticsDashboard() {
 
         // ── Cell 2: Language distribution ────────────────────────────────
         const langMap: Partial<Record<SupportedLanguage, number>> = {};
-        docs.forEach((d) => {
+        docs.forEach((d: any) => {
           const lang = d.language as SupportedLanguage;
           langMap[lang] = (langMap[lang] ?? 0) + 1;
         });
@@ -152,9 +152,9 @@ export default function AnalyticsDashboard() {
         );
 
         // ── Cell 3: Exports per day (last 7 days) ────────────────────────
-        const exportedDocs = docs.filter((d) => d.status === "final");
+        const exportedDocs = docs.filter((d: any) => d.status === "final");
         const epdMap: Record<string, number> = {};
-        exportedDocs.forEach((d) => {
+        exportedDocs.forEach((d: any) => {
           const date = d.updated_at.slice(0, 10);
           epdMap[date] = (epdMap[date] ?? 0) + 1;
         });
@@ -173,7 +173,7 @@ export default function AnalyticsDashboard() {
 
         // ── Cell 6: Daily draft creation count ───────────────────────────
         const draftMap: Record<string, number> = {};
-        docs.forEach((d) => {
+        docs.forEach((d: any) => {
           const date = d.created_at.slice(0, 10);
           draftMap[date] = (draftMap[date] ?? 0) + 1;
         });
@@ -192,7 +192,7 @@ export default function AnalyticsDashboard() {
 
         if (!citError && citationRows && citationRows.length > 0) {
           const actMap: Record<string, number> = {};
-          citationRows.forEach((c) => {
+          citationRows.forEach((c: any) => {
             const act = (c.node_id as string).split("/")[0];
             actMap[act] = (actMap[act] ?? 0) + 1;
           });

@@ -33,7 +33,7 @@ import {
 } from "./drafter.prompt.js";
 import { extractCitations, extractNodeIds } from "./citations.js";
 import type { DrafterInput, DrafterResult } from "./types.js";
-import { pageindex } from "@trionic/pageindex";
+import { pageindex, type AgnoSearchResult } from "@trionic/pageindex";
 import { ROUTER_CONFIG } from "../router/router.config.js";
 
 // ─── runDrafter ───────────────────────────────────────────────────────────────
@@ -58,9 +58,9 @@ export async function runDrafter(input: DrafterInput): Promise<DrafterResult> {
   try {
     // 1. Query PageIndex for each hint query in plan.pageindex_queries
     const searchPromises = plan.pageindex_queries.map((q) =>
-      pageindex.search({ query: q, top_k: 3 }).catch((err) => {
+      pageindex.search({ query: q, top_k: 3 }).catch((err: any) => {
         console.warn(`[Drafter] PageIndex search failed for query "${q}":`, err);
-        return [];
+        return [] as AgnoSearchResult[];
       })
     );
     const searchResults = await Promise.all(searchPromises);
@@ -68,7 +68,7 @@ export async function runDrafter(input: DrafterInput): Promise<DrafterResult> {
 
     // Deduplicate retrieved nodes by node_id
     const seenNodes = new Set<string>();
-    const retrievedNodes = flatResults.filter((item) => {
+    const retrievedNodes = flatResults.filter((item: AgnoSearchResult) => {
       if (seenNodes.has(item.node_id)) {
         return false;
       }
@@ -154,7 +154,7 @@ export async function runDrafter(input: DrafterInput): Promise<DrafterResult> {
       status: "ok",
       session_id,
     });
-    await persistTrace(trace);
+    await persistTrace(trace, { user_id: session_id || "00000000-0000-0000-0000-000000000000", document_id: draft.id });
 
     // Attach this trace to the draft so downstream agents see the full chain
     draft.traces = [trace];
@@ -162,7 +162,7 @@ export async function runDrafter(input: DrafterInput): Promise<DrafterResult> {
     return { draft, trace };
   } catch (error) {
     const trace = buildErrorTrace("drafter", error, session_id);
-    await persistTrace(trace);
+    await persistTrace(trace, { user_id: session_id || "00000000-0000-0000-0000-000000000000" });
 
     // Re-throw with trace attached so the pipeline orchestrator can surface it
     const err = error instanceof Error ? error : new Error(String(error));
@@ -246,14 +246,14 @@ export async function reviseDraft(
       status: "ok",
       session_id,
     });
-    await persistTrace(trace);
+    await persistTrace(trace, { user_id: session_id || "00000000-0000-0000-0000-000000000000", document_id: original.id });
 
     draft.traces.push(trace);
 
     return { draft, trace };
   } catch (error) {
     const trace = buildErrorTrace("drafter", error, session_id);
-    await persistTrace(trace);
+    await persistTrace(trace, { user_id: session_id || "00000000-0000-0000-0000-000000000000", document_id: original.id });
 
     const err = error instanceof Error ? error : new Error(String(error));
     (err as any).trace = trace;
