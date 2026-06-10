@@ -13,10 +13,11 @@
  *
  * Returns ReviewerOutput (from @trionic/shared) + AgentTrace.
  *
- * See: docs/RFC-reviewer-agent.md, Issue #112, Issue #185
+ * See: docs/RFC-reviewer-agent.md, Issue #112, Issue #185, Issue #277
  */
 
-import type { AgentTrace, DocumentDraft, DocumentType, ReviewerOutput } from "@trionic/shared";
+import type { AgentTrace, DocumentDraft, DocumentType, ReviewerOutput, SupportedLanguage } from "@trionic/shared";
+import { glossary } from "@trionic/translation";
 import { router } from "../router/index.js";
 import { buildTrace, buildErrorTrace, persistTrace } from "../tracing/index.js";
 import {
@@ -45,15 +46,15 @@ const BANNER_EXACT = "AI-generated draft \u2014 not legal advice";
 
 /**
  * Per-doc-type required sections.
- * Week 3: RTI now includes "Date and Signature" (5 sections total).
- * Others remain empty for W3.
+ * Week 4 (#277): all 5 doc types now have required sections.
+ * Exported for sharing with Sohil's editor.
  */
 export const REQUIRED_SECTIONS: Record<DocumentType, string[]> = {
   rti_application: ["Address", "Subject", "Information Sought", "Declaration", "Date and Signature"],
-  legal_notice: [],
-  nda: [],
-  consumer_complaint: [],
-  cheque_bounce_notice: [],
+  legal_notice: ["Parties", "Cause of Action", "Demand and Relief", "Timeline", "Governing Law"],
+  nda: ["Parties", "Definitions", "Confidential Information", "Obligations", "Term and Termination", "Governing Law", "Signatures"],
+  consumer_complaint: ["Complainant Details", "Opposite Party", "Facts of Transaction", "Deficiency of Service", "Relief Sought", "Jurisdiction"],
+  cheque_bounce_notice: ["Drawer Details", "Payee Details", "Cheque Details", "Dishonour Details", "Demand for Payment", "Legal Warning"],
 };
 
 // ─── Input / Output shapes ────────────────────────────────────────────────────
@@ -82,7 +83,7 @@ export interface ReviewerResult extends ReviewerOutput {
 
 /**
  * Returns the list of required section names for a given document type.
- * AC1 (#185): Reviewer.requiredSections('rti_application') → 5 items.
+ * AC1 (#277): Reviewer.requiredSections(doc_type) → correct list per type.
  */
 export function requiredSections(docType: DocumentType): string[] {
   return REQUIRED_SECTIONS[docType] ?? [];
@@ -91,13 +92,26 @@ export function requiredSections(docType: DocumentType): string[] {
 // ─── Check functions ──────────────────────────────────────────────────────────
 
 /**
- * Exact-string banner check.
+ * Banner check with multilingual support.
  * Returns true if the canonical banner lead-in appears in the first 2,000 chars.
  * Week 3: tightened from regex to exact match per AC5 (#185).
+ * Week 4 (#277): added glossary lookup for translated banners (AC3).
  */
-export function checkBanner(draftMarkdown: string): boolean {
+export function checkBanner(draftMarkdown: string, language: SupportedLanguage): boolean {
   const head = draftMarkdown.slice(0, 2000);
-  return head.includes(BANNER_EXACT);
+  
+  if (head.includes(BANNER_EXACT)) {
+    return true;
+  }
+  
+  if (language !== "en") {
+    const lookupResult = glossary.lookup(BANNER_EXACT, language);
+    if (lookupResult && lookupResult.translation) {
+      return head.includes(lookupResult.translation);
+    }
+  }
+  
+  return false;
 }
 
 /**
@@ -172,8 +186,8 @@ export async function runReviewer(input: ReviewerInput): Promise<ReviewerResult>
   const { draft, session_id } = input;
 
   try {
-    // 1. Banner check (deterministic exact-string)
-    const banner_present = checkBanner(draft.content);
+    // 1. Banner check (deterministic exact-string or translated string)
+    const banner_present = checkBanner(draft.content, draft.language);
 
     // 2. Completeness check (LLM-scored with deterministic fallback)
     const completenessResult = await checkCompletenessLLM(
@@ -183,7 +197,7 @@ export async function runReviewer(input: ReviewerInput): Promise<ReviewerResult>
     const missing_required_sections = completenessResult.missing;
 
     // 3. Tone check (LLM call via Router)
-    const userPrompt = buildToneUserPrompt(draft.content);
+    const userPrompt = buildToneUserPrompt(draft.content, draft.document_type);
     const toneLlmResponse = await router.run(
       "reviewer",
       REVIEWER_TONE_SYSTEM_PROMPT,

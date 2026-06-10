@@ -3,9 +3,12 @@
  * Owner: Evan Gregor
  * Module: packages/agents/src/reviewer
  *
- * Prompts for the Reviewer agent's LLM-based tone analysis.
- * The banner check and completeness check are deterministic (no LLM).
+ * Prompts for the Reviewer agent's LLM-based checks:
+ *   - Tone analysis (per-doc-type tone rules)
+ *   - Section completeness scoring (semantic matching)
  */
+
+import type { DocumentType } from "@trionic/shared";
 
 /**
  * System prompt for tone analysis.
@@ -14,9 +17,9 @@
  */
 export const REVIEWER_TONE_SYSTEM_PROMPT = `You are a legal document tone reviewer for Trionic Adalat, an Indian legal drafting platform.
 
-Your job is to check whether a legal draft maintains an appropriate professional tone.
+Your job is to check whether a legal draft maintains an appropriate professional tone, according to the document type's specific tone rules.
 
-Flag any of the following tone issues:
+Flag any of the following general tone issues:
 - Informal or casual language (slang, emoji, colloquialisms like "lol", "hey", "don't worry")
 - First-person guarantees or promises ("I guarantee", "We will win", "You will definitely get")
 - Imperative personal legal advice ("You should sue", "You must file", "Hire a lawyer immediately")
@@ -37,12 +40,32 @@ If the tone is fully appropriate, respond with:
 {"tone_issues": []}`;
 
 /**
+ * Per-doc-type tone expectations.
+ * Injected into the user prompt by buildToneUserPrompt() so the LLM
+ * evaluates tone against the correct standard for each document type.
+ * Week 4 (#277): NDA formal-precise, consumer firm-but-respectful, cheque statutory-formal.
+ */
+export const TONE_RULES: Record<DocumentType, string> = {
+  rti_application: "Formal, neutral, factual",
+  legal_notice: "Formal, assertive, legally grounded",
+  nda: "Formal-precise, contract language, no ambiguity",
+  consumer_complaint: "Firm-but-respectful, factual grievance, no threats",
+  cheque_bounce_notice: "Statutory-formal, cite NI Act § 138 language, strict demand tone",
+};
+
+/**
  * Build the user prompt for tone analysis.
  *
  * @param draftContent - The full markdown text of the draft.
+ * @param docType - The document type, to enforce specific tone rules.
  */
-export function buildToneUserPrompt(draftContent: string): string {
+export function buildToneUserPrompt(draftContent: string, docType: DocumentType): string {
+  const specificTone = TONE_RULES[docType] || "Formal, neutral, factual";
+
   return `Analyze the tone of the following legal draft and identify any tone issues.
+
+Ensure it complies with the specific tone rule for this document type:
+**${specificTone}**
 
 <draft>
 ${draftContent}
@@ -54,7 +77,7 @@ Respond with a JSON object containing a "tone_issues" array.`;
 // ─── Section Completeness Scoring Prompts ─────────────────────────────────────
 
 /**
- * System prompt for RTI section completeness scoring.
+ * System prompt for section completeness scoring (all doc types).
  * Instructs the LLM to identify required sections semantically —
  * matching exact headings, semantic equivalents, or content-present-without-heading.
  */
