@@ -75,6 +75,7 @@ export default function CitationValidityPage() {
           const citationRuns = (payload?.runs ?? []).filter(
             (run: CitationEvalRun) =>
               run.eval_type === "citation_accuracy" ||
+              run.eval_type === "per_llm_dashboard" ||
               run.config?.dataset_id?.includes("rti"),
           );
           setRuns(citationRuns);
@@ -132,7 +133,7 @@ export default function CitationValidityPage() {
               Citation Validity Dashboard
             </h1>
             <p className="max-w-3xl text-sm leading-6 text-slate-600 sm:text-base">
-              Citation correctness eval results — tracks how accurately the AI
+              Citation correctness eval results – tracks how accurately the AI
               cites real RTI Act sections vs hallucinated ones.
             </p>
           </div>
