@@ -98,3 +98,9 @@ export type { MemoryStore, MemoryApi } from "./memory.js";
 export { runAgentChain as runAgentChainWithMemory } from "./chain.js";
 export type { ChainInput, ChainOptions } from "./chain.js";
 
+// ─── Week-4: Iteration chain (Yatri Dungarani) ──────────────────────────────
+// Skips Classifier + Planner + PageIndex retrieval; re-runs only
+// Drafter → Citator → Reviewer → [Translator]. 3-5× faster than full chain.
+export { runIterationChain } from "./iterate.js";
+export type { IterateInput, IterateOptions } from "./iterate.js";
+

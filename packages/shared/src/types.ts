@@ -226,6 +226,12 @@ export type DraftRequest = {
   user_context?: Record<string, string>;
 };
 
+/** POST /api/draft/{document_id}/iterate request body. */
+export type IterateRequest = {
+  /** User's iteration instruction. e.g. "Make it stricter", "Add a late fee clause" */
+  instruction: string;
+};
+
 /** Final response after the SSE stream completes. */
 export type DraftResponse = {
   document_id: string;
@@ -329,6 +335,22 @@ export type ConversationState = {
    * Used to populate DraftResponse.version_id ("v1", "v2", …).
    */
   current_draft_version: number;
+
+  // ── Iteration support (Week 4 — Yatri Dungarani) ──────────────────────────
+
+  /**
+   * Markdown content of the latest successful draft.
+   * Stored so the iteration chain can feed it to reviseDraft() without a DB read.
+   * null until the first full chain run completes successfully.
+   */
+  last_draft_content: string | null;
+
+  /**
+   * Citations from the latest successful draft.
+   * Preserved across iterations so citations stay valid.
+   * null until the first full chain run completes successfully.
+   */
+  last_citations: Citation[] | null;
 
   // ── Staleness detection ───────────────────────────────────────────────────
 

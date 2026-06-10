@@ -434,10 +434,14 @@ export async function* runAgentChain(
         state = {
           ...state,
           version: state.version + 1,
+          last_draft_content: finalMarkdown,
+          last_citations: citatorResult.validatedCitations,
         };
         state = await saveWithRetry(memory, document_id, state, (fresh) => ({
           ...fresh,
           version: fresh.version + 1,
+          last_draft_content: finalMarkdown,
+          last_citations: citatorResult.validatedCitations,
         }));
 
         const finalResponse: DraftResponse = {
