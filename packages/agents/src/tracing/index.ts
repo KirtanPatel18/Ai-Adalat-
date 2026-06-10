@@ -40,9 +40,7 @@ export async function persistTrace(
   }
 ): Promise<void> {
   try {
-
-    // Map AgentTrace fields → agent_traces DB columns
-    const supabaseAdmin = getSupabaseAdmin();
+        const supabaseAdmin = getSupabaseAdmin();
     if (!supabaseAdmin) {
       console.warn("[Trace] Supabase credentials not configured — trace log skipped");
       console.log(

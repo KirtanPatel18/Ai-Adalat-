@@ -253,12 +253,12 @@ export async function runPlannerAgent(input: PlannerInput): Promise<PlannerResul
       session_id,
     });
 
-    await persistTrace(trace);
+    await persistTrace(trace, { user_id: session_id || "00000000-0000-0000-0000-000000000000" });
 
     return { plan, trace };
   } catch (error) {
     const trace = buildErrorTrace("planner", error, session_id);
-    await persistTrace(trace);
+    await persistTrace(trace, { user_id: session_id || "00000000-0000-0000-0000-000000000000" });
 
     const err = error instanceof Error ? error : new Error(String(error));
     (err as any).trace = trace;
