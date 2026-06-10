@@ -32,14 +32,17 @@ export function DeleteAccountDialog({ isOpen, onClose }: DeleteAccountDialogProp
 
   if (!isOpen) return null;
 
-  const handleDelete = async () => {
+const handleDelete = async () => {
     setIsDeleting(true);
 
     try {
-      // Simulate API latency
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      const response = await fetch('/api/users/me', {
+        method: 'DELETE',
+      })
 
-      // TODO(W3): Connect delete account API
+      if (!response.ok) {
+        throw new Error('Could not delete account. Please try again.')
+      }
 
       toast({
         title: "Account Scheduled for Deletion",
