@@ -16,11 +16,15 @@ interface LanguagePickerProps {
   onChange: (value: SupportedLanguage) => void
 }
 
+import { useTranslations } from 'next-intl'
+
 export function LanguagePicker({ value, onChange }: LanguagePickerProps) {
+  const t = useTranslations('intake')
+
   return (
     <div className="space-y-2">
       <label className="block text-sm font-semibold text-zinc-800">
-        Draft Language
+        {t('languageQuestion')}
       </label>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         {LANGUAGES.map((lang) => {

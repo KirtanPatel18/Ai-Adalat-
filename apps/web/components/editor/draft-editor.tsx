@@ -181,22 +181,22 @@ export function DraftEditor({
 
       // Check for headers
       if (trimmed.startsWith("# ")) {
-        return <h1 key={pIdx} className="text-2xl font-extrabold mb-4 mt-6 text-foreground tracking-tight border-b pb-2 font-sans">{renderInline(trimmed.substring(2))}</h1>;
+        return <h1 key={pIdx} className="text-2xl font-extrabold mb-4 mt-6 text-foreground tracking-tight border-b pb-2 font-sans break-words">{renderInline(trimmed.substring(2))}</h1>;
       }
       if (trimmed.startsWith("## ")) {
-        return <h2 key={pIdx} className="text-xl font-bold mb-3 mt-5 text-foreground tracking-tight font-sans">{renderInline(trimmed.substring(3))}</h2>;
+        return <h2 key={pIdx} className="text-xl font-bold mb-3 mt-5 text-foreground tracking-tight font-sans break-words">{renderInline(trimmed.substring(3))}</h2>;
       }
       if (trimmed.startsWith("### ")) {
-        return <h3 key={pIdx} className="text-lg font-bold mb-2 mt-4 text-foreground tracking-tight font-sans">{renderInline(trimmed.substring(4))}</h3>;
+        return <h3 key={pIdx} className="text-lg font-bold mb-2 mt-4 text-foreground tracking-tight font-sans break-words">{renderInline(trimmed.substring(4))}</h3>;
       }
 
       // Check for bullet lists
       if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
         const items = trimmed.split(/\n[*+-]\s+/);
         return (
-          <ul key={pIdx} className="list-disc pl-6 space-y-2 mb-4">
+          <ul key={pIdx} className="list-disc pl-6 space-y-2 mb-4 break-words">
             {items.map((item, iIdx) => (
-              <li key={iIdx} className="text-foreground leading-relaxed">
+              <li key={iIdx} className="text-foreground leading-relaxed break-words">
                 {renderInline(item.replace(/^[*+-]\s+/, ""))}
               </li>
             ))}
@@ -206,7 +206,7 @@ export function DraftEditor({
 
       // Regular paragraph
       return (
-        <p key={pIdx} className="text-foreground leading-relaxed mb-4 text-justify font-serif text-[15px]">
+        <p key={pIdx} className="text-foreground leading-relaxed mb-4 text-justify font-serif text-[15px] break-words">
           {renderInline(trimmed)}
         </p>
       );
@@ -277,7 +277,7 @@ export function DraftEditor({
           />
         ) : (
           <div className="bg-background select-text max-w-3xl mx-auto py-4 animate-in fade-in duration-200">
-            <div className="prose dark:prose-invert max-w-none">
+            <div className="prose dark:prose-invert max-w-none break-words">
               {parseMarkdown(localValue)}
             </div>
           </div>
