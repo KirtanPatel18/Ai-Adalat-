@@ -11,7 +11,8 @@
     },
     "dependencies": {
         "@trionic/shared": "workspace:*",
-        "@trionic/pageindex": "workspace:*"
+        "@trionic/pageindex": "workspace:*",
+        "@trionic/agents": "workspace:*"
     },
     "devDependencies": {
         "@types/node": "^22.0.0",

@@ -1,6 +1,14 @@
 import { readFileSync } from "fs";
 import { randomUUID } from "crypto";
+<<<<<<< HEAD
+import { citationValidity } from "./metrics/citationValidity.js";
+import { hallucinationRate } from "./metrics/hallucinationRate.js";
+import { completeness } from "./metrics/completeness.js";
+=======
 import { citationValidity } from "./metrics/citationValidity";
+import { hallucinationRate } from "./metrics/hallucinationRate";
+import { completeness } from "./metrics/completeness";
+>>>>>>> 72062ff86dee95c969a17a2c1635342e3441178f
 import type { EvalRunResult } from "@trionic/shared";
 import type { Fixture } from "./types";
 
@@ -43,27 +51,99 @@ async function runEvals(): Promise<void> {
 
     let totalCitations = 0;
     let validCitations = 0;
+<<<<<<< HEAD
+    let totalCompletenessScore = 0;
+    let totalHallucinationRate = 0;
+=======
+    let totalClaims = 0;
+    let uncitedClaims = 0;
+    let totalRequired = 0;
+    let totalMissing = 0;
+>>>>>>> 72062ff86dee95c969a17a2c1635342e3441178f
 
     for (const fixture of fixtures) {
       console.log(`  Fixture: ${fixture.fixture_id}`);
 
+<<<<<<< HEAD
       const result = await citationValidity(fixture);
+      const hallResult = await hallucinationRate(fixture);
+      const compResult = await completeness(fixture);
 
       totalCitations += result.total_citations;
       validCitations += result.valid_citations;
+      totalCompletenessScore += compResult.completeness_score;
+      totalHallucinationRate += hallResult.hallucination_rate;
+=======
+      const citeResult = await citationValidity(fixture);
+      const hallucResult = await hallucinationRate(fixture);
+      const compResult = await completeness(fixture);
+
+      totalCitations += citeResult.total_citations;
+      validCitations += citeResult.valid_citations;
+      totalClaims += hallucResult.total_claims;
+      uncitedClaims += hallucResult.uncited_claims;
+      totalRequired += compResult.required_sections.length;
+      totalMissing += compResult.missing_sections.length;
+>>>>>>> 72062ff86dee95c969a17a2c1635342e3441178f
 
       console.log(
-        `  Citations: ${result.valid_citations}/${result.total_citations} valid`,
+        `  Citations:     ${citeResult.valid_citations}/${citeResult.total_citations} valid`,
       );
-      console.log(`  Status:    ${result.status.toUpperCase()}`);
+<<<<<<< HEAD
+      console.log(`  Citation Status:    ${result.status.toUpperCase()}`);
       if (result.invalid_citations.length > 0) {
-        console.log(`  Invalid:   ${result.invalid_citations.join(", ")}`);
+        console.log(`  Invalid Citations:   ${result.invalid_citations.join(", ")}`);
       }
+      
+      console.log(`  Hallucination Rate: ${hallResult.hallucination_rate.toFixed(1)}%`);
+      console.log(`  Hallucination Status: ${hallResult.status.toUpperCase()}`);
+      if (hallResult.hallucinated_spans.length > 0) {
+        console.log(`  Hallucinated Spans:   ${hallResult.hallucinated_spans.join(" | ")}`);
+      }
+
+      console.log(`  Completeness Score: ${compResult.completeness_score.toFixed(1)}%`);
+      console.log(`  Completeness Status:  ${compResult.status.toUpperCase()}`);
+      if (compResult.missing_sections.length > 0) {
+        console.log(`  Missing Sections:   ${compResult.missing_sections.join(", ")}`);
+=======
+      if (citeResult.invalid_citations.length > 0) {
+        console.log(`    Invalid:     ${citeResult.invalid_citations.join(", ")}`);
+>>>>>>> 72062ff86dee95c969a17a2c1635342e3441178f
+      }
+
+      console.log(
+        `  Hallucination: ${hallucResult.hallucination_rate.toFixed(1)}% (${hallucResult.uncited_claims}/${hallucResult.total_claims} uncited claims)`,
+      );
+      if (hallucResult.hallucinated_spans.length > 0) {
+        console.log(`    Uncited:     "${hallucResult.hallucinated_spans.join('", "')}"`);
+      }
+
+      console.log(
+        `  Completeness:  ${compResult.completeness_rate.toFixed(1)}% (${compResult.required_sections.length - compResult.missing_sections.length}/${compResult.required_sections.length} present)`,
+      );
+      if (compResult.missing_sections.length > 0) {
+        console.log(`    Missing:     ${compResult.missing_sections.join(", ")}`);
+      }
+
+      const casePassed =
+        citeResult.status === "pass" &&
+        hallucResult.status === "pass" &&
+        compResult.status === "pass";
+      console.log(`  Status:        ${casePassed ? "PASS" : "FAIL"}`);
       console.log("");
     }
 
-    const overallRate =
+    const overallCiteRate =
       totalCitations === 0 ? 0 : (validCitations / totalCitations) * 100;
+<<<<<<< HEAD
+    const avgCompleteness = totalCompletenessScore / fixtures.length;
+    const avgHallucination = totalHallucinationRate / fixtures.length;
+=======
+    const overallHallucinationRate =
+      totalClaims === 0 ? 0 : (uncitedClaims / totalClaims) * 100;
+    const overallCompletenessRate =
+      totalRequired === 0 ? 100 : ((totalRequired - totalMissing) / totalRequired) * 100;
+>>>>>>> 72062ff86dee95c969a17a2c1635342e3441178f
 
     // Build EvalRunResult as per @trionic/shared contract
     const evalRunResult: EvalRunResult = {
@@ -74,9 +154,29 @@ async function runEvals(): Promise<void> {
       metrics: [
         {
           name: "citation_validity_rate",
-          value: overallRate,
+          value: overallCiteRate,
           unit: "percent",
         },
+        {
+          name: "hallucination_rate",
+          value: overallHallucinationRate,
+          unit: "percent",
+        },
+        {
+          name: "completeness_rate",
+          value: overallCompletenessRate,
+          unit: "percent",
+        },
+        {
+          name: "hallucination_rate",
+          value: avgHallucination,
+          unit: "percent",
+        },
+        {
+          name: "completeness_score",
+          value: avgCompleteness,
+          unit: "percent",
+        }
       ],
     };
 
@@ -108,14 +208,29 @@ async function runEvals(): Promise<void> {
       );
     }
 
+<<<<<<< HEAD
+    const passed = overallRate === 100 && avgHallucination === 0 && avgCompleteness === 100;
     console.log("\n==============================================");
     console.log(
-      overallRate === 100
+      passed
         ? " EVAL PASSED ✓"
-        : ` EVAL FAILED ✗ (${overallRate.toFixed(1)}%)`,
+        : ` EVAL FAILED ✗ (Citations: ${overallRate.toFixed(1)}%, Hallucinations: ${avgHallucination.toFixed(1)}%, Completeness: ${avgCompleteness.toFixed(1)}%)`,
+=======
+    const overallPassed =
+      overallCiteRate === 100 &&
+      overallHallucinationRate === 0 &&
+      overallCompletenessRate === 100;
+
+    console.log("\n==============================================");
+    console.log(
+      overallPassed
+        ? " EVAL PASSED ✓"
+        : ` EVAL FAILED ✗ (Citations: ${overallCiteRate.toFixed(1)}%, Hallucination: ${overallHallucinationRate.toFixed(1)}%, Completeness: ${overallCompletenessRate.toFixed(1)}%)`,
+>>>>>>> 72062ff86dee95c969a17a2c1635342e3441178f
     );
     console.log("==============================================");
   }
 }
 
 runEvals().catch(console.error);
+

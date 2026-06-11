@@ -8,7 +8,10 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "outDir": "./dist",
+<<<<<<< HEAD
     "rootDir": "..",
+=======
+>>>>>>> 72062ff86dee95c969a17a2c1635342e3441178f
     "paths": {
       "@trionic/shared": ["../shared/src/index.ts"],
       "@trionic/shared/*": ["../shared/src/*"],

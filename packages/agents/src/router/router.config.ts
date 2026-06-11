@@ -36,7 +36,7 @@ export const ROUTER_CONFIG: Record<string, StepRouteConfig> = {
   classifier: {
     preferred: {
       provider: "gemini",
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       maxTokens: 512,
       temperature: 0.1,
     },
@@ -56,7 +56,7 @@ export const ROUTER_CONFIG: Record<string, StepRouteConfig> = {
     },
     fallback: {
       provider: "gemini",
-      model: "gemini-1.5-pro",
+      model: "gemini-2.5-pro",
       maxTokens: 1024,
       temperature: 0.2,
     }
@@ -84,7 +84,7 @@ export const ROUTER_CONFIG: Record<string, StepRouteConfig> = {
     },
     fallback: {
       provider: "gemini",
-      model: "gemini-1.5-pro",
+      model: "gemini-2.5-pro",
       maxTokens: 512,
       temperature: 0.0,
     }
@@ -92,7 +92,7 @@ export const ROUTER_CONFIG: Record<string, StepRouteConfig> = {
   reviewer: {
     preferred: {
       provider: "gemini",
-      model: "gemini-1.5-pro",
+      model: "gemini-2.5-pro",
       maxTokens: 1024,
       temperature: 0.2,
     },
@@ -106,7 +106,7 @@ export const ROUTER_CONFIG: Record<string, StepRouteConfig> = {
   translator: {
     preferred: {
       provider: "gemini",
-      model: "gemini-1.5-pro",
+      model: "gemini-2.5-pro",
       maxTokens: 2048,
       temperature: 0.1,
     },
