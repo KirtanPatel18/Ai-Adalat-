@@ -7,7 +7,7 @@
  * no code changes required in the agents themselves.
  */
 
-export type ModelProvider = "claude" | "gemini" | "gpt";
+export type ModelProvider = "claude" | "gemini" | "gpt" | "deepseek";
 
 export interface ModelConfig {
   /** Which provider to use. */
@@ -36,7 +36,7 @@ export const ROUTER_CONFIG: Record<string, StepRouteConfig> = {
   classifier: {
     preferred: {
       provider: "gemini",
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       maxTokens: 512,
       temperature: 0.1,
     },
@@ -56,21 +56,21 @@ export const ROUTER_CONFIG: Record<string, StepRouteConfig> = {
     },
     fallback: {
       provider: "gemini",
-      model: "gemini-1.5-pro",
+      model: "gemini-2.5-pro",
       maxTokens: 1024,
       temperature: 0.2,
     }
   },
   drafter: {
     preferred: {
-      provider: "claude",
-      model: "claude-3-5-sonnet-20241022",
+      provider: "deepseek",
+      model: "deepseek-chat",
       maxTokens: 4096,
       temperature: 0.3,
     },
     fallback: {
-      provider: "gpt",
-      model: "gpt-4o",
+      provider: "claude",
+      model: "claude-3-5-sonnet-20241022",
       maxTokens: 4096,
       temperature: 0.3,
     }
@@ -84,7 +84,7 @@ export const ROUTER_CONFIG: Record<string, StepRouteConfig> = {
     },
     fallback: {
       provider: "gemini",
-      model: "gemini-1.5-pro",
+      model: "gemini-2.5-pro",
       maxTokens: 512,
       temperature: 0.0,
     }
@@ -92,7 +92,7 @@ export const ROUTER_CONFIG: Record<string, StepRouteConfig> = {
   reviewer: {
     preferred: {
       provider: "gemini",
-      model: "gemini-1.5-pro",
+      model: "gemini-2.5-pro",
       maxTokens: 1024,
       temperature: 0.2,
     },
@@ -106,7 +106,7 @@ export const ROUTER_CONFIG: Record<string, StepRouteConfig> = {
   translator: {
     preferred: {
       provider: "gemini",
-      model: "gemini-1.5-pro",
+      model: "gemini-2.5-pro",
       maxTokens: 2048,
       temperature: 0.1,
     },

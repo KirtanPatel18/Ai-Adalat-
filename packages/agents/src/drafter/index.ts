@@ -25,6 +25,7 @@ export {
   extractNodeIds,
   CITE_MARKER_REGEX,
   PROVISIONAL_SNAPSHOT_ID,
+  normalizeRtiNodeId,
 } from "./citations.js";
 
 // ─── Agent (runDrafter, reviseDraft, DrafterAgent) ────────────────────────────
@@ -33,6 +34,7 @@ export { runDrafter, reviseDraft, DrafterAgent } from "./drafter.agent.js";
 // ─── Prompts (exported for testing / inspection) ──────────────────────────────
 export {
   DRAFTER_SYSTEM_PROMPT,
+  RTI_DRAFTER_SYSTEM_PROMPT,
   buildDrafterUserPrompt,
   buildDrafterRevisionPrompt,
 } from "./drafter.prompt.js";

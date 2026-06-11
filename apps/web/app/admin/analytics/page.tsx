@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Document, DocumentType, SupportedLanguage } from "@trionic/shared";
+import { createClient } from "@/lib/supabase/client";
+import type { DocumentType, SupportedLanguage } from "@trionic/shared";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -9,6 +10,7 @@ type DocTypeCount = { type: DocumentType; count: number };
 type LanguageCount = { language: SupportedLanguage; label: string; count: number; pct: string };
 type ExportPerDay = { date: string; count: number };
 type CitationCount = { act: string; count: number };
+type DailyDraftCount = { date: string; count: number };
 
 // ─── Mock Data (fallback when DB is empty) ────────────────────────────────────
 
@@ -39,6 +41,16 @@ const MOCK_EXPORTS: ExportPerDay[] = [
 ];
 
 const MOCK_CONVERSION = { total: 120, exported: 87 };
+
+const MOCK_DAILY_DRAFTS: DailyDraftCount[] = [
+  { date: "2026-05-21", count: 12 },
+  { date: "2026-05-22", count: 18 },
+  { date: "2026-05-23", count: 9 },
+  { date: "2026-05-24", count: 15 },
+  { date: "2026-05-25", count: 21 },
+  { date: "2026-05-26", count: 14 },
+  { date: "2026-05-27", count: 11 },
+];
 
 const MOCK_CITATIONS: CitationCount[] = [
   { act: "IPC-1860", count: 54 },
@@ -71,7 +83,8 @@ export default function AnalyticsDashboard() {
   const [languages, setLanguages] = useState<LanguageCount[]>(MOCK_LANGUAGES);
   const [exportsPerDay, setExportsPerDay] = useState<ExportPerDay[]>(MOCK_EXPORTS);
   const [conversion, setConversion] = useState(MOCK_CONVERSION);
-  const [citations] = useState<CitationCount[]>(MOCK_CITATIONS);
+  const [dailyDrafts, setDailyDrafts] = useState<DailyDraftCount[]>(MOCK_DAILY_DRAFTS);
+  const [citations, setCitations] = useState<CitationCount[]>(MOCK_CITATIONS);
   const [usingMock, setUsingMock] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -84,27 +97,25 @@ export default function AnalyticsDashboard() {
         setLoading(true);
         setError(null);
 
-        const response = await fetch("/api/documents?limit=500", {
-          cache: "no-store",
-        });
+        const supabase = createClient();
 
-        const payload = (await response.json().catch(() => null)) as {
-          documents?: Document[];
-          error?: string;
-          message?: string;
-        } | null;
+        // ── Fetch documents ──────────────────────────────────────────────
+        const { data: docs, error: docsError } = await supabase
+          .from("documents")
+          .select("doc_type, language, status, created_at, updated_at")
+          .limit(500);
 
-        if (!response.ok) {
-            // API not available in dev — fall back to mock data silently
-            setUsingMock(true);
-            return;
+        if (docsError) {
+          // DB error — fall back to mock data silently
+          setUsingMock(true);
+          return;
         }
-        const docs: Document[] = payload?.documents ?? [];
 
         if (cancelled) return;
 
-        if (docs.length === 0) {
+        if (!docs || docs.length === 0) {
           // DB empty — keep mock data
+          setUsingMock(true);
           return;
         }
 
@@ -112,8 +123,9 @@ export default function AnalyticsDashboard() {
 
         // ── Cell 1: Doc-type popularity ──────────────────────────────────
         const dtMap: Partial<Record<DocumentType, number>> = {};
-        docs.forEach((d) => {
-          dtMap[d.doc_type] = (dtMap[d.doc_type] ?? 0) + 1;
+        docs.forEach((d: any) => {
+          const type = d.doc_type as DocumentType;
+          dtMap[type] = (dtMap[type] ?? 0) + 1;
         });
         setDocTypes(
           (Object.entries(dtMap) as [DocumentType, number][])
@@ -123,8 +135,9 @@ export default function AnalyticsDashboard() {
 
         // ── Cell 2: Language distribution ────────────────────────────────
         const langMap: Partial<Record<SupportedLanguage, number>> = {};
-        docs.forEach((d) => {
-          langMap[d.language] = (langMap[d.language] ?? 0) + 1;
+        docs.forEach((d: any) => {
+          const lang = d.language as SupportedLanguage;
+          langMap[lang] = (langMap[lang] ?? 0) + 1;
         });
         const total = docs.length;
         setLanguages(
@@ -139,9 +152,9 @@ export default function AnalyticsDashboard() {
         );
 
         // ── Cell 3: Exports per day (last 7 days) ────────────────────────
-        const exportedDocs = docs.filter((d) => d.status === "final");
+        const exportedDocs = docs.filter((d: any) => d.status === "final");
         const epdMap: Record<string, number> = {};
-        exportedDocs.forEach((d) => {
+        exportedDocs.forEach((d: any) => {
           const date = d.updated_at.slice(0, 10);
           epdMap[date] = (epdMap[date] ?? 0) + 1;
         });
@@ -157,6 +170,39 @@ export default function AnalyticsDashboard() {
           total: docs.length,
           exported: exportedDocs.length,
         });
+
+        // ── Cell 6: Daily draft creation count ───────────────────────────
+        const draftMap: Record<string, number> = {};
+        docs.forEach((d: any) => {
+          const date = d.created_at.slice(0, 10);
+          draftMap[date] = (draftMap[date] ?? 0) + 1;
+        });
+        setDailyDrafts(
+          Object.entries(draftMap)
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            .slice(-7)
+            .map(([date, count]) => ({ date, count }))
+        );
+
+        // ── Cell 5: Per-act citation frequency ───────────────────────────
+        const { data: citationRows, error: citError } = await supabase
+          .from("citations")
+          .select("node_id")
+          .limit(1000);
+
+        if (!citError && citationRows && citationRows.length > 0) {
+          const actMap: Record<string, number> = {};
+          citationRows.forEach((c: any) => {
+            const act = (c.node_id as string).split("/")[0];
+            actMap[act] = (actMap[act] ?? 0) + 1;
+          });
+          setCitations(
+            Object.entries(actMap)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 5)
+              .map(([act, count]) => ({ act, count }))
+          );
+        }
 
       } catch (err) {
         if (!cancelled) {
@@ -318,34 +364,65 @@ export default function AnalyticsDashboard() {
             </div>
           </div>
 
-          {/* Cell 5 — Per-act citation frequency */}
-          <div className="rounded-3xl border border-slate-200 bg-white px-6 py-6 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-500">
-                Per-Act Citation Frequency
+          {/* Row 3 — Daily drafts + Citations */}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+
+            {/* Cell 6 — Daily draft creation count */}
+            <div className="rounded-3xl border border-slate-200 bg-white px-6 py-6 shadow-sm">
+              <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-slate-500">
+                Daily Draft Creation Count (last 7 days)
               </h2>
-              <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">
-                Mock — awaiting agent_traces route
-              </span>
-            </div>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 text-left text-xs text-slate-400">
-                  <th className="pb-2 font-medium">Act</th>
-                  <th className="pb-2 text-right font-medium">Citations</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {citations.map(({ act, count }) => (
-                  <tr key={act}>
-                    <td className="py-2 font-mono text-slate-700">{act}</td>
-                    <td className="py-2 text-right font-mono font-medium text-slate-900">
-                      {count}
-                    </td>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100 text-left text-xs text-slate-400">
+                    <th className="pb-2 font-medium">Date</th>
+                    <th className="pb-2 text-right font-medium">Drafts Created</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {dailyDrafts.map(({ date, count }) => (
+                    <tr key={date}>
+                      <td className="py-2 text-slate-700">{date}</td>
+                      <td className="py-2 text-right font-mono font-medium text-slate-900">
+                        {count}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Cell 5 — Per-act citation frequency */}
+            <div className="rounded-3xl border border-slate-200 bg-white px-6 py-6 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-500">
+                  Per-Act Citation Frequency
+                </h2>
+                {usingMock && (
+                  <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">
+                    Mock — awaiting citations data
+                  </span>
+                )}
+              </div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100 text-left text-xs text-slate-400">
+                    <th className="pb-2 font-medium">Act</th>
+                    <th className="pb-2 text-right font-medium">Citations</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {citations.map(({ act, count }) => (
+                    <tr key={act}>
+                      <td className="py-2 font-mono text-slate-700">{act}</td>
+                      <td className="py-2 text-right font-mono font-medium text-slate-900">
+                        {count}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
         </section>

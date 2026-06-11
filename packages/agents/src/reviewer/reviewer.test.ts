@@ -3,11 +3,13 @@
  * Owner: Evan Gregor
  * Module: packages/agents/src/reviewer
  *
- * Unit tests for the Reviewer agent:
- *   - checkBanner()       — deterministic banner matching
- *   - checkCompleteness() — per-doc-type section verification
- *   - runReviewer()       — full agent flow with mocked Router + Tracing
- *   - ReviewerAgent       — class wrapper delegation
+ * Unit tests for the Reviewer agent (W3 — Issue #185):
+ *   - checkBanner()          — exact-string banner matching
+ *   - checkCompleteness()    — deterministic fallback
+ *   - checkCompletenessLLM() — LLM-scored semantic section detection
+ *   - requiredSections()     — public API for required sections list
+ *   - runReviewer()          — full agent flow with 2 mocked LLM calls
+ *   - ReviewerAgent          — class wrapper delegation
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -53,14 +55,22 @@ vi.mock("../tracing/index.js", () => ({
 }));
 
 // Import after mocks are hoisted
-import { checkBanner, checkCompleteness, runReviewer, ReviewerAgent } from "./index.js";
+import {
+  checkBanner,
+  checkCompleteness,
+  checkCompletenessLLM,
+  requiredSections,
+  runReviewer,
+  ReviewerAgent,
+  REQUIRED_SECTIONS,
+} from "./index.js";
 
 const { router } = await import("../router/index.js");
 
 // ─── Test fixtures ────────────────────────────────────────────────────────────
 
 const BANNER =
-  `---\n**AI-generated draft — not legal advice.** This document was produced by ` +
+  `---\n**AI-generated draft \u2014 not legal advice.** This document was produced by ` +
   `Trionic Adalat to assist with drafting only. It is not a substitute for advice ` +
   `from a qualified legal professional. Verify all citations and facts before use.\n---`;
 
@@ -85,7 +95,13 @@ Request for information regarding municipal budget allocation for ward 42.
 ## Declaration
 
 I, the undersigned, declare that I am a citizen of India and the information sought
-does not fall within the restrictions set out in Section 8 of the RTI Act, 2005. [CITE:RTI-2005/S-8]`;
+does not fall within the restrictions set out in Section 8 of the RTI Act, 2005. [CITE:RTI-2005/S-8]
+
+## Date and Signature
+
+Date: 2026-06-01
+Signature: _______________________
+Name: Applicant Name`;
 
 const COMPLETE_RTI_DRAFT = BANNER + "\n\n" + COMPLETE_RTI_BODY;
 
@@ -121,13 +137,15 @@ function makeDraft(
 }
 
 /** Mock LLM response: tone is clean. */
-const MOCK_LLM_PASS = {
+const MOCK_LLM_TONE_PASS = {
   text: JSON.stringify({ tone_issues: [] }),
   model: "gemini-1.5-pro",
+  provider: "gemini",
   tokens_in: 100,
   tokens_out: 20,
   cost_usd: 0.001,
   latency_ms: 500,
+  fallback_used: false,
 };
 
 /** Mock LLM response: tone issues detected. */
@@ -139,20 +157,84 @@ const MOCK_LLM_TONE_FAIL = {
     ],
   }),
   model: "gemini-1.5-pro",
+  provider: "gemini",
   tokens_in: 100,
   tokens_out: 40,
   cost_usd: 0.002,
   latency_ms: 600,
+  fallback_used: false,
 };
 
-/** Mock LLM response: invalid JSON (simulates Gemini stub output). */
-const MOCK_LLM_INVALID_JSON = {
-  text: `[GEMINI STUB] Mock response for prompt: "Analyze the tone..."`,
+/** Mock LLM response: all sections found. */
+const MOCK_LLM_SECTIONS_ALL_FOUND = {
+  text: JSON.stringify({
+    sections: {
+      "Address": "found",
+      "Subject": "found",
+      "Information Sought": "found",
+      "Declaration": "found",
+      "Date and Signature": "found",
+    },
+  }),
   model: "gemini-1.5-pro",
+  provider: "gemini",
+  tokens_in: 200,
+  tokens_out: 50,
+  cost_usd: 0.002,
+  latency_ms: 400,
+  fallback_used: false,
+};
+
+/** Mock LLM response: some sections missing. */
+const MOCK_LLM_SECTIONS_PARTIAL = {
+  text: JSON.stringify({
+    sections: {
+      "Address": "found",
+      "Subject": "found",
+      "Information Sought": "missing",
+      "Declaration": "missing",
+      "Date and Signature": "missing",
+    },
+  }),
+  model: "gemini-1.5-pro",
+  provider: "gemini",
+  tokens_in: 200,
+  tokens_out: 50,
+  cost_usd: 0.002,
+  latency_ms: 400,
+  fallback_used: false,
+};
+
+/** Mock LLM response: semantic equivalents detected. */
+const MOCK_LLM_SECTIONS_SEMANTIC = {
+  text: JSON.stringify({
+    sections: {
+      "Address": "found",
+      "Subject": "found",
+      "Information Sought": "found", // e.g. matched "Details Requested"
+      "Declaration": "found",
+      "Date and Signature": "found",
+    },
+  }),
+  model: "gemini-1.5-pro",
+  provider: "gemini",
+  tokens_in: 200,
+  tokens_out: 50,
+  cost_usd: 0.002,
+  latency_ms: 400,
+  fallback_used: false,
+};
+
+/** Mock LLM response: invalid JSON (forces deterministic fallback). */
+const MOCK_LLM_INVALID_JSON = {
+  text: `[GEMINI STUB] Mock response for prompt: "Check sections..."`,
+  model: "gemini-1.5-pro",
+  provider: "gemini",
   tokens_in: 0,
   tokens_out: 0,
   cost_usd: 0,
   latency_ms: 50,
+  fallback_used: false,
 };
 
 // ─── Reset mocks between tests ───────────────────────────────────────────────
@@ -161,10 +243,33 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-// ─── checkBanner() ────────────────────────────────────────────────────────────
+// ─── requiredSections() ───────────────────────────────────────────────────────
+
+describe("requiredSections()", () => {
+  it("returns 5 sections for rti_application including Date and Signature", () => {
+    const sections = requiredSections("rti_application");
+    expect(sections).toEqual([
+      "Address",
+      "Subject",
+      "Information Sought",
+      "Declaration",
+      "Date and Signature",
+    ]);
+    expect(sections).toHaveLength(5);
+  });
+
+  it("returns empty array for non-RTI doc types", () => {
+    expect(requiredSections("legal_notice")).toEqual([]);
+    expect(requiredSections("nda")).toEqual([]);
+    expect(requiredSections("consumer_complaint")).toEqual([]);
+    expect(requiredSections("cheque_bounce_notice")).toEqual([]);
+  });
+});
+
+// ─── checkBanner() — exact-string match ───────────────────────────────────────
 
 describe("checkBanner()", () => {
-  it("returns true when banner is present at the start", () => {
+  it("returns true when exact banner text is present", () => {
     expect(checkBanner(COMPLETE_RTI_DRAFT)).toBe(true);
   });
 
@@ -172,14 +277,14 @@ describe("checkBanner()", () => {
     expect(checkBanner(NO_BANNER_RTI_DRAFT)).toBe(false);
   });
 
-  it("returns true with regular hyphen instead of em-dash", () => {
+  it("returns false for a hyphen instead of em-dash (exact-string enforcement)", () => {
     const draft = "**AI-generated draft - not legal advice.** Some text here...";
-    expect(checkBanner(draft)).toBe(true);
+    expect(checkBanner(draft)).toBe(false);
   });
 
-  it("returns true with en-dash instead of em-dash", () => {
+  it("returns false for en-dash instead of em-dash (exact-string enforcement)", () => {
     const draft = "**AI-generated draft \u2013 not legal advice.** Some text here...";
-    expect(checkBanner(draft)).toBe(true);
+    expect(checkBanner(draft)).toBe(false);
   });
 
   it("returns false when banner is past the 2000 char limit", () => {
@@ -188,18 +293,19 @@ describe("checkBanner()", () => {
     expect(checkBanner(draft)).toBe(false);
   });
 
-  it("handles case-insensitive matching", () => {
-    const draft = "**ai-generated draft — not legal advice.** Some text...";
-    expect(checkBanner(draft)).toBe(true);
+  it("returns false for lowercase (exact-string is case-sensitive)", () => {
+    const draft = "**ai-generated draft \u2014 not legal advice.** Some text...";
+    expect(checkBanner(draft)).toBe(false);
   });
 
-  it("handles extra whitespace between words", () => {
-    const draft = "**AI-generated   draft  —  not  legal  advice.** Some text...";
+  it("returns true when banner appears within 2000 chars but not at start", () => {
+    const prefix = "Some introductory text.\n\n";
+    const draft = prefix + BANNER + "\n\n" + COMPLETE_RTI_BODY;
     expect(checkBanner(draft)).toBe(true);
   });
 });
 
-// ─── checkCompleteness() ──────────────────────────────────────────────────────
+// ─── checkCompleteness() — deterministic fallback ─────────────────────────────
 
 describe("checkCompleteness()", () => {
   it("returns empty array for a complete RTI draft", () => {
@@ -210,20 +316,75 @@ describe("checkCompleteness()", () => {
     const missing = checkCompleteness(INCOMPLETE_RTI_DRAFT, "rti_application");
     expect(missing).toContain("Information Sought");
     expect(missing).toContain("Declaration");
+    expect(missing).toContain("Date and Signature");
     expect(missing).not.toContain("Address");
     expect(missing).not.toContain("Subject");
   });
 
-  it("returns empty array for non-RTI doc types (no required sections in W2)", () => {
+  it("returns empty array for non-RTI doc types", () => {
     expect(checkCompleteness("Any content", "legal_notice")).toEqual([]);
     expect(checkCompleteness("Any content", "nda")).toEqual([]);
-    expect(checkCompleteness("Any content", "consumer_complaint")).toEqual([]);
-    expect(checkCompleteness("Any content", "cheque_bounce_notice")).toEqual([]);
+  });
+});
+
+// ─── checkCompletenessLLM() — LLM-scored section detection ────────────────────
+
+describe("checkCompletenessLLM()", () => {
+  it("returns empty missing array when LLM finds all sections", async () => {
+    (router.run as ReturnType<typeof vi.fn>).mockResolvedValueOnce(MOCK_LLM_SECTIONS_ALL_FOUND);
+
+    const result = await checkCompletenessLLM(COMPLETE_RTI_DRAFT, "rti_application");
+    expect(result.missing).toEqual([]);
+    expect(result.llmResponse).toBeDefined();
   });
 
-  it("matches section names case-insensitively", () => {
-    const draft = "## address\n\n## SUBJECT\n\n## information sought\n\n## DECLARATION";
-    expect(checkCompleteness(draft, "rti_application")).toEqual([]);
+  it("returns missing sections when LLM reports them", async () => {
+    (router.run as ReturnType<typeof vi.fn>).mockResolvedValueOnce(MOCK_LLM_SECTIONS_PARTIAL);
+
+    const result = await checkCompletenessLLM(INCOMPLETE_RTI_DRAFT, "rti_application");
+    expect(result.missing).toContain("Information Sought");
+    expect(result.missing).toContain("Declaration");
+    expect(result.missing).toContain("Date and Signature");
+    expect(result.missing).not.toContain("Address");
+    expect(result.missing).not.toContain("Subject");
+  });
+
+  it("handles semantic equivalents (LLM marks as found)", async () => {
+    (router.run as ReturnType<typeof vi.fn>).mockResolvedValueOnce(MOCK_LLM_SECTIONS_SEMANTIC);
+
+    // Draft uses non-standard headings but LLM detects semantic equivalents
+    const semanticDraft = BANNER + "\n\n" +
+      "## Recipient Details\n\nTo, Officer\n\n" +
+      "## Topic\n\nRe: Budget inquiry\n\n" +
+      "## Details Requested\n\n1. Budget data\n\n" +
+      "## Sworn Statement\n\nI declare...\n\n" +
+      "## Signed On\n\nDate: 2026-06-01\n";
+
+    const result = await checkCompletenessLLM(semanticDraft, "rti_application");
+    expect(result.missing).toEqual([]);
+  });
+
+  it("falls back to deterministic check on invalid JSON", async () => {
+    (router.run as ReturnType<typeof vi.fn>).mockResolvedValueOnce(MOCK_LLM_INVALID_JSON);
+
+    const result = await checkCompletenessLLM(COMPLETE_RTI_DRAFT, "rti_application");
+    // Deterministic fallback: all sections are present in COMPLETE_RTI_BODY
+    expect(result.missing).toEqual([]);
+    expect(result.llmResponse).toBeUndefined();
+  });
+
+  it("falls back to deterministic check on LLM error", async () => {
+    (router.run as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("Network error"));
+
+    const result = await checkCompletenessLLM(COMPLETE_RTI_DRAFT, "rti_application");
+    expect(result.missing).toEqual([]);
+    expect(result.llmResponse).toBeUndefined();
+  });
+
+  it("returns empty immediately for non-RTI doc types (no LLM call)", async () => {
+    const result = await checkCompletenessLLM("Any content", "legal_notice");
+    expect(result.missing).toEqual([]);
+    expect(router.run).not.toHaveBeenCalled();
   });
 });
 
@@ -231,7 +392,10 @@ describe("checkCompleteness()", () => {
 
 describe("runReviewer()", () => {
   it("returns approved=true for a complete RTI draft with clean tone", async () => {
-    (router.run as ReturnType<typeof vi.fn>).mockResolvedValueOnce(MOCK_LLM_PASS);
+    // First call: completeness scoring, Second call: tone
+    (router.run as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(MOCK_LLM_SECTIONS_ALL_FOUND)
+      .mockResolvedValueOnce(MOCK_LLM_TONE_PASS);
 
     const result = await runReviewer({
       draft: makeDraft(COMPLETE_RTI_DRAFT),
@@ -242,12 +406,16 @@ describe("runReviewer()", () => {
     expect(result.banner_present).toBe(true);
     expect(result.missing_required_sections).toEqual([]);
     expect(result.tone_issues).toEqual([]);
+    expect(result.feedback).toBe("Draft approved \u2014 all checks passed.");
+    expect(result.rejection_reason).toBeUndefined();
     expect(result.trace.status).toBe("ok");
     expect(result.trace.agent).toBe("reviewer");
   });
 
   it("returns approved=false when banner is missing", async () => {
-    (router.run as ReturnType<typeof vi.fn>).mockResolvedValueOnce(MOCK_LLM_PASS);
+    (router.run as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(MOCK_LLM_SECTIONS_ALL_FOUND)
+      .mockResolvedValueOnce(MOCK_LLM_TONE_PASS);
 
     const result = await runReviewer({
       draft: makeDraft(NO_BANNER_RTI_DRAFT),
@@ -255,12 +423,16 @@ describe("runReviewer()", () => {
 
     expect(result.approved).toBe(false);
     expect(result.banner_present).toBe(false);
+    expect(result.rejection_reason).toContain("Missing disclaimer banner");
+    expect(result.feedback).toContain("Missing disclaimer banner");
     expect(result.trace.status).toBe("rejected");
-    expect(result.trace.error_message).toBe("Missing disclaimer banner");
+    expect(result.trace.error_message).toContain("Missing disclaimer banner");
   });
 
-  it("returns approved=false with missing sections for incomplete RTI", async () => {
-    (router.run as ReturnType<typeof vi.fn>).mockResolvedValueOnce(MOCK_LLM_PASS);
+  it("returns approved=false with missing sections", async () => {
+    (router.run as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(MOCK_LLM_SECTIONS_PARTIAL)
+      .mockResolvedValueOnce(MOCK_LLM_TONE_PASS);
 
     const result = await runReviewer({
       draft: makeDraft(INCOMPLETE_RTI_DRAFT),
@@ -269,13 +441,30 @@ describe("runReviewer()", () => {
     expect(result.approved).toBe(false);
     expect(result.missing_required_sections.length).toBeGreaterThan(0);
     expect(result.missing_required_sections).toContain("Information Sought");
-    expect(result.missing_required_sections).toContain("Declaration");
     expect(result.trace.status).toBe("rejected");
-    expect(result.trace.error_message).toBe("Missing required sections: Information Sought, Declaration");
+    expect(result.trace.error_message).toContain("Missing required sections");
+  });
+
+  it("returns approved=false when both banner missing AND sections missing (AC4)", async () => {
+    (router.run as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(MOCK_LLM_SECTIONS_PARTIAL)
+      .mockResolvedValueOnce(MOCK_LLM_TONE_PASS);
+
+    const result = await runReviewer({
+      draft: makeDraft(INCOMPLETE_RTI_DRAFT.replace(BANNER, "")),
+    });
+
+    expect(result.approved).toBe(false);
+    expect(result.banner_present).toBe(false);
+    expect(result.missing_required_sections.length).toBeGreaterThan(0);
+    expect(result.trace.error_message).toContain("Missing disclaimer banner");
+    expect(result.trace.error_message).toContain("Missing required sections");
   });
 
   it("returns approved=false when LLM detects tone issues", async () => {
-    (router.run as ReturnType<typeof vi.fn>).mockResolvedValueOnce(MOCK_LLM_TONE_FAIL);
+    (router.run as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(MOCK_LLM_SECTIONS_ALL_FOUND)
+      .mockResolvedValueOnce(MOCK_LLM_TONE_FAIL);
 
     const result = await runReviewer({
       draft: makeDraft(COMPLETE_RTI_DRAFT),
@@ -288,39 +477,36 @@ describe("runReviewer()", () => {
     expect(result.trace.error_message).toContain("Tone issues flagged");
   });
 
-  it("gracefully handles non-JSON LLM response (Gemini stub)", async () => {
-    (router.run as ReturnType<typeof vi.fn>).mockResolvedValueOnce(MOCK_LLM_INVALID_JSON);
-
-    const result = await runReviewer({
-      draft: makeDraft(COMPLETE_RTI_DRAFT),
-    });
-
-    // Non-JSON → no tone issues detected → falls back to pass on tone
-    expect(result.tone_issues).toEqual([]);
-    // Banner + completeness pass, tone falls back to pass → approved
-    expect(result.approved).toBe(true);
-  });
-
-  it("throws and emits error trace when LLM call fails entirely", async () => {
-    (router.run as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
-      new Error("Network error")
-    );
-
-    await expect(
-      runReviewer({ draft: makeDraft(COMPLETE_RTI_DRAFT) })
-    ).rejects.toThrow("Network error");
-  });
-
-  it("calls router.run with the 'reviewer' step key", async () => {
-    (router.run as ReturnType<typeof vi.fn>).mockResolvedValueOnce(MOCK_LLM_PASS);
+  it("makes 2 router.run calls (completeness + tone)", async () => {
+    (router.run as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(MOCK_LLM_SECTIONS_ALL_FOUND)
+      .mockResolvedValueOnce(MOCK_LLM_TONE_PASS);
 
     await runReviewer({ draft: makeDraft(COMPLETE_RTI_DRAFT) });
 
-    expect(router.run).toHaveBeenCalledWith(
+    expect(router.run).toHaveBeenCalledTimes(2);
+    expect(router.run).toHaveBeenNthCalledWith(
+      1,
       "reviewer",
       expect.any(String),
       expect.any(String)
     );
+    expect(router.run).toHaveBeenNthCalledWith(
+      2,
+      "reviewer",
+      expect.any(String),
+      expect.any(String)
+    );
+  });
+
+  it("throws and emits error trace when tone LLM call fails entirely", async () => {
+    (router.run as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(MOCK_LLM_SECTIONS_ALL_FOUND)
+      .mockRejectedValueOnce(new Error("Network error"));
+
+    await expect(
+      runReviewer({ draft: makeDraft(COMPLETE_RTI_DRAFT) })
+    ).rejects.toThrow("Network error");
   });
 });
 
@@ -332,8 +518,17 @@ describe("ReviewerAgent", () => {
     expect(agent.name).toBe("reviewer");
   });
 
+  it("requiredSections('rti_application') returns 5 items (AC1)", () => {
+    const agent = new ReviewerAgent();
+    const sections = agent.requiredSections("rti_application");
+    expect(sections).toHaveLength(5);
+    expect(sections).toContain("Date and Signature");
+  });
+
   it("delegates run() to runReviewer()", async () => {
-    (router.run as ReturnType<typeof vi.fn>).mockResolvedValueOnce(MOCK_LLM_PASS);
+    (router.run as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(MOCK_LLM_SECTIONS_ALL_FOUND)
+      .mockResolvedValueOnce(MOCK_LLM_TONE_PASS);
 
     const agent = new ReviewerAgent();
     const result = await agent.run({

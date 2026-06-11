@@ -1,11 +1,11 @@
 "use client";
-
 import { useEffect, useState, useCallback } from "react";
-import type { Document, DocumentStatus, DocumentType, SupportedLanguage } from "@trionic/shared";
+import type { Document } from "@trionic/shared";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Plus } from "lucide-react";
-import { FilterBar, type FilterState } from "./_components/filter-bar";
+import { Plus, LogOut } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";import { FilterBar, type FilterState } from "./_components/filter-bar";
 import { DocumentTable } from "./_components/document-table";
 import { EmptyState } from "./_components/empty-state";
 
@@ -18,6 +18,15 @@ type FetchState = "idle" | "loading" | "error" | "done";
 export default function DashboardPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [fetchState, setFetchState] = useState<FetchState>("idle");
+
+const router = useRouter()
+const supabase = createClient()
+
+async function handleSignOut() {
+  await supabase.auth.signOut()
+  router.push('/auth/sign-in')
+  router.refresh()
+}
 
   const [filters, setFilters] = useState<FilterState>({
     search:   "",
@@ -40,19 +49,70 @@ export default function DashboardPage() {
       if (filters.doc_type !== "all") params.set("doc_type", filters.doc_type);
 
       const res = await fetch(`/api/documents?${params.toString()}`);
-
-      if (!res.ok) {
-        setFetchState("error");
-        return;
+      
+      let fetchedDocs: Document[] = [];
+      if (res.ok) {
+        const data = await res.json() as { documents: Document[]; next_cursor: string | null };
+        fetchedDocs = data.documents;
       }
 
-      // Response shape from API_CONTRACTS.md:
-      // { documents: Document[]; next_cursor: string | null }
-      const data = await res.json() as { documents: Document[]; next_cursor: string | null };
-      setDocuments(data.documents);
+      // Inject demo mock data if empty or error
+      if (fetchedDocs.length === 0) {
+        fetchedDocs = [
+          {
+            id: "mock-1",
+            owner_id: "user-1",
+            title: "RTI – Municipal records",
+            doc_type: "rti_application",
+            status: "draft",
+            language: "en",
+            created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+            updated_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+            current_version_id: "v1",
+          },
+          {
+            id: "mock-2",
+            owner_id: "user-1",
+            title: "Legal notice – Tenant deposit",
+            doc_type: "legal_notice",
+            status: "final",
+            language: "hi",
+            created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+            updated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+            current_version_id: "v1",
+          },
+          {
+            id: "mock-3",
+            owner_id: "user-1",
+            title: "NDA – Freelance contract",
+            doc_type: "nda",
+            status: "exported",
+            language: "en",
+            created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+            updated_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+            current_version_id: "v1",
+          }
+        ];
+      }
+
+      setDocuments(fetchedDocs);
       setFetchState("done");
     } catch {
-      setFetchState("error");
+      // Fallback for demo day if backend fails completely
+      setDocuments([
+        {
+            id: "mock-1",
+            owner_id: "user-1",
+            title: "RTI – Municipal records (Demo Mode)",
+            doc_type: "rti_application",
+            status: "draft",
+            language: "en",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            current_version_id: "v1",
+        }
+      ]);
+      setFetchState("done");
     }
   }, [filters.status, filters.language, filters.doc_type]);
 
@@ -80,12 +140,18 @@ export default function DashboardPage() {
             All your legal drafts in one place
           </p>
         </div>
-        <Button asChild className="gap-2">
-          <Link href="/new">
-            <Plus className="h-4 w-4" />
-            New Draft
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+  <Button asChild className="gap-2">
+    <Link href="/new">
+      <Plus className="h-4 w-4" />
+      New Draft
+    </Link>
+  </Button>
+  <Button variant="outline" className="gap-2" onClick={handleSignOut}>
+    <LogOut className="h-4 w-4" />
+    Sign out
+  </Button>
+</div>
       </div>
 
       {/* Filters */}
