@@ -1,4 +1,6 @@
+
 import rtiTree from "../data/rti-act-2005.json";
+import niActTree from "../artifacts/ni-act-tree.json";
 
 type SearchResult = {
   node_id: string;
@@ -24,7 +26,8 @@ export function search(query: string): SearchResult[] {
       .join(" ")
       .toLowerCase();
 
-    const searchable = `${title} ${text} ${keywords}`;
+    const searchable =
+      `${title} ${text} ${keywords} `;
 
     let score = 0;
 
@@ -38,7 +41,7 @@ export function search(query: string): SearchResult[] {
       results.push({
         node_id: node.node_id,
         snippet: node.text || node.title,
-        score
+        score,
       });
     }
 
@@ -49,9 +52,27 @@ export function search(query: string): SearchResult[] {
     }
   }
 
-  walk(rtiTree);
+  const corpora = [
+    rtiTree,
+    niActTree,
+  ];
+
+  for (const corpus of corpora) {
+    walk(corpus);
+  }
 
   return results
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
 }
+console.log(
+  search("cheque dishonour")
+);
+
+console.log(
+  search("offences by companies")
+);
+
+console.log(
+  search("evidence on affidavit")
+);
