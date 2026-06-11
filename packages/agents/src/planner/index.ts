@@ -57,9 +57,14 @@ export async function runPlanner(input: PlannerInput): Promise<PlannerResult> {
     const llmResponse = await router.run("planner", PLANNER_SYSTEM_PROMPT, userPrompt);
 
     // Parse JSON output from the LLM
+    // Strip markdown code fences if the LLM returned them despite instructions
     let plan: PlannerOutput;
     try {
-      plan = JSON.parse(llmResponse.text) as PlannerOutput;
+      let cleanedText = llmResponse.text.trim();
+      if (cleanedText.startsWith("```")) {
+        cleanedText = cleanedText.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```$/, "").trim();
+      }
+      plan = JSON.parse(cleanedText) as PlannerOutput;
     } catch {
       throw new Error(
         `Planner LLM returned invalid JSON: ${llmResponse.text.slice(0, 200)}`
