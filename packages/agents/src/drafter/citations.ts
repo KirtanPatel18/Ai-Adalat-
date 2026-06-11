@@ -62,7 +62,8 @@ export function extractCitations(content: string): Citation[] {
   let match: RegExpExecArray | null;
 
   while ((match = regex.exec(content)) !== null) {
-    const nodeId: PageIndexNodeId = match[1].trim();
+    const rawNodeId = match[1].trim();
+    const nodeId: PageIndexNodeId = normalizeRtiNodeId(rawNodeId);
     const markerEnd = match.index + match[0].length;
 
     // Heuristic: span starts at the nearest sentence/clause boundary before the marker.
@@ -100,8 +101,35 @@ export function extractNodeIds(content: string): PageIndexNodeId[] {
   let match: RegExpExecArray | null;
 
   while ((match = regex.exec(content)) !== null) {
-    ids.add(match[1].trim());
+    ids.add(normalizeRtiNodeId(match[1]));
   }
 
   return Array.from(ids);
+}
+
+/**
+ * Normalize an RTI-2005 node ID to its canonical tree representation.
+ * Maps shorthand style markers like "RTI-2005/S-6" to "RTI-2005/CH-II/S-6".
+ *
+ * @param nodeId - The node ID to normalize.
+ * @returns      - The canonical node ID.
+ */
+export function normalizeRtiNodeId(nodeId: string): string {
+  const trimmed = nodeId.trim();
+  const match = trimmed.match(/^RTI-2005\/S-(\d+)$/i);
+  if (match) {
+    const secNum = parseInt(match[1], 10);
+    let ch = "";
+    if (secNum >= 1 && secNum <= 2) ch = "CH-I";
+    else if (secNum >= 3 && secNum <= 11) ch = "CH-II";
+    else if (secNum >= 12 && secNum <= 14) ch = "CH-III";
+    else if (secNum >= 15 && secNum <= 17) ch = "CH-IV";
+    else if (secNum >= 18 && secNum <= 20) ch = "CH-V";
+    else if (secNum >= 21 && secNum <= 31) ch = "CH-VI";
+
+    if (ch) {
+      return `RTI-2005/${ch}/S-${secNum}`;
+    }
+  }
+  return trimmed;
 }

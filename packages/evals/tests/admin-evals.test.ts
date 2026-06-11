@@ -5,8 +5,8 @@ import {
   handleAdminEvals,
   isAdminUser,
   percentile,
-} from "../../../apps/web/app/api/admin/evals/route";
-import { handleAdminEvalRun } from "../../../apps/web/app/api/admin/evals/run/route";
+  handleAdminEvalRun,
+} from "../../../apps/web/app/api/admin/evals/lib";
 
 type TraceRow = {
   model: string;
