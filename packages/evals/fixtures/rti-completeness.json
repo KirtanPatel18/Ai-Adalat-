@@ -1,0 +1,75 @@
+{
+  "dataset_id": "rti-completeness-set",
+  "fixtures": [
+    {
+      "fixture_id": "rti-comp-001-perfect",
+      "doc_type": "rti_application",
+      "language": "en",
+      "agent_traces": [],
+      "draft_output": {
+        "text": "# RTI Application\n\nTo,\nThe Public Information Officer, Dept of Revenue.\n\nSubject: Request for information.\n\nInformation requested:\n1. Survey report.\n\nApplicant Details: John Doe, 22 Rajpur Road.\n\nFee of Rs 10 paid via IPO.",
+        "cite_markers": []
+      },
+      "ground_truth": {
+        "valid_node_ids": [],
+        "required_sections": ["pio_address", "applicant_details", "information_requested", "payment_details_declaration"]
+      }
+    },
+    {
+      "fixture_id": "rti-comp-002-missing-fee",
+      "doc_type": "rti_application",
+      "language": "en",
+      "agent_traces": [],
+      "draft_output": {
+        "text": "# RTI Application\n\nTo,\nThe Public Information Officer, Dept of Revenue.\n\nSubject: Request for information.\n\nInformation requested:\n1. Survey report.\n\nApplicant Details: John Doe, 22 Rajpur Road.",
+        "cite_markers": []
+      },
+      "ground_truth": {
+        "valid_node_ids": [],
+        "required_sections": ["pio_address", "applicant_details", "information_requested", "payment_details_declaration"]
+      }
+    },
+    {
+      "fixture_id": "rti-comp-003-missing-pio",
+      "doc_type": "rti_application",
+      "language": "en",
+      "agent_traces": [],
+      "draft_output": {
+        "text": "# RTI Application\n\nSubject: Request for information.\n\nInformation requested:\n1. Survey report.\n\nApplicant Details: John Doe, 22 Rajpur Road.\n\nFee of Rs 10 paid via IPO.",
+        "cite_markers": []
+      },
+      "ground_truth": {
+        "valid_node_ids": [],
+        "required_sections": ["pio_address", "applicant_details", "information_requested", "payment_details_declaration"]
+      }
+    },
+    {
+      "fixture_id": "rti-comp-004-missing-info",
+      "doc_type": "rti_application",
+      "language": "en",
+      "agent_traces": [],
+      "draft_output": {
+        "text": "# RTI Application\n\nTo,\nThe Public Information Officer, Dept of Revenue.\n\nApplicant Details: John Doe, 22 Rajpur Road.\n\nFee of Rs 10 paid via IPO.",
+        "cite_markers": []
+      },
+      "ground_truth": {
+        "valid_node_ids": [],
+        "required_sections": ["pio_address", "applicant_details", "information_requested", "payment_details_declaration"]
+      }
+    },
+    {
+      "fixture_id": "rti-comp-005-llm-fallback",
+      "doc_type": "rti_application",
+      "language": "en",
+      "agent_traces": [],
+      "draft_output": {
+        "text": "Sent to: The CPIO, Revenue Dept.\n\nI want to know about the survey report.\n\nMy address is 22 Rajpur Road, Name: John Doe.\n\nI have attached a postal order of Rs. 10.",
+        "cite_markers": []
+      },
+      "ground_truth": {
+        "valid_node_ids": [],
+        "required_sections": ["pio_address", "applicant_details", "information_requested", "payment_details_declaration"]
+      }
+    }
+  ]
+}
