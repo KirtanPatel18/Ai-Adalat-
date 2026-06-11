@@ -1,6 +1,7 @@
 
 import rtiTree from "../data/rti-act-2005.json";
 import ipcTree from "../artifacts/ipc-tree.json";
+import niActTree from "../artifacts/ni-act-tree.json";
 
 type SearchResult = {
   node_id: string;
@@ -23,7 +24,7 @@ function scoreNode(
     .toLowerCase();
 
   const searchable =
-    `${title} ${text} ${keywords} `;
+    `${title} ${text} ${keywords}`;
 
   let score = 0;
 
@@ -37,7 +38,7 @@ function scoreNode(
     results.push({
       node_id: node.node_id,
       snippet: node.text || node.title,
-      score
+      score,
     });
   }
 }
@@ -76,16 +77,23 @@ export function search(
     .split(/\s+/)
     .filter(Boolean);
 
-  // RTI Act search
+  // RTI
   walkTree(
     rtiTree,
     terms,
     results
   );
 
-  // IPC search
+  // IPC
   searchFlatNodes(
     ipcTree as any[],
+    terms,
+    results
+  );
+
+  // NI Act
+  walkTree(
+    niActTree,
     terms,
     results
   );
