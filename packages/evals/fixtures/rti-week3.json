@@ -1,0 +1,246 @@
+{
+    "dataset_id": "rti-english-week3",
+    "fixtures": [
+        {
+            "fixture_id": "rti-w3-001-valid",
+            "doc_type": "rti_application",
+            "language": "en",
+            "draft_output": {
+                "text": "Under Section 6(1) of the RTI Act [CITE:RTI-2005/CH-II/S-6], I hereby request information about public works expenditure in my district. As per Section 7 [CITE:RTI-2005/CH-II/S-7], the response must be provided within 30 days.",
+                "cite_markers": [
+                    {
+                        "node_id": "RTI-2005/CH-II/S-6",
+                        "span": [
+                            29,
+                            47
+                        ]
+                    },
+                    {
+                        "node_id": "RTI-2005/CH-II/S-7",
+                        "span": [
+                            150,
+                            168
+                        ]
+                    }
+                ]
+            },
+            "ground_truth": {
+                "valid_node_ids": [
+                    "RTI-2005/CH-II/S-6",
+                    "RTI-2005/CH-II/S-7"
+                ]
+            }
+        },
+        {
+            "fixture_id": "rti-w3-002-valid",
+            "doc_type": "rti_application",
+            "language": "en",
+            "draft_output": {
+                "text": "As per Section 4 of the RTI Act [CITE:RTI-2005/CH-II/S-4], public authorities are obligated to maintain records. I request all records related to road construction tenders.",
+                "cite_markers": [
+                    {
+                        "node_id": "RTI-2005/CH-II/S-4",
+                        "span": [
+                            32,
+                            50
+                        ]
+                    }
+                ]
+            },
+            "ground_truth": {
+                "valid_node_ids": [
+                    "RTI-2005/CH-II/S-4"
+                ]
+            }
+        },
+        {
+            "fixture_id": "rti-w3-003-valid",
+            "doc_type": "rti_application",
+            "language": "en",
+            "draft_output": {
+                "text": "Under Section 8 [CITE:RTI-2005/CH-II/S-8], certain information is exempt from disclosure. I request all non-exempt records related to my pending application dated 01-01-2026.",
+                "cite_markers": [
+                    {
+                        "node_id": "RTI-2005/CH-II/S-8",
+                        "span": [
+                            17,
+                            35
+                        ]
+                    }
+                ]
+            },
+            "ground_truth": {
+                "valid_node_ids": [
+                    "RTI-2005/CH-II/S-8"
+                ]
+            }
+        },
+        {
+            "fixture_id": "rti-w3-004-valid",
+            "doc_type": "rti_application",
+            "language": "en",
+            "draft_output": {
+                "text": "I wish to file a first appeal under Section 19 [CITE:RTI-2005/CH-V/S-19] against the rejection of my RTI request. The Public Information Officer failed to respond within the stipulated time under Section 7 [CITE:RTI-2005/CH-II/S-7].",
+                "cite_markers": [
+                    {
+                        "node_id": "RTI-2005/CH-V/S-19",
+                        "span": [
+                            47,
+                            65
+                        ]
+                    },
+                    {
+                        "node_id": "RTI-2005/CH-II/S-7",
+                        "span": [
+                            204,
+                            222
+                        ]
+                    }
+                ]
+            },
+            "ground_truth": {
+                "valid_node_ids": [
+                    "RTI-2005/CH-V/S-19",
+                    "RTI-2005/CH-II/S-7"
+                ]
+            }
+        },
+        {
+            "fixture_id": "rti-w3-005-valid",
+            "doc_type": "rti_application",
+            "language": "en",
+            "draft_output": {
+                "text": "As per Section 5 [CITE:RTI-2005/CH-II/S-5], every public authority shall designate a Public Information Officer. I request the name and contact details of the designated PIO for your department.",
+                "cite_markers": [
+                    {
+                        "node_id": "RTI-2005/CH-II/S-5",
+                        "span": [
+                            17,
+                            35
+                        ]
+                    }
+                ]
+            },
+            "ground_truth": {
+                "valid_node_ids": [
+                    "RTI-2005/CH-II/S-5"
+                ]
+            }
+        },
+        {
+            "fixture_id": "rti-w3-006-valid",
+            "doc_type": "rti_application",
+            "language": "en",
+            "draft_output": {
+                "text": "Under Section 20 [CITE:RTI-2005/CH-V/S-20], the Information Commission may impose penalties on erring PIOs. I request details of all penalties imposed by your department in FY 2025-26.",
+                "cite_markers": [
+                    {
+                        "node_id": "RTI-2005/CH-V/S-20",
+                        "span": [
+                            17,
+                            35
+                        ]
+                    }
+                ]
+            },
+            "ground_truth": {
+                "valid_node_ids": [
+                    "RTI-2005/CH-V/S-20"
+                ]
+            }
+        },
+        {
+            "fixture_id": "rti-w3-007-valid",
+            "doc_type": "rti_application",
+            "language": "en",
+            "draft_output": {
+                "text": "As per Section 3 [CITE:RTI-2005/CH-II/S-3], all citizens have the right to information. I request copies of all meeting minutes of the municipal council for the year 2025.",
+                "cite_markers": [
+                    {
+                        "node_id": "RTI-2005/CH-II/S-3",
+                        "span": [
+                            17,
+                            35
+                        ]
+                    }
+                ]
+            },
+            "ground_truth": {
+                "valid_node_ids": [
+                    "RTI-2005/CH-II/S-3"
+                ]
+            }
+        },
+        {
+            "fixture_id": "rti-w3-008-valid",
+            "doc_type": "rti_application",
+            "language": "en",
+            "draft_output": {
+                "text": "Under Section 11 [CITE:RTI-2005/CH-II/S-11], third party information requires notice before disclosure. I request all correspondence between your department and third party contractors for Project XYZ.",
+                "cite_markers": [
+                    {
+                        "node_id": "RTI-2005/CH-II/S-11",
+                        "span": [
+                            17,
+                            36
+                        ]
+                    }
+                ]
+            },
+            "ground_truth": {
+                "valid_node_ids": [
+                    "RTI-2005/CH-II/S-11"
+                ]
+            }
+        },
+        {
+            "fixture_id": "rti-w3-009-bad-citation",
+            "doc_type": "rti_application",
+            "language": "en",
+            "draft_output": {
+                "text": "Under Section 42 of the RTI Act [CITE:RTI-2005/CH-VII/S-42], I request information about government spending. This section mandates full transparency.",
+                "cite_markers": [
+                    {
+                        "node_id": "RTI-2005/CH-VII/S-42",
+                        "span": [
+                            32,
+                            51
+                        ]
+                    }
+                ]
+            },
+            "ground_truth": {
+                "valid_node_ids": []
+            }
+        },
+        {
+            "fixture_id": "rti-w3-010-bad-citation",
+            "doc_type": "rti_application",
+            "language": "en",
+            "draft_output": {
+                "text": "As per Section 6 [CITE:RTI-2005/CH-II/S-6] and Section 15A [CITE:RTI-FAKE/CH-II/S-15A], I request all records pertaining to my employment dispute.",
+                "cite_markers": [
+                    {
+                        "node_id": "RTI-2005/CH-II/S-6",
+                        "span": [
+                            17,
+                            35
+                        ]
+                    },
+                    {
+                        "node_id": "RTI-FAKE/CH-II/S-15A",
+                        "span": [
+                            59,
+                            80
+                        ]
+                    }
+                ]
+            },
+            "ground_truth": {
+                "valid_node_ids": [
+                    "RTI-2005/CH-II/S-6"
+                ]
+            }
+        }
+    ]
+}

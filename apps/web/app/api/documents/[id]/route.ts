@@ -191,8 +191,30 @@ export async function GET(
     }
   }
 
+  // Map DB representation to shared types
+  let sharedDocType = document.doc_type
+  if (document.doc_type === 'petition') sharedDocType = 'rti_application'
+  else if (document.doc_type === 'agreement') sharedDocType = 'nda'
+  else if (document.doc_type === 'complaint') sharedDocType = 'consumer_complaint'
+  else if (document.doc_type === 'notice') {
+    if (document.title && /cheque/i.test(document.title)) {
+      sharedDocType = 'cheque_bounce_notice'
+    } else {
+      sharedDocType = 'legal_notice'
+    }
+  }
+
+  let sharedStatus = document.status
+  if (document.status === 'review') sharedStatus = 'generating'
+
+  const mappedDocument = {
+    ...document,
+    doc_type: sharedDocType,
+    status: sharedStatus
+  }
+
   return NextResponse.json({
-    document,
+    document: mappedDocument,
     current_version: currentVersionDetails
   }, { status: 200 })
 }

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import type { Document, Citation } from "@trionic/shared";
+import type { Document, Citation, SupportedLanguage, DocumentStatus, DocumentType } from "@trionic/shared";
 import { DraftWorkspace } from "@/components/editor/draft-workspace";
 import { createClient } from "@/lib/supabase/server";
 
@@ -90,8 +90,36 @@ async function getRealDocument(id: string): Promise<{ document: Document; conten
       span: [match.index!, match.index! + match[0].length] as [number, number]
     }));
 
+    // Map DB representation to shared types
+    let sharedDocType = document.doc_type;
+    if (document.doc_type === 'petition') sharedDocType = 'rti_application';
+    else if (document.doc_type === 'agreement') sharedDocType = 'nda';
+    else if (document.doc_type === 'complaint') sharedDocType = 'consumer_complaint';
+    else if (document.doc_type === 'notice') {
+      if (document.title && /cheque/i.test(document.title)) {
+        sharedDocType = 'cheque_bounce_notice';
+      } else {
+        sharedDocType = 'legal_notice';
+      }
+    }
+
+    let sharedStatus = document.status;
+    if (document.status === 'review') sharedStatus = 'generating';
+
+    const mappedDocument: Document = {
+      id: document.id,
+      owner_id: document.owner_id,
+      title: document.title,
+      doc_type: sharedDocType as DocumentType,
+      language: document.language as SupportedLanguage,
+      status: sharedStatus as DocumentStatus,
+      current_version_id: document.current_version_id || null,
+      created_at: document.created_at,
+      updated_at: document.updated_at,
+    };
+
     return {
-      document: document as Document,
+      document: mappedDocument,
       content,
       citations,
     };

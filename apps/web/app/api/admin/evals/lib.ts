@@ -292,25 +292,52 @@ function dashboardInternalErrorResponse() {
 }
 
 export function warnIfBudgetExceeded(runs: EvalRunResult[]): void {
-  const budgetUsd = Number(process.env.EVAL_DAILY_BUDGET_USD ?? "0");
-  const alertThreshold = Number(process.env.EVAL_DAILY_BUDGET_ALERT_THRESHOLD ?? "1");
+  const budgetUsd = Number(process.env.EVAL_DAILY_BUDGET_USD ?? "5.0");
+  const alertThresholdPct = Number(process.env.EVAL_DAILY_BUDGET_ALERT_THRESHOLD ?? "100");
 
   if (
     !Number.isFinite(budgetUsd) ||
     budgetUsd <= 0 ||
-    !Number.isFinite(alertThreshold) ||
-    alertThreshold <= 0
+    !Number.isFinite(alertThresholdPct) ||
+    alertThresholdPct <= 0
   ) {
     return;
   }
 
-  const thresholdUsd = budgetUsd * alertThreshold;
+  const thresholdUsd = (budgetUsd * alertThresholdPct) / 100;
+
+  // Group runs by date to check daily totals
+  const dailyTotals = new Map<string, { totalCost: number; models: Set<string> }>();
 
   for (const run of runs) {
+    const date = run.ran_at.slice(0, 10);
     const totalCostUsd = getMetricValue(run, "total_cost_usd");
+
+    if (!dailyTotals.has(date)) {
+      dailyTotals.set(date, { totalCost: 0, models: new Set() });
+    }
+
+    const daily = dailyTotals.get(date)!;
+    daily.totalCost += totalCostUsd;
+    daily.models.add(run.model);
+
+    // Warn if individual model exceeds threshold
     if (totalCostUsd >= thresholdUsd) {
       console.warn(
-        `[admin/evals] ${run.model} on ${run.ran_at.slice(0, 10)} crossed budget: $${totalCostUsd.toFixed(4)} >= $${thresholdUsd.toFixed(4)}`,
+        `[admin/evals] Alert: ${run.model} on ${date} exceeded threshold: $${totalCostUsd.toFixed(4)} >= $${thresholdUsd.toFixed(4)} (budget: $${budgetUsd.toFixed(2)})`,
+      );
+    }
+  }
+
+  // Check daily totals against budget
+  for (const [date, data] of dailyTotals.entries()) {
+    if (data.totalCost > budgetUsd) {
+      console.warn(
+        `[admin/evals] BUDGET EXCEEDED: Daily cost on ${date} is $${data.totalCost.toFixed(4)}, exceeds limit of $${budgetUsd.toFixed(2)} by $${(data.totalCost - budgetUsd).toFixed(4)}. Models involved: ${Array.from(data.models).join(", ")}`,
+      );
+    } else if (data.totalCost >= thresholdUsd) {
+      console.warn(
+        `[admin/evals] Budget Warning: Daily cost on ${date} is $${data.totalCost.toFixed(4)}, at ${((data.totalCost / budgetUsd) * 100).toFixed(1)}% of $${budgetUsd.toFixed(2)} limit.`,
       );
     }
   }
@@ -334,18 +361,107 @@ export async function handleAdminEvals(
   }
 
   const cutoff = new Date(now.getTime() - WINDOW_MS);
-  const { data, error } = await supabase
+  const { data: traces, error: queryError } = await supabase
     .from("agent_traces")
-    .select("*")
+    .select("model,tokens_in,tokens_out,cost_usd,latency_ms,timestamp")
     .gte("timestamp", cutoff.toISOString())
-    .order("timestamp", { ascending: true });
+    .order("timestamp", { ascending: false });
 
-  if (error) {
-    return dashboardInternalErrorResponse();
+  if (queryError) {
+    // Surface query errors to the caller
+    // Log for server-side visibility
+    // eslint-disable-next-line no-console
+    console.error("Query error:", queryError);
+    return errorResponse(
+      500,
+      "internal_error",
+      queryError.message ?? "Failed to query agent_traces",
+      null,
+    );
   }
 
-  const runs = buildEvalRuns(data ?? [], now);
-  warnIfBudgetExceeded(runs);
+  if (!traces || traces.length === 0) {
+    return NextResponse.json({ runs: [] });
+  }
 
-  return NextResponse.json({ runs });
+  // Budget config: $5 per model per day (Week 3)
+  const BUDGET_CAP_USD = 5.0;
+  const budgetAlerts: Array<{
+    model: string;
+    date: string;
+    spend: string;
+    budget: string;
+    severity: string;
+    message: string;
+  }> = [];
+
+  // Compute per-date-per-model spends so we can attach daily budget info to runs
+  const modelSpendsByBucket: { [key: string]: number } = {};
+  (traces as TraceRow[]).forEach((trace) => {
+    const ts = trace.timestamp ? new Date(trace.timestamp) : null;
+    if (!ts || Number.isNaN(ts.getTime()) || !trace.model) return;
+    const date = ts.toISOString().slice(0, 10);
+    const key = `${date}::${trace.model}`;
+    modelSpendsByBucket[key] = (modelSpendsByBucket[key] ?? 0) + Number(trace.cost_usd ?? 0);
+  });
+
+  // Produce alerts for any model-date that exceeds the daily cap
+  Object.entries(modelSpendsByBucket).forEach(([key, spend]) => {
+    const [date, model] = key.split("::");
+    if (spend > BUDGET_CAP_USD) {
+      const alert = {
+        model,
+        date,
+        spend: spend.toFixed(2),
+        budget: BUDGET_CAP_USD.toFixed(2),
+        severity: "critical",
+        message: `Model ${model} exceeded daily budget: $${spend.toFixed(2)} > $${BUDGET_CAP_USD.toFixed(2)}`,
+      };
+      budgetAlerts.push(alert);
+      // Week 3: log to console; Week 4 will send to Sentry
+      // eslint-disable-next-line no-console
+      console.warn(`[BUDGET ALERT] ${alert.message}`);
+    }
+  });
+
+  const aggregatedRuns = buildEvalRuns(traces as TraceRow[], now);
+  warnIfBudgetExceeded(aggregatedRuns);
+
+  type BudgetAlert = {
+    model: string;
+    date: string;
+    spend: string;
+    budget: string;
+    severity: string;
+    message: string;
+  };
+
+  type RunWithBudget = EvalRunResult & {
+    budget_exceeded?: boolean;
+    alerts?: BudgetAlert[];
+  };
+
+  const runsWithBudget: RunWithBudget[] = aggregatedRuns.map((run) => {
+    const date = run.ran_at.slice(0, 10);
+    const key = `${date}::${run.model}`;
+    const modelSpend = modelSpendsByBucket[key] ?? 0;
+
+    const metrics = [
+      ...run.metrics,
+      { name: "daily_cost_usd", value: modelSpend, unit: "usd" },
+      { name: "budget_cap_usd", value: BUDGET_CAP_USD, unit: "usd" },
+      { name: "budget_used_pct", value: BUDGET_CAP_USD > 0 ? (modelSpend / BUDGET_CAP_USD) * 100 : 0, unit: "%" },
+    ];
+
+    const alertsForRun = budgetAlerts.filter((a) => a.model === run.model && a.date === date) as BudgetAlert[];
+
+    return {
+      ...run,
+      metrics,
+      budget_exceeded: modelSpend > BUDGET_CAP_USD,
+      alerts: alertsForRun,
+    };
+  });
+
+  return NextResponse.json({ runs: runsWithBudget });
 }

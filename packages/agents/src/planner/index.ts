@@ -79,12 +79,12 @@ export async function runPlanner(input: PlannerInput): Promise<PlannerResult> {
       status: "ok",
       session_id,
     });
-    await persistTrace(trace);
+    await persistTrace(trace, { user_id: session_id || "00000000-0000-0000-0000-000000000000" });
 
     return { plan, trace };
   } catch (error) {
     const trace = buildErrorTrace("planner", error, session_id);
-    await persistTrace(trace);
+    await persistTrace(trace, { user_id: session_id || "00000000-0000-0000-0000-000000000000" });
 
     // Re-throw with trace attached so the pipeline can surface it
     const err = error instanceof Error ? error : new Error(String(error));

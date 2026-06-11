@@ -11,21 +11,14 @@ import { redactPII } from "./tracer.js";
 import { createClient } from "@supabase/supabase-js";
 
 let supabaseAdmin: ReturnType<typeof createClient> | null = null;
-function getSupabaseAdmin() {
-  if (!supabaseAdmin) {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !key) {
-      return createClient(
-        url || "http://localhost:54321",
-        key || "placeholder-key",
-        { auth: { autoRefreshToken: false, persistSession: false } }
-      );
-    }
-    supabaseAdmin = createClient(url, key, {
-      auth: { autoRefreshToken: false, persistSession: false }
-    });
-  }
+function getSupabaseAdmin(): ReturnType<typeof createClient> | null {
+  if (supabaseAdmin) return supabaseAdmin;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  supabaseAdmin = createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  });
   return supabaseAdmin;
 }
 
@@ -47,13 +40,32 @@ export async function persistTrace(
   }
 ): Promise<void> {
   try {
+        const supabaseAdmin = getSupabaseAdmin();
+    if (!supabaseAdmin) {
+      console.warn("[Trace] Supabase credentials not configured — trace log skipped");
+      console.log(
+        `[Trace] agent=${trace.agent}` +
+        ` model=${trace.model}` +
+        ` tokens=${trace.tokens_in}+${trace.tokens_out}` +
+        ` cost=$${trace.cost_usd.toFixed(6)}` +
+        ` latency=${trace.latency_ms}ms` +
+        ` status=${trace.status}`
+      );
+      return;
+    }
 
-    // Map AgentTrace fields → agent_traces DB columns
-    const { error } = await getSupabaseAdmin()
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const rawUserId = context?.user_id ?? trace.session_id ?? "00000000-0000-0000-0000-000000000000";
+    const user_id = uuidRegex.test(rawUserId) ? rawUserId : "00000000-0000-0000-0000-000000000000";
+
+    const rawDocId = context?.document_id ?? trace.session_id ?? null;
+    const document_id = (rawDocId && uuidRegex.test(rawDocId)) ? rawDocId : null;
+
+    const { error } = await (supabaseAdmin as any)
       .from("agent_traces")
       .insert({
-        user_id:           context?.user_id ?? trace.session_id ?? "00000000-0000-0000-0000-000000000000",
-        document_id:       context?.document_id ?? null,
+        user_id,
+        document_id,
         agent_name:        trace.agent as "planner" | "classifier" | "drafter" | "citator" | "reviewer" | "translator",
         llm_provider:      trace.model.split("-")[0],   // e.g. "claude", "gpt", "gemini"
         model_name:        trace.model,
