@@ -31,6 +31,24 @@
       ],
       "@trionic/shared/*": [
         "../../packages/shared/src/*"
+      ],
+      "@trionic/agents": [
+        "../../packages/agents/src/index.ts"
+      ],
+      "@trionic/agents/*": [
+        "../../packages/agents/src/*"
+      ],
+      "@trionic/pageindex": [
+        "../../packages/pageindex/src/index.ts"
+      ],
+      "@trionic/pageindex/*": [
+        "../../packages/pageindex/src/*"
+      ],
+      "@trionic/translation": [
+        "../../packages/translation/src/index.ts"
+      ],
+      "@trionic/translation/*": [
+        "../../packages/translation/src/*"
       ]
     }
   },

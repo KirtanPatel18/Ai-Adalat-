@@ -230,8 +230,10 @@ export async function* runAgentChain(
   }
 
   // ── 3. PageIndex retrieval ────────────────────────────────────────────────
-  // This is not an "agent" step per the contract (no LLM call, no AgentTrace).
-  // We run it silently; any emitted nodes appear as citation.emitted events.
+  // We emit step.start/step.done for UI visibility and demo gate assertions.
+  // No LLM call or AgentTrace for this step — it's a retrieval-only operation.
+  const pageIndexT0 = Date.now();
+  yield stepStart("pageindex");
   let pageIndexResults: { node_id: PageIndexNodeId; snippet: string }[] = [];
   try {
     pageIndexResults = await runPageIndexRetrieval(plan);
@@ -242,6 +244,7 @@ export async function* runAgentChain(
   } catch (_err) {
     warnings.push("PageIndex retrieval failed; continuing without retrieved nodes.");
   }
+  yield stepDone("pageindex", Date.now() - pageIndexT0, 0);
 
   // ── 4. Drafter ────────────────────────────────────────────────────────────
   let draft: DocumentDraft;
@@ -343,7 +346,7 @@ export async function* runAgentChain(
       const result = await runTranslator({
         body_markdown: draft.content,
         target_language: req.target_language,
-        citations: draft.citations,
+        citations: allCitations,
         session_id,
       });
       allTraces.push(result.trace);

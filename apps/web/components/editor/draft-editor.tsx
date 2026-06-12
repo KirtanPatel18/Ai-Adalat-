@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2, Edit3, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useDraftStore } from "../../hooks/use-draft-store";
+import { formatNodeIdToBreadcrumb } from "@/lib/citation-utils";
 
 interface DraftEditorProps {
   value: string;
@@ -12,11 +14,97 @@ interface DraftEditorProps {
   className?: string;
 }
 
-/**
- * Reusable DraftEditor component.
- * Uses a local state for immediate typing feedback to prevent cursor jumping
- * and debounces the `onChange` callback to prevent heavy parent re-renders.
- */
+function CitationBadge({ nodeId, index }: { nodeId: string; index: number }) {
+  const [hovered, setHovered] = useState(false);
+  const [nodeText, setNodeText] = useState<{ title: string; text: string } | null>(null);
+  const [loading, setLoading] = useState(false);
+  
+  const activeCitationNodeId = useDraftStore((state) => state.activeCitationNodeId);
+  const setActiveCitationNodeId = useDraftStore((state) => state.setActiveCitationNodeId);
+  const toggleCitationDrawer = useDraftStore((state) => state.toggleCitationDrawer);
+  const isCitationDrawerOpen = useDraftStore((state) => state.isCitationDrawerOpen);
+
+  const handleMouseEnter = async () => {
+    setHovered(true);
+    if (nodeText || loading) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/pageindex/node/${encodeURIComponent(nodeId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setNodeText({
+          title: data.title || formatNodeIdToBreadcrumb(nodeId),
+          text: data.text || "Legal text content not found."
+        });
+      } else {
+        setNodeText({
+          title: formatNodeIdToBreadcrumb(nodeId),
+          text: "Failed to fetch node text from PageIndex."
+        });
+      }
+    } catch {
+      setNodeText({
+        title: formatNodeIdToBreadcrumb(nodeId),
+        text: "Error connecting to PageIndex API."
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClick = () => {
+    setActiveCitationNodeId(nodeId);
+    if (!isCitationDrawerOpen) {
+      toggleCitationDrawer();
+    }
+    
+    // Smooth scroll the drawer card into view
+    setTimeout(() => {
+      const tileElement = document.getElementById(`node-tile-${nodeId}`);
+      if (tileElement) {
+        tileElement.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        
+        // Temporary ring glow
+        tileElement.classList.add("ring-2", "ring-indigo-500/50", "bg-indigo-50/50", "dark:bg-indigo-950/20");
+        setTimeout(() => {
+          tileElement.classList.remove("ring-2", "ring-indigo-500/50", "bg-indigo-50/50", "dark:bg-indigo-950/20");
+        }, 1500);
+      }
+    }, 150);
+  };
+
+  const isActive = activeCitationNodeId === nodeId;
+
+  return (
+    <button
+      id={`citation-marker-${index + 1}`}
+      onClick={handleClick}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={() => setHovered(false)}
+      className={cn(
+        "relative inline-flex items-center justify-center text-center leading-none p-0 font-mono font-bold text-[11px] size-5 rounded-md cursor-pointer transition-all select-none align-middle border mx-0.5",
+        isActive
+          ? "bg-indigo-600 text-white border-indigo-650 ring-2 ring-indigo-400 shadow-md scale-105"
+          : "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border-indigo-250 dark:border-indigo-900 hover:bg-indigo-100 dark:hover:bg-indigo-900"
+      )}
+      title={`Click to view citation ${index + 1} in drawer`}
+    >
+      {index + 1}
+      {hovered && (
+        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 w-64 p-3 bg-slate-950 dark:bg-white text-white dark:text-slate-900 text-xs rounded-xl shadow-2xl font-sans leading-relaxed pointer-events-none z-50 border border-slate-800 dark:border-slate-200 text-left font-normal animate-in fade-in zoom-in-95 duration-100">
+          <span className="block font-bold text-xs border-b border-slate-800 dark:border-slate-200 pb-1 mb-1.5 font-serif text-white dark:text-slate-950">
+            {loading ? "Loading..." : nodeText?.title}
+          </span>
+          <span className="block text-[11px] text-slate-300 dark:text-slate-650 max-h-32 overflow-y-auto scrollbar-none">
+            {loading ? "Fetching legal text from PageIndex..." : nodeText?.text}
+          </span>
+          <span className="absolute top-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-t-slate-950 dark:border-t-white" />
+        </span>
+      )}
+    </button>
+  );
+}
+
 export function DraftEditor({
   value,
   onChange,
@@ -24,8 +112,9 @@ export function DraftEditor({
   lastSavedAt,
   className,
 }: DraftEditorProps) {
-  // Local state for immediate typing response
   const [localValue, setLocalValue] = useState(value);
+  const [mode, setMode] = useState<"edit" | "preview">("preview"); // Default to preview for the wow factor
+  const citations = useDraftStore((state) => state.citations);
 
   // Sync local state if external value changes (e.g. initial server load)
   useEffect(() => {
@@ -33,11 +122,21 @@ export function DraftEditor({
   }, [value]);
 
   // Debounced input handling
-  // Fires the parent onChange only after the user stops typing for 500ms
   useEffect(() => {
     const handler = setTimeout(() => {
       if (localValue !== value) {
         onChange(localValue);
+        
+        // Extract citations dynamically from edited text to update the drawer list
+        const matches = Array.from(localValue.matchAll(/\[CITE:([^\]]+)\]/g));
+        const dynamicCitations = matches.map((match) => ({
+          node_id: match[1],
+          snapshot_id: "2026-05-28",
+          span: [match.index!, match.index! + match[0].length] as [number, number]
+        }));
+        
+        // Update store citations dynamically
+        useDraftStore.setState({ citations: dynamicCitations });
       }
     }, 500);
 
@@ -48,12 +147,102 @@ export function DraftEditor({
     setLocalValue(e.target.value);
   };
 
+  const renderInline = (text: string) => {
+    const regex = /(\*\*.*?\*\*|\[CITE:[^\]]+\])/g;
+    const parts = text.split(regex);
+
+    return parts.map((part, idx) => {
+      if (part.startsWith("**") && part.endsWith("**")) {
+        return <strong key={idx} className="font-semibold text-foreground">{part.slice(2, -2)}</strong>;
+      }
+      if (part.startsWith("[CITE:") && part.endsWith("]")) {
+        const nodeId = part.slice(6, -1);
+        const citationIdx = citations.findIndex(c => c.node_id === nodeId);
+        const displayIdx = citationIdx !== -1 ? citationIdx : idx;
+        return (
+          <CitationBadge
+            key={idx}
+            nodeId={nodeId}
+            index={displayIdx}
+          />
+        );
+      }
+      return part;
+    });
+  };
+
+  const parseMarkdown = (markdownText: string) => {
+    const paragraphs = markdownText.split(/\n\n+/);
+    return paragraphs.map((para, pIdx) => {
+      let trimmed = para.trim();
+      if (!trimmed) return null;
+
+      // Check for headers
+      if (trimmed.startsWith("# ")) {
+        return <h1 key={pIdx} className="text-2xl font-extrabold mb-4 mt-6 text-foreground tracking-tight border-b pb-2 font-sans">{renderInline(trimmed.substring(2))}</h1>;
+      }
+      if (trimmed.startsWith("## ")) {
+        return <h2 key={pIdx} className="text-xl font-bold mb-3 mt-5 text-foreground tracking-tight font-sans">{renderInline(trimmed.substring(3))}</h2>;
+      }
+      if (trimmed.startsWith("### ")) {
+        return <h3 key={pIdx} className="text-lg font-bold mb-2 mt-4 text-foreground tracking-tight font-sans">{renderInline(trimmed.substring(4))}</h3>;
+      }
+
+      // Check for bullet lists
+      if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
+        const items = trimmed.split(/\n[*+-]\s+/);
+        return (
+          <ul key={pIdx} className="list-disc pl-6 space-y-2 mb-4">
+            {items.map((item, iIdx) => (
+              <li key={iIdx} className="text-foreground leading-relaxed">
+                {renderInline(item.replace(/^[*+-]\s+/, ""))}
+              </li>
+            ))}
+          </ul>
+        );
+      }
+
+      // Regular paragraph
+      return (
+        <p key={pIdx} className="text-foreground leading-relaxed mb-4 text-justify font-serif text-[15px]">
+          {renderInline(trimmed)}
+        </p>
+      );
+    });
+  };
+
   return (
     <div className={cn("flex flex-col h-full w-full bg-background border rounded-md shadow-sm overflow-hidden", className)}>
       {/* Editor Header / Status Bar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/10">
-        <div className="text-sm font-medium text-muted-foreground select-none">
-          Markdown Editor
+      <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/10 shrink-0">
+        <div className="flex items-center gap-2">
+          {/* Mode Switcher */}
+          <div className="flex bg-muted p-0.5 rounded-lg border">
+            <button
+              onClick={() => setMode("preview")}
+              className={cn(
+                "flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md transition-colors cursor-pointer",
+                mode === "preview"
+                  ? "bg-background shadow text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Eye className="h-3.5 w-3.5" />
+              Preview
+            </button>
+            <button
+              onClick={() => setMode("edit")}
+              className={cn(
+                "flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md transition-colors cursor-pointer",
+                mode === "edit"
+                  ? "bg-background shadow text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Edit3 className="h-3.5 w-3.5" />
+              Edit Markdown
+            </button>
+          </div>
         </div>
         
         {/* Status Indicators */}
@@ -75,14 +264,22 @@ export function DraftEditor({
       </div>
 
       {/* Editor Body */}
-      <div className="relative flex-1 p-4 md:p-6 lg:p-8">
-        <textarea
-          value={localValue}
-          onChange={handleChange}
-          placeholder="Start drafting your legal document..."
-          className="h-full w-full resize-none bg-transparent outline-none font-mono text-sm md:text-base leading-relaxed text-foreground placeholder:text-muted-foreground focus:ring-0"
-          spellCheck={false}
-        />
+      <div className="relative flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
+        {mode === "edit" ? (
+          <textarea
+            value={localValue}
+            onChange={handleChange}
+            placeholder="Start drafting your legal document..."
+            className="h-full w-full resize-none bg-transparent outline-none font-mono text-sm md:text-base leading-relaxed text-foreground placeholder:text-muted-foreground focus:ring-0"
+            spellCheck={false}
+          />
+        ) : (
+          <div className="bg-background select-text max-w-3xl mx-auto py-4 animate-in fade-in duration-200">
+            <div className="prose dark:prose-invert max-w-none">
+              {parseMarkdown(localValue)}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

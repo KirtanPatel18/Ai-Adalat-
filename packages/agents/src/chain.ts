@@ -101,7 +101,7 @@ function* emitCachedStep(agent: string): Generator<AgentStreamEvent> {
 /**
  * Persist a "cache hit" trace so Team F's evals can distinguish cached vs. fresh runs.
  */
-async function persistCacheTrace(agent: string, sessionId?: string): Promise<void> {
+async function persistCacheTrace(agent: string, sessionId?: string, documentId?: string): Promise<void> {
   const trace = {
     agent,
     model: "cache",
@@ -114,7 +114,10 @@ async function persistCacheTrace(agent: string, sessionId?: string): Promise<voi
     timestamp: new Date().toISOString(),
     session_id: sessionId,
   };
-  await persistTrace(trace);
+  await persistTrace(trace, {
+    user_id: sessionId || "00000000-0000-0000-0000-000000000000",
+    document_id: documentId,
+  });
 }
 
 // ─── Save with retry ─────────────────────────────────────────────────────────
@@ -206,7 +209,7 @@ export async function* runAgentChain(
     // Cache hit — reuse cached classifier output
     classifierOutput = state.last_classifier_output;
     yield* emitCachedStep("classifier");
-    await persistCacheTrace("classifier", session_id);
+    await persistCacheTrace("classifier", session_id, document_id);
   } else {
     // Fresh run — call the Classifier agent
     yield stepStart("classifier");
@@ -248,7 +251,7 @@ export async function* runAgentChain(
     // Cache hit — reuse cached planner output
     plannerOutput = state.last_planner_output;
     yield* emitCachedStep("planner");
-    await persistCacheTrace("planner", session_id);
+    await persistCacheTrace("planner", session_id, document_id);
   } else {
     // Fresh run — call the Planner agent
     yield stepStart("planner");
@@ -382,7 +385,8 @@ export async function* runAgentChain(
             citations: citatorResult.validatedCitations,
           },
           session_id,
-        });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any);
 
         const reviewerDuration = Date.now() - reviewerStartTime;
         yield stepDone(
@@ -392,7 +396,7 @@ export async function* runAgentChain(
         );
 
         if (!reviewerResult.approved) {
-          yield stepError("reviewer", reviewerResult.rejection_reason ?? "Draft rejected by reviewer");
+          yield stepError("reviewer", reviewerResult.trace.error_message ?? "Draft rejected by reviewer");
           return; // Abort
         }
 
@@ -405,11 +409,9 @@ export async function* runAgentChain(
 
           try {
             const translatorResult = await runTranslator({
-              draft: {
-                ...drafterResult.draft,
-                citations: citatorResult.validatedCitations,
-              },
-              targetLanguage: target_language,
+              body_markdown: drafterResult.draft.content,
+              citations: citatorResult.validatedCitations,
+              target_language: target_language,
               session_id,
             });
 
@@ -420,7 +422,7 @@ export async function* runAgentChain(
               translatorResult.trace.tokens_in + translatorResult.trace.tokens_out
             );
 
-            finalMarkdown = translatorResult.translatedDraft.content;
+            finalMarkdown = translatorResult.output.translated_markdown;
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             yield stepError("translator", message);
