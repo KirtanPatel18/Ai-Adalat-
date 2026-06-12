@@ -6,12 +6,26 @@ import type { Fixture } from "./types";
 
 // Parse CLI args
 // Usage: tsx src/run.ts --dataset rti-week3 --models claude-sonnet-4-20250514,gpt-4o
+// Legacy: tsx src/run.ts --fixture fixtures/rti-week3.json --models ...
 const args = process.argv.slice(2);
 const datasetArgIdx = args.indexOf("--dataset");
+const fixtureArgIdx = args.indexOf("--fixture");
 const modelsArgIdx = args.indexOf("--models");
 
-const datasetId = datasetArgIdx !== -1 ? args[datasetArgIdx + 1] : "rti-week3";
-const fixturePath = `fixtures/${datasetId}.json`;
+// Support both --dataset <name> (main pattern) and --fixture <path> (legacy)
+let fixturePath: string;
+let datasetId: string;
+if (datasetArgIdx !== -1) {
+  datasetId = args[datasetArgIdx + 1];
+  fixturePath = `fixtures/${datasetId}.json`;
+} else if (fixtureArgIdx !== -1) {
+  fixturePath = args[fixtureArgIdx + 1];
+  datasetId = fixturePath.replace(/^fixtures\//, "").replace(/\.json$/, "");
+} else {
+  datasetId = "rti-week3";
+  fixturePath = `fixtures/${datasetId}.json`;
+}
+
 const models =
   modelsArgIdx !== -1
     ? args[modelsArgIdx + 1].split(",")
@@ -29,7 +43,7 @@ async function runEvals(): Promise<void> {
   // Support both single fixture and multi-fixture format
   const fixtures: Fixture[] = parsed.fixtures ?? [parsed];
   const datasetIdFromFile: string =
-    parsed.dataset_id ?? parsed.fixture_id ?? "unknown";
+    parsed.dataset_id ?? parsed.fixture_id ?? datasetId;
 
   console.log(`Dataset:   ${datasetIdFromFile}`);
   console.log(`Fixture:   ${fixturePath}`);
@@ -64,7 +78,7 @@ async function runEvals(): Promise<void> {
         );
       }
 
-      // Hallucination rate — requires @trionic/agents + API keys, skips gracefully if unavailable
+      // Hallucination rate — dynamic import so it doesn't crash if @trionic/agents isn't built
       try {
         const { hallucinationRate } =
           await import("./metrics/hallucinationRate");
@@ -85,7 +99,7 @@ async function runEvals(): Promise<void> {
         );
       }
 
-      // Completeness — requires @trionic/agents + API keys, skips gracefully if unavailable
+      // Completeness — dynamic import so it doesn't crash if @trionic/agents isn't built
       try {
         const { completeness } = await import("./metrics/completeness");
         const compResult = await completeness(fixture);
@@ -123,7 +137,7 @@ async function runEvals(): Promise<void> {
     // Build EvalRunResult as per @trionic/shared contract
     const evalRunResult: EvalRunResult = {
       run_id: randomUUID(),
-      dataset_id: datasetId,
+      dataset_id: datasetIdFromFile,
       model,
       ran_at: new Date().toISOString(),
       metrics: [
@@ -155,7 +169,7 @@ async function runEvals(): Promise<void> {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          dataset_id: datasetId,
+          dataset_id: datasetIdFromFile,
           models: [model],
         }),
       });

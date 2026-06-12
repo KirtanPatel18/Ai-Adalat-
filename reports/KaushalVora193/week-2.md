@@ -1,115 +1,76 @@
-# Week 2 — Kaushal Vora
+# Week 2 Report — Kaushal Vora
 
 **Team:** Team F — Evals & Telemetry
-**Module owned:** Hallucination & completeness eval
-<<<<<<< HEAD
-**Week of:** 2026-05-29
-=======
-**Week of:** 2026-05-26
->>>>>>> 72062ff86dee95c969a17a2c1635342e3441178f
+**Module owned:** Hallucination & Completeness metrics (RFC #88)
+**Week of:** 2026-05-26 to 2026-05-31
 
 ---
 
-## What I shipped this week
+## Work Completed
 
-<<<<<<< HEAD
-- Implemented `hallucinationRate` metric using an LLM-as-judge (via `@trionic/agents` LLMRouter) to segment legal claims and flag spans lacking `[CITE:<node_id>]` markers.
-- Implemented `completeness` metric using a hybrid approach: regex-heuristics to aggressively identify core structural headers (`pio_address`, `applicant_details`, `information_requested`, `payment_details_declaration`), falling back to an LLM semantic judge if regex checks fail to reach 100%.
-- Integrated both metrics into the `EvalRunResult` output in the main test harness (`packages/evals/src/run.ts`).
-- Created 10 JSON fixtures simulating different edge cases for RTI applications (`rti-hallucination.json` and `rti-completeness.json`).
-=======
-- Implemented `packages/evals/src/metrics/hallucinationRate.ts` — counts spans of legal claim sentences in the draft output that do not contain a `[CITE:<node_id>]` marker (target: 0% hallucination rate). [PR pending](https://github.com/Trionic-Interns/trionic-ai-adalat)
-- Implemented `packages/evals/src/metrics/completeness.ts` — verifies the presence of required template fields (such as `address`, `subject`, `sections_sought`, and `declaration` for `rti_application`) using custom keyword matching. [PR pending](https://github.com/Trionic-Interns/trionic-ai-adalat)
-- Created `packages/evals/fixtures/hallucination_completeness.json` — 5 realistic RTI fixtures to evaluate and test different completeness levels (50%, 75%, 100%) and hallucination rates (0%, 50%, 100%). [PR pending](https://github.com/Trionic-Interns/trionic-ai-adalat)
-- Updated `packages/evals/src/run.ts` — wired hallucination and completeness rates into the main harness execution flow and mapped them to `EvalRunResult.metrics` as `{ name: "hallucination_rate", ... }` and `{ name: "completeness_rate", ... }` to comply with `@trionic/shared` types. [PR pending](https://github.com/Trionic-Interns/trionic-ai-adalat)
-- Merged the `main` branch to sync all type definitions and schemas with the rest of the cohort.
->>>>>>> 72062ff86dee95c969a17a2c1635342e3441178f
+- Implemented `hallucinationRate` metric (`src/metrics/hallucinationRate.ts`): keyword-based sentence segmentation to identify legal claim sentences and flag those missing `[CITE:<node_id>]` markers.
+- Implemented `completeness` metric (`src/metrics/completeness.ts`): hybrid regex + keyword approach to verify required RTI template fields are present (`pio_address`, `subject`, `info_sought`, `declaration`, `payment_details_declaration`).
+- Wired both metrics into `EvalRunResult.metrics` inside `src/run.ts` — results POST to Supabase via `/api/admin/evals/run`.
+- Created 5 hallucination fixtures (`fixtures/rti-hallucination.json`) and 5 completeness fixtures (`fixtures/rti-completeness.json`).
+- Extends Kirtan's (`@KirtanPatel18`) harness with two new metrics.
 
 ---
 
-## Demo
+## Actual Eval Results (local run)
 
-<<<<<<< HEAD
-Here is an example output from the newly enhanced local Eval Harness measuring our two new metrics on a generated draft:
+### Hallucination Fixtures (`fixtures/rti-hallucination.json`)
 
-```
-==============================================
- Trionic Adalat — Eval Harness
-==============================================
+| Fixture | Citations | Hallucination | Completeness | Status |
+|---|---|---|---|---|
+| rti-hall-001-perfect | 2/2 ✅ | 0.0% ✅ | 100% ✅ | PASS |
+| rti-hall-002-uncited-claim | 1/1 ✅ | 50.0% ⚠️ | 100% ✅ | FAIL (by design) |
+| rti-hall-003-invalid-cite | 0/1 ❌ | 50.0% ⚠️ | 100% ✅ | FAIL (by design) |
+| rti-hall-004-all-uncited | 0/0 — | 100.0% ⚠️ | 100% ✅ | FAIL (by design) |
+| rti-hall-005-mixed | 1/1 ✅ | 50.0% ⚠️ | 100% ✅ | FAIL (by design) |
 
-Dataset:   rti-hallucination-set
-Fixture:   fixtures/rti-hallucination.json
-Models:    claude-sonnet-4-20250514
-Cases:     5
+**Aggregate:**
+- Citation Validity Rate: **80.0%**
+- Hallucination Rate: **42.9%** (expected — 4/5 fixtures intentionally have uncited claims)
+- Completeness Rate: **100%** ✅
 
---- Running model: claude-sonnet-4-20250514 ---
+### Completeness Fixtures (`fixtures/rti-completeness.json`)
 
-  Fixture: rti-hall-001-perfect
-  Citations: 2/2 valid
-  Citation Status:    PASS
-  Hallucination Rate: 0.0%
-  Hallucination Status: PASS
-  Completeness Score: 100.0%
-  Completeness Status:  PASS
-```
-=======
-The updated harness runs on the new `hallucination_completeness.json` fixture:
+| Fixture | Citations | Hallucination | Completeness | Status |
+|---|---|---|---|---|
+| rti-comp-001-perfect | 0/0 — | 0.0% ✅ | 100.0% ✅ | FAIL (0 citations) |
+| rti-comp-002-missing-fee | 0/0 — | 0.0% ✅ | 60.0% ⚠️ | FAIL (by design) |
+| rti-comp-003-missing-pio | 0/0 — | 0.0% ✅ | 80.0% ⚠️ | FAIL (by design) |
+| rti-comp-004-missing-info-sought | 0/0 — | 0.0% ✅ | 80.0% ⚠️ | FAIL (by design) |
+| rti-comp-005-all-sections | 0/0 — | 0.0% ✅ | 100.0% ✅ | FAIL (0 citations) |
 
-```bash
-npx tsx src/run.ts --fixture fixtures/hallucination_completeness.json
-```
-
-Output showcases:
-* Per-fixture validation status showing which citations are invalid, which legal claim spans are uncited (hallucinated), and which required template fields are missing.
-* A unified `EvalRunResult` JSON containing the aggregated `citation_validity_rate`, `hallucination_rate`, and `completeness_rate`.
->>>>>>> 72062ff86dee95c969a17a2c1635342e3441178f
+**Aggregate:**
+- Citation Validity Rate: **0.0%** (no citations in these fixtures — expected)
+- Hallucination Rate: **0.0%** ✅
+- Completeness Rate: **84.0%** (missing sections correctly detected in 3/5 fixtures)
 
 ---
 
-## Metrics
+## Inter-team Handoffs
 
-| Metric | Value | Notes |
-|---|---|---|
-<<<<<<< HEAD
-| PRs merged | 1 | Week 2 Evals PR |
-| Fixtures added | 10 | 5 for Hallucination, 5 for Completeness |
-| Target Completeness | 100% | Verified via LLM fallback |
-| Target Hallucination | 0% | Measured on claim spans |
-=======
-| PRs opened | 1 | Week-2 evals branch |
-| Fixtures created | 1 | `hallucination_completeness.json` (5 test drafts) |
-| Metrics implemented | 2 | Hallucination Rate, Completeness Rate |
-| Overall Hallucination target met | 0% | Metric registers 0% in perfect drafts |
-| Overall Completeness target met | 100% | Metric registers 100% in complete drafts |
->>>>>>> 72062ff86dee95c969a17a2c1635342e3441178f
+- **Depends on `@KirtanPatel18`** — harness extension point (`citationValidity`).
 
 ---
 
 ## Blockers
 
-<<<<<<< HEAD
-- Found that `npx` and `pnpm` paths were not immediately accessible in some sub-shells, requiring the Trionic team members to execute `pnpm install` manually, but it didn't block the logic implementation.
-- API Endpoint (`POST /api/admin/evals/run`) is currently designed to accept only `dataset_id` and `models`, meaning results computation might happen via an async worker. Local harness computes perfectly fine though.
-=======
-- **None.** Clean integration with Kirtan's harness and shared typescript types.
->>>>>>> 72062ff86dee95c969a17a2c1635342e3441178f
+- `citationValidity` uses a mock `pageIndex.get_text` until Team D merges `agnoTool.ts`.
+- `OPENAI_API_KEY` not set — LLM-judge fallback in `completeness.ts` not active locally.
 
 ---
 
-## Next week
+## Next Week
 
-<<<<<<< HEAD
-- Extend `completeness` logic to cover non-RTI templates like Legal Notices and NDAs.
-- Optimize LLM prompt tokens for the judge models to reduce telemetry costs.
-- Verify that `eval_runs` successfully ingests our new metrics payload from the asynchronous queue.
-=======
-- Coordinate with Ayush (@ThummarAyush) to map the newly added `hallucination_rate` and `completeness_rate` metrics to the admin dashboard views on `/admin/evals`.
-- Expand testing coverage by creating additional fixtures for non-RTI document types (NDA, Legal Notice, Consumer Complaint) with different required sections.
-- Sync with Malay's team on replacing mock drafts with real LLM outputs from the pipeline.
->>>>>>> 72062ff86dee95c969a17a2c1635342e3441178f
+- Run scorers on real RTI drafts produced by live agent chain.
+- Add `date+signature` as a required field (W3 contract update).
+- Extend to 10 fixtures with `agent_traces`.
 
 ---
 
-### Mentor feedback (filled by repo manager Friday 7 PM IST)
+### Mentor feedback *(filled by repo manager Friday 7 PM IST)*
 
-> 
+>
