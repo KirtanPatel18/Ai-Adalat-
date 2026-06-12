@@ -226,6 +226,8 @@ export function createInitialState(
     last_planner_output: null,
     retrieved_nodes: [],
     current_draft_version: 0,
+    last_draft_content: null,
+    last_citations: null,
     intake_text_hash: intakeTextHash,
     updated_at: new Date().toISOString(),
   };
