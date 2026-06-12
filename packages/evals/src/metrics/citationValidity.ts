@@ -1,5 +1,11 @@
-import type { EvalMetric } from "@trionic/shared";
+import type { EvalMetric, SnapshotId } from "@trionic/shared";
+import { pageindex } from "@trionic/pageindex";
 import type { Fixture } from "../types";
+
+interface GetTextResult {
+  text: string;
+  snapshot_id: SnapshotId;
+}
 
 export type CitationValidityResult = {
   metric: "citation_validity";
@@ -11,33 +17,14 @@ export type CitationValidityResult = {
   status: "pass" | "fail";
 };
 
-/**
- * Mock pageindex.get_text — replace with real Samarth's implementation
- * once packages/pageindex/src/agnoTool.ts is merged.
- * Returns text if node exists in ground_truth, null if not.
- */
-async function getTextFromPageIndex(
-  node_id: string,
-  valid_node_ids: string[],
-): Promise<{ text: string } | null> {
-  // TODO: replace with real call once Samarth merges agnoTool.ts
-  // return await pageindex.get_text({ node_id });
-  if (valid_node_ids.includes(node_id)) {
-    return { text: `Mock text for node ${node_id}` };
-  }
-  return null;
-}
-
 export async function citationValidity(
   fixture: Fixture,
 ): Promise<CitationValidityResult> {
   const citeMarkers = fixture.draft_output.cite_markers;
-  const validNodeIds = fixture.ground_truth.valid_node_ids;
-
   const invalidCitations: string[] = [];
 
   for (const marker of citeMarkers) {
-    const result = await getTextFromPageIndex(marker.node_id, validNodeIds);
+    const result = await pageindex.get_text({ node_id: marker.node_id });
     if (!result) {
       invalidCitations.push(marker.node_id);
     }

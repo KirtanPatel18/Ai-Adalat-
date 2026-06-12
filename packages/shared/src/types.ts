@@ -67,6 +67,9 @@ export type AgentTrace = {
   session_id?: string;
   /** Optional: human-readable error message if status === "error" | "rejected". */
   error_message?: string;
+   /** Optional: trace ID of the parent agent call. Used for nested call linking.
+   *  e.g. Drafter's child PageIndex calls set this to the Drafter's trace ID. */
+  parent_trace_id?: string;
 };
 
 // ─── Document Draft ───────────────────────────────────────────────────────────
@@ -359,3 +362,5 @@ export type EvalRunResult = {
   metrics: EvalMetric[];
   per_doc_type?: Record<DocumentType, EvalMetric[]>;
 };
+
+

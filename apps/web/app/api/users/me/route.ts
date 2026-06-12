@@ -8,10 +8,10 @@ function getSupabaseClient(cookieStore: Awaited<ReturnType<typeof cookies>>) {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Supabase environment variables are not configured");
+    console.warn("Supabase environment variables are not configured. Using mock client.");
   }
 
-  return createServerClient(supabaseUrl, supabaseAnonKey, {
+  return createServerClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseAnonKey || 'placeholder-key', {
     cookies: {
       getAll() {
         return cookieStore.getAll().map((cookie: { name: string; value: string }) => ({

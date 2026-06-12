@@ -5,6 +5,14 @@
   "description": "Agent orchestration layer — Agno + LLM Router",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "dev": "tsc --project tsconfig.json --watch",
@@ -17,7 +25,8 @@
     "@google/generative-ai": "^0.21.0",
     "openai": "^4.67.0",
     "@trionic/shared": "workspace:*",
-    "@trionic/translation": "workspace:*"
+    "@trionic/translation": "workspace:*",
+    "@trionic/pageindex": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.6.0",

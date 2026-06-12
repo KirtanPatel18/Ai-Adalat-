@@ -57,9 +57,14 @@ export async function runPlanner(input: PlannerInput): Promise<PlannerResult> {
     const llmResponse = await router.run("planner", PLANNER_SYSTEM_PROMPT, userPrompt);
 
     // Parse JSON output from the LLM
+    // Strip markdown code fences if the LLM returned them despite instructions
     let plan: PlannerOutput;
     try {
-      plan = JSON.parse(llmResponse.text) as PlannerOutput;
+      let cleanedText = llmResponse.text.trim();
+      if (cleanedText.startsWith("```")) {
+        cleanedText = cleanedText.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```$/, "").trim();
+      }
+      plan = JSON.parse(cleanedText) as PlannerOutput;
     } catch {
       throw new Error(
         `Planner LLM returned invalid JSON: ${llmResponse.text.slice(0, 200)}`
@@ -74,12 +79,12 @@ export async function runPlanner(input: PlannerInput): Promise<PlannerResult> {
       status: "ok",
       session_id,
     });
-    await persistTrace(trace);
+    await persistTrace(trace, { user_id: session_id || "00000000-0000-0000-0000-000000000000" });
 
     return { plan, trace };
   } catch (error) {
     const trace = buildErrorTrace("planner", error, session_id);
-    await persistTrace(trace);
+    await persistTrace(trace, { user_id: session_id || "00000000-0000-0000-0000-000000000000" });
 
     // Re-throw with trace attached so the pipeline can surface it
     const err = error instanceof Error ? error : new Error(String(error));
