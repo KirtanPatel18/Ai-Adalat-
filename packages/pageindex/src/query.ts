@@ -251,16 +251,14 @@ export async function search(query: string, scope?: SearchScope): Promise<Search
       score += 5.0;
     }
 
-    if (score > 0) {
-      if (!matchReason) {
-        matchReason = `Matched ${termMatchesInTitle} terms in title, ${termMatchesInText} in text`;
-      }
-      results.push({
-        node,
-        relevance: score, // Store raw score temporarily
-        match_reason: matchReason
-      });
+    if (!matchReason) {
+      matchReason = `Matched ${termMatchesInTitle} terms in title, ${termMatchesInText} in text`;
     }
+    results.push({
+      node,
+      relevance: score, // Store raw score temporarily
+      match_reason: matchReason
+    });
   }
 
   if (results.length === 0) {

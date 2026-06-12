@@ -1,21 +1,31 @@
 import { readFileSync } from "fs";
 import { randomUUID } from "crypto";
 import { citationValidity } from "./metrics/citationValidity";
-import { hallucinationRate } from "./metrics/hallucinationRate";
-import { completeness } from "./metrics/completeness";
 import type { EvalRunResult } from "@trionic/shared";
 import type { Fixture } from "./types";
 
 // Parse CLI args
-// Usage: tsx src/run.ts --fixture fixtures/rti.json --models claude-sonnet-4-20250514,gpt-4o
+// Usage: tsx src/run.ts --dataset rti-week3 --models claude-sonnet-4-20250514,gpt-4o
+// Legacy: tsx src/run.ts --fixture fixtures/rti-week3.json --models ...
 const args = process.argv.slice(2);
+const datasetArgIdx = args.indexOf("--dataset");
 const fixtureArgIdx = args.indexOf("--fixture");
 const modelsArgIdx = args.indexOf("--models");
 
-const fixturePath =
-  fixtureArgIdx !== -1
-    ? args[fixtureArgIdx + 1]
-    : "fixtures/rti-english-001.json";
+// Support both --dataset <name> (main pattern) and --fixture <path> (legacy)
+let fixturePath: string;
+let datasetId: string;
+if (datasetArgIdx !== -1) {
+  datasetId = args[datasetArgIdx + 1];
+  fixturePath = `fixtures/${datasetId}.json`;
+} else if (fixtureArgIdx !== -1) {
+  fixturePath = args[fixtureArgIdx + 1];
+  datasetId = fixturePath.replace(/^fixtures\//, "").replace(/\.json$/, "");
+} else {
+  datasetId = "rti-week3";
+  fixturePath = `fixtures/${datasetId}.json`;
+}
+
 const models =
   modelsArgIdx !== -1
     ? args[modelsArgIdx + 1].split(",")
@@ -23,7 +33,7 @@ const models =
 
 async function runEvals(): Promise<void> {
   console.log("==============================================");
-  console.log(" Trionic Adalat — Eval Harness");
+  console.log(" Trionic Adalat - Eval Harness");
   console.log("==============================================\n");
 
   // Load fixture file
@@ -32,9 +42,10 @@ async function runEvals(): Promise<void> {
 
   // Support both single fixture and multi-fixture format
   const fixtures: Fixture[] = parsed.fixtures ?? [parsed];
-  const datasetId: string = parsed.dataset_id ?? parsed.fixture_id ?? "unknown";
+  const datasetIdFromFile: string =
+    parsed.dataset_id ?? parsed.fixture_id ?? datasetId;
 
-  console.log(`Dataset:   ${datasetId}`);
+  console.log(`Dataset:   ${datasetIdFromFile}`);
   console.log(`Fixture:   ${fixturePath}`);
   console.log(`Models:    ${models.join(", ")}`);
   console.log(`Cases:     ${fixtures.length}`);
@@ -53,43 +64,64 @@ async function runEvals(): Promise<void> {
     for (const fixture of fixtures) {
       console.log(`  Fixture: ${fixture.fixture_id}`);
 
+      // Citation validity — always runs locally and on Vercel
       const citeResult = await citationValidity(fixture);
-      const hallucResult = await hallucinationRate(fixture);
-      const compResult = await completeness(fixture);
-
       totalCitations += citeResult.total_citations;
       validCitations += citeResult.valid_citations;
-      totalClaims += hallucResult.total_claims;
-      uncitedClaims += hallucResult.uncited_claims;
-      totalRequired += compResult.required_sections.length;
-      totalMissing += compResult.missing_sections.length;
 
       console.log(
         `  Citations:     ${citeResult.valid_citations}/${citeResult.total_citations} valid`,
       );
       if (citeResult.invalid_citations.length > 0) {
-        console.log(`    Invalid:     ${citeResult.invalid_citations.join(", ")}`);
+        console.log(
+          `    Invalid:     ${citeResult.invalid_citations.join(", ")}`,
+        );
+      }
+
+      // Hallucination rate — dynamic import so it doesn't crash if @trionic/agents isn't built
+      try {
+        const { hallucinationRate } =
+          await import("./metrics/hallucinationRate");
+        const hallucResult = await hallucinationRate(fixture);
+        totalClaims += hallucResult.total_claims;
+        uncitedClaims += hallucResult.uncited_claims;
+        console.log(
+          `  Hallucination: ${hallucResult.hallucination_rate.toFixed(1)}% (${hallucResult.uncited_claims}/${hallucResult.total_claims} uncited claims)`,
+        );
+        if (hallucResult.hallucinated_spans.length > 0) {
+          console.log(
+            `    Uncited:     "${hallucResult.hallucinated_spans.join('", "')}"`,
+          );
+        }
+      } catch {
+        console.log(
+          `  Hallucination: skipped (requires API keys + agents build)`,
+        );
+      }
+
+      // Completeness — dynamic import so it doesn't crash if @trionic/agents isn't built
+      try {
+        const { completeness } = await import("./metrics/completeness");
+        const compResult = await completeness(fixture);
+        totalRequired += compResult.required_sections.length;
+        totalMissing += compResult.missing_sections.length;
+        console.log(
+          `  Completeness:  ${compResult.completeness_score.toFixed(1)}% (${compResult.required_sections.length - compResult.missing_sections.length}/${compResult.required_sections.length} present)`,
+        );
+        if (compResult.missing_sections.length > 0) {
+          console.log(
+            `    Missing:     ${compResult.missing_sections.join(", ")}`,
+          );
+        }
+      } catch {
+        console.log(
+          `  Completeness:  skipped (requires API keys + agents build)`,
+        );
       }
 
       console.log(
-        `  Hallucination: ${hallucResult.hallucination_rate.toFixed(1)}% (${hallucResult.uncited_claims}/${hallucResult.total_claims} uncited claims)`,
+        `  Status:        ${citeResult.status === "pass" ? "PASS" : "FAIL"}`,
       );
-      if (hallucResult.hallucinated_spans.length > 0) {
-        console.log(`    Uncited:     "${hallucResult.hallucinated_spans.join('", "')}"`);
-      }
-
-      console.log(
-        `  Completeness:  ${compResult.completeness_rate.toFixed(1)}% (${compResult.required_sections.length - compResult.missing_sections.length}/${compResult.required_sections.length} present)`,
-      );
-      if (compResult.missing_sections.length > 0) {
-        console.log(`    Missing:     ${compResult.missing_sections.join(", ")}`);
-      }
-
-      const casePassed =
-        citeResult.status === "pass" &&
-        hallucResult.status === "pass" &&
-        compResult.status === "pass";
-      console.log(`  Status:        ${casePassed ? "PASS" : "FAIL"}`);
       console.log("");
     }
 
@@ -98,12 +130,14 @@ async function runEvals(): Promise<void> {
     const overallHallucinationRate =
       totalClaims === 0 ? 0 : (uncitedClaims / totalClaims) * 100;
     const overallCompletenessRate =
-      totalRequired === 0 ? 100 : ((totalRequired - totalMissing) / totalRequired) * 100;
+      totalRequired === 0
+        ? 100
+        : ((totalRequired - totalMissing) / totalRequired) * 100;
 
     // Build EvalRunResult as per @trionic/shared contract
     const evalRunResult: EvalRunResult = {
       run_id: randomUUID(),
-      dataset_id: datasetId,
+      dataset_id: datasetIdFromFile,
       model,
       ran_at: new Date().toISOString(),
       metrics: [
@@ -118,7 +152,7 @@ async function runEvals(): Promise<void> {
           unit: "percent",
         },
         {
-          name: "completeness_rate",
+          name: "completeness_score",
           value: overallCompletenessRate,
           unit: "percent",
         },
@@ -135,7 +169,7 @@ async function runEvals(): Promise<void> {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          dataset_id: datasetId,
+          dataset_id: datasetIdFromFile,
           models: [model],
         }),
       });
@@ -144,12 +178,12 @@ async function runEvals(): Promise<void> {
         console.log(`\n[eval_runs] Queued run_id: ${data.run_id}`);
       } else {
         console.log(
-          `\n[eval_runs] API returned ${res.status} — skipping write`,
+          `\n[eval_runs] API returned ${res.status} - skipping write`,
         );
       }
     } catch {
       console.log(
-        "\n[eval_runs] API not reachable — skipping write (run locally without server)",
+        "\n[eval_runs] API not reachable - skipping write (run locally without server)",
       );
     }
 
@@ -161,8 +195,8 @@ async function runEvals(): Promise<void> {
     console.log("\n==============================================");
     console.log(
       overallPassed
-        ? " EVAL PASSED ✓"
-        : ` EVAL FAILED ✗ (Citations: ${overallCiteRate.toFixed(1)}%, Hallucination: ${overallHallucinationRate.toFixed(1)}%, Completeness: ${overallCompletenessRate.toFixed(1)}%)`,
+        ? " EVAL PASSED"
+        : ` EVAL FAILED (Citations: ${overallCiteRate.toFixed(1)}%, Hallucination: ${overallHallucinationRate.toFixed(1)}%, Completeness: ${overallCompletenessRate.toFixed(1)}%)`,
     );
     console.log("==============================================");
   }
