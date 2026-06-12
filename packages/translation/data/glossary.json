@@ -53,8 +53,7 @@
   { "id": "hi-rti-2005-public-authority", "term_en": "public authority", "term_indic": "लोक प्राधिकारी", "language": "hi", "node_id": "RTI-2005/S-2", "snapshot_id": "2026-05-19", "act_code": "RTI-2005", "domain": "rti", "status": "approved" },
   { "id": "hi-rti-2005-information", "term_en": "information", "term_indic": "सूचना", "language": "hi", "node_id": "RTI-2005/S-2", "snapshot_id": "2026-05-19", "act_code": "RTI-2005", "domain": "rti", "status": "approved" },
   { "id": "hi-rti-2005-applicant", "term_en": "applicant", "term_indic": "आवेदक", "language": "hi", "node_id": "RTI-2005/S-6", "snapshot_id": "2026-05-19", "act_code": "RTI-2005", "domain": "rti", "status": "approved" },
-  { "id": "hi-rti-2005-appeal", "term_en": "appeal", "term_indic": "अपील", "language": "hi", "node_id": "RTI-2005/S-19", "snapshot_id": "2026-05-19", "act_code": "RTI-2005", "domain": "rti", "status": "approved" }
-,
+  { "id": "hi-rti-2005-appeal", "term_en": "appeal", "term_indic": "अपील", "language": "hi", "node_id": "RTI-2005/S-19", "snapshot_id": "2026-05-19", "act_code": "RTI-2005", "domain": "rti", "status": "approved" },
   { "id": "gu-contract-consideration", "term_en": "consideration", "term_indic": "પ્રતિફળ", "language": "gu", "domain": "contract", "status": "approved" },
   { "id": "gu-contract-contract", "term_en": "contract", "term_indic": "કરાર", "language": "gu", "domain": "contract", "status": "approved" },
   { "id": "gu-contract-agreement", "term_en": "agreement", "term_indic": "સમજૂતી", "language": "gu", "domain": "contract", "status": "approved" },
