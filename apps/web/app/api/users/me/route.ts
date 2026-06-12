@@ -1,50 +1,17 @@
 import { NextResponse } from "next/server";
-import { createServerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
 import type { User } from "@trionic/shared";
-
-function getSupabaseClient(cookieStore: Awaited<ReturnType<typeof cookies>>) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn("Supabase environment variables are not configured. Using mock client.");
-  }
-
-  return createServerClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseAnonKey || 'placeholder-key', {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll().map((cookie: { name: string; value: string }) => ({
-          name: cookie.name,
-          value: cookie.value,
-        }));
-      },
-      setAll(cookiesToSet) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          );
-        } catch {
-          // Can be ignored when called from Server Components or route handlers
-        }
-      },
-    },
-  });
-}
 
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const supabase = getSupabaseClient(cookieStore);
+    const supabase = await createClient();
 
-    // Fetch the authenticated user from Supabase Auth
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
-    // Attempt to query Om Patel's users table
     try {
       const { data: profile, error: dbError } = await supabase
         .from("users")
@@ -55,7 +22,7 @@ export async function GET() {
       if (!dbError && profile) {
         return NextResponse.json(profile);
       }
-      
+
       console.warn(
         "Could not find user profile in DB, falling back to auth metadata:",
         dbError?.message
@@ -67,7 +34,6 @@ export async function GET() {
       );
     }
 
-    // Fallback: Construct User record from Supabase Auth metadata
     const fallbackUser: User = {
       id: user.id,
       email: user.email ?? "",
@@ -86,10 +52,8 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
-    const cookieStore = await cookies();
-    const supabase = getSupabaseClient(cookieStore);
+    const supabase = await createClient();
 
-    // Verify the user is authenticated
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -104,7 +68,6 @@ export async function PATCH(request: Request) {
     if (default_language !== undefined) updateData.default_language = default_language;
     if (onboarded === true) updateData.onboarded_at = new Date().toISOString();
 
-    // 1. Attempt to update the users table in PostgreSQL database
     let profileUpdated = false;
     let updatedProfile = null;
 
@@ -126,7 +89,6 @@ export async function PATCH(request: Request) {
       console.warn("Database users table update threw an exception:", dbUpdateException);
     }
 
-    // 2. Persist to auth user metadata so the fallback session matches
     const { error: authUpdateError } = await supabase.auth.updateUser({
       data: {
         ...updateData,
@@ -141,7 +103,6 @@ export async function PATCH(request: Request) {
       return NextResponse.json(updatedProfile);
     }
 
-    // Fallback: Construct updated User record from payload and session
     const fallbackUser: User = {
       id: user.id,
       email: user.email ?? "",

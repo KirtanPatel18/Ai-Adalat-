@@ -57,11 +57,15 @@ export default async function middleware(request: NextRequest) {
     pathname.startsWith("/_next") ||
     pathname.includes("."); // static assets
 
-  if (!user && !isPublicPath) {
+  // Demo-mode escape hatch: set NEXT_PUBLIC_DEMO_MODE=true to skip the auth
+  // redirect (lets the frontend lead preview the UI without credentials).
+  const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+
+  if (!demoMode && !user && !isPublicPath) {
     // Redirect to sign-in page, preserving the locale!
     const match = pathname.match(localePrefixRegex);
     const locale = match ? match[1] : "en";
-    
+
     const url = request.nextUrl.clone();
     url.pathname = `/${locale}/auth/sign-in`;
     return NextResponse.redirect(url);
