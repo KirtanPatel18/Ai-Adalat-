@@ -29,7 +29,14 @@ export function DraftWorkspace({
 
   // Initialize store with server data on mount
   useEffect(() => {
-    setDocument(initialDocument, initialContent, initialCitations);
+    const resolvedCitations = initialCitations && initialCitations.length > 0
+      ? initialCitations
+      : Array.from(initialContent.matchAll(/\[CITE:([^\]]+)\]/g)).map((match) => ({
+          node_id: match[1],
+          snapshot_id: "2026-05-28",
+          span: [match.index!, match.index! + match[0].length] as [number, number]
+        }));
+    setDocument(initialDocument, initialContent, resolvedCitations);
   }, [initialDocument, initialContent, initialCitations, setDocument]);
 
   // Activate decoupled autosave hook
@@ -42,8 +49,14 @@ export function DraftWorkspace({
     <div className="flex h-screen flex-col bg-background">
       <DraftHeader saveStatus={saveStatus} />
       
+      {/* Global Warning Banner */}
+      <div className="flex items-center justify-center bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-800 dark:text-amber-400 border-b border-amber-500/20">
+        <span className="mr-2">⚠</span>
+        AI-generated draft — not legal advice. Review before filing.
+      </div>
+
       {/* Two Pane Layout */}
-      <div className="flex h-[calc(100vh-65px)] w-full overflow-hidden">
+      <div className="flex flex-1 w-full overflow-hidden">
         {/* Left Pane: Editor */}
         <div 
           className={cn(

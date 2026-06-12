@@ -8,10 +8,12 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "..",
     "paths": {
       "@trionic/shared": ["../shared/src/index.ts"],
-      "@trionic/shared/*": ["../shared/src/*"]
+      "@trionic/shared/*": ["../shared/src/*"],
+      "@trionic/pageindex": ["../pageindex/src/agnoTool.ts"],
+      "@trionic/pageindex/*": ["../pageindex/src/*"]
     }
   },
   "include": ["src/**/*"],

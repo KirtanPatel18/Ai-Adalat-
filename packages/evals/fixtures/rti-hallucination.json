@@ -1,0 +1,82 @@
+{
+  "dataset_id": "rti-hallucination-set",
+  "fixtures": [
+    {
+      "fixture_id": "rti-hall-001-perfect",
+      "doc_type": "rti_application",
+      "language": "en",
+      "agent_traces": [],
+      "draft_output": {
+        "text": "Under Section 6(1) of the RTI Act [CITE:RTI-2005/S-6/CL-1], I hereby request the land acquisition details of Sector 15. The public authority must provide this information within 30 days of receipt [CITE:RTI-2005/S-7/CL-1].",
+        "cite_markers": [
+          { "node_id": "RTI-2005/S-6/CL-1", "span": [58, 83] },
+          { "node_id": "RTI-2005/S-7/CL-1", "span": [193, 218] }
+        ]
+      },
+      "ground_truth": {
+        "valid_node_ids": ["RTI-2005/S-6/CL-1", "RTI-2005/S-7/CL-1"],
+        "required_sections": ["pio_address", "applicant_details", "information_requested", "payment_details_declaration"]
+      }
+    },
+    {
+      "fixture_id": "rti-hall-002-uncited",
+      "doc_type": "rti_application",
+      "language": "en",
+      "agent_traces": [],
+      "draft_output": {
+        "text": "Under Section 6(1) of the RTI Act [CITE:RTI-2005/S-6/CL-1], I hereby request the land acquisition details of Sector 15. The public authority must provide this information within 30 days of receipt.",
+        "cite_markers": [
+          { "node_id": "RTI-2005/S-6/CL-1", "span": [58, 83] }
+        ]
+      },
+      "ground_truth": {
+        "valid_node_ids": ["RTI-2005/S-6/CL-1", "RTI-2005/S-7/CL-1"],
+        "required_sections": ["pio_address", "applicant_details", "information_requested", "payment_details_declaration"]
+      }
+    },
+    {
+      "fixture_id": "rti-hall-003-invalid-cite",
+      "doc_type": "rti_application",
+      "language": "en",
+      "agent_traces": [],
+      "draft_output": {
+        "text": "The public authority must provide this information within 30 days of receipt [CITE:RTI-2005/FAKE/S-99].",
+        "cite_markers": [
+          { "node_id": "RTI-2005/FAKE/S-99", "span": [77, 102] }
+        ]
+      },
+      "ground_truth": {
+        "valid_node_ids": ["RTI-2005/S-6/CL-1", "RTI-2005/S-7/CL-1"],
+        "required_sections": ["pio_address", "applicant_details", "information_requested", "payment_details_declaration"]
+      }
+    },
+    {
+      "fixture_id": "rti-hall-004-all-uncited",
+      "doc_type": "rti_application",
+      "language": "en",
+      "agent_traces": [],
+      "draft_output": {
+        "text": "You must give me this data in 30 days as per law. Failing to do so carries a penalty of Rs 250 per day.",
+        "cite_markers": []
+      },
+      "ground_truth": {
+        "valid_node_ids": ["RTI-2005/S-7/CL-1", "RTI-2005/S-20/CL-1"],
+        "required_sections": ["pio_address", "applicant_details", "information_requested", "payment_details_declaration"]
+      }
+    },
+    {
+      "fixture_id": "rti-hall-005-free-prose",
+      "doc_type": "rti_application",
+      "language": "en",
+      "agent_traces": [],
+      "draft_output": {
+        "text": "Hello, I am writing to ask about my recent interactions with the department. Please find the details enclosed. Thank you for your time.",
+        "cite_markers": []
+      },
+      "ground_truth": {
+        "valid_node_ids": [],
+        "required_sections": ["pio_address", "applicant_details", "information_requested", "payment_details_declaration"]
+      }
+    }
+  ]
+}

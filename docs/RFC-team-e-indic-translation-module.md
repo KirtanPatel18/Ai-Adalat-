@@ -53,7 +53,7 @@ The module does not own:
 | Legal glossary + Hindi seed | Megh Patel | Draft merged | `docs/RFC-indic-legal-glossary.md` |
 | Marathi translation pair | Swara Jariwala | Draft merged | `docs/RFC-marathi-translation.md` |
 | Tamil pair + Indic eval | Anshul Jangid | Draft merged | `docs/RFC-tamil-indic-eval.md` |
-| Gujarati translation pair | Patel Swar | Pending | TBD |
+| Gujarati glossary + translation pair | Patel Swar | Draft | `docs/RFC-indic-gujarati-legal-glossary.md` |
 | Translator Agent | Team C / Maharshi Patel | Draft merged | `docs/rfcs/RFC-translator-agent.md` |
 | Frontend i18n shell | Team A | Draft merged | `docs/RFC-i18n-infrastructure.md` |
 

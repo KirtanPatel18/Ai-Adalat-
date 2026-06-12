@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import type { SupportedLanguage } from '@trionic/shared'
 
 const LANGUAGES: { value: SupportedLanguage; label: string }[] = [
@@ -15,7 +14,6 @@ const LANGUAGES: { value: SupportedLanguage; label: string }[] = [
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const supabase = createClient()
 
   const [displayName, setDisplayName] = useState('')
   const [language, setLanguage] = useState<SupportedLanguage>('en')
@@ -42,11 +40,11 @@ export default function OnboardingPage() {
     })
 
 if (!response.ok) {
-      // API not ready yet (waiting on backend migration #103)
-      // Redirect to dashboard anyway for now
-      router.push('/dashboard')
-      return
-    }
+  const data = await response.json()
+  setError(data.message || 'Something went wrong. Please try again.')
+  setLoading(false)
+  return
+}
 
     router.push('/dashboard')
   }
