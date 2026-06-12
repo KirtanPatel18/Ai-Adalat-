@@ -7,6 +7,7 @@ A multilingual, agentic AI assistant for **Indian legal drafting and research** 
 ## Quick links
 
 - **[Intern onboarding](./docs/ONBOARDING.md)** ← **start here if you just joined**
+- **[Intern access — Supabase / Vercel / secrets](./docs/INTERN_ACCESS.md)** — what you can see, what you can't, why
 - **[Project brief](./PROJECT_BRIEF.md)** — scope, goals, team ownership, hard constraints
 - **[Contributing](./CONTRIBUTING.md)** — PR rules, weekly cadence, demo days
 - **[Timeline](./docs/TIMELINE.md)** — six-week milestones

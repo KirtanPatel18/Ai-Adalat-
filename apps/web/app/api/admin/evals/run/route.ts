@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import type { AdminSupabaseClient, AdminUser } from "../route";
+import type { AdminSupabaseClient, AdminUser } from "../lib";
 import {
   createSupabaseClient,
   errorResponse,
   forbiddenResponse,
   isAdminUser,
   unauthorizedResponse,
-} from "../route";
+} from "../lib";
 
 type EvalRunRequestBody = {
   dataset_id: string;
