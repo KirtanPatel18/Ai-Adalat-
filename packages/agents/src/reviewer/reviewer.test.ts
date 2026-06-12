@@ -54,6 +54,12 @@ vi.mock("../tracing/index.js", () => ({
   persistTrace: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("@trionic/translation", () => ({
+  glossary: {
+    lookup: vi.fn(),
+  },
+}));
+
 // Import after mocks are hoisted
 import {
   checkBanner,
@@ -258,11 +264,11 @@ describe("requiredSections()", () => {
     expect(sections).toHaveLength(5);
   });
 
-  it("returns empty array for non-RTI doc types", () => {
-    expect(requiredSections("legal_notice")).toEqual([]);
-    expect(requiredSections("nda")).toEqual([]);
-    expect(requiredSections("consumer_complaint")).toEqual([]);
-    expect(requiredSections("cheque_bounce_notice")).toEqual([]);
+  it("returns correct arrays for non-RTI doc types", () => {
+    expect(requiredSections("legal_notice")).toEqual(["Parties", "Cause of Action", "Demand and Relief", "Timeline", "Governing Law"]);
+    expect(requiredSections("nda")).toEqual(["Parties", "Definitions", "Confidential Information", "Obligations", "Term and Termination", "Governing Law", "Signatures"]);
+    expect(requiredSections("consumer_complaint")).toEqual(["Complainant Details", "Opposite Party", "Facts of Transaction", "Deficiency of Service", "Relief Sought", "Jurisdiction"]);
+    expect(requiredSections("cheque_bounce_notice")).toEqual(["Drawer Details", "Payee Details", "Cheque Details", "Dishonour Details", "Demand for Payment", "Legal Warning"]);
   });
 });
 
@@ -270,38 +276,51 @@ describe("requiredSections()", () => {
 
 describe("checkBanner()", () => {
   it("returns true when exact banner text is present", () => {
-    expect(checkBanner(COMPLETE_RTI_DRAFT)).toBe(true);
+    expect(checkBanner(COMPLETE_RTI_DRAFT, "en")).toBe(true);
   });
 
   it("returns false when banner is missing", () => {
-    expect(checkBanner(NO_BANNER_RTI_DRAFT)).toBe(false);
+    expect(checkBanner(NO_BANNER_RTI_DRAFT, "en")).toBe(false);
   });
 
   it("returns false for a hyphen instead of em-dash (exact-string enforcement)", () => {
     const draft = "**AI-generated draft - not legal advice.** Some text here...";
-    expect(checkBanner(draft)).toBe(false);
+    expect(checkBanner(draft, "en")).toBe(false);
   });
 
   it("returns false for en-dash instead of em-dash (exact-string enforcement)", () => {
     const draft = "**AI-generated draft \u2013 not legal advice.** Some text here...";
-    expect(checkBanner(draft)).toBe(false);
+    expect(checkBanner(draft, "en")).toBe(false);
   });
 
   it("returns false when banner is past the 2000 char limit", () => {
     const padding = "x".repeat(2000);
     const draft = padding + "\n" + BANNER;
-    expect(checkBanner(draft)).toBe(false);
+    expect(checkBanner(draft, "en")).toBe(false);
+  });
+
+  it("returns true when translated banner is found via glossary lookup", async () => {
+    const { glossary } = await import("@trionic/translation");
+    vi.mocked(glossary.lookup).mockReturnValue({ translation: "एआई-जनरेटेड ड्राफ्ट — कानूनी सलाह नहीं" });
+    const draft = "**एआई-जनरेटेड ड्राफ्ट — कानूनी सलाह नहीं** Some text here...";
+    expect(checkBanner(draft, "hi")).toBe(true);
+  });
+  
+  it("returns true when english banner is present even if language is hi and glossary does not match", async () => {
+    const { glossary } = await import("@trionic/translation");
+    vi.mocked(glossary.lookup).mockReturnValue(null);
+    expect(checkBanner(COMPLETE_RTI_DRAFT, "hi")).toBe(true);
   });
 
   it("returns false for lowercase (exact-string is case-sensitive)", () => {
     const draft = "**ai-generated draft \u2014 not legal advice.** Some text...";
-    expect(checkBanner(draft)).toBe(false);
+    expect(checkBanner(draft, "en")).toBe(false);
   });
 
   it("returns true when banner appears within 2000 chars but not at start", () => {
     const prefix = "Some introductory text.\n\n";
     const draft = prefix + BANNER + "\n\n" + COMPLETE_RTI_BODY;
-    expect(checkBanner(draft)).toBe(true);
+    expect(checkBanner(draft, "en")).toBe(true);
   });
 });
 
@@ -321,9 +340,9 @@ describe("checkCompleteness()", () => {
     expect(missing).not.toContain("Subject");
   });
 
-  it("returns empty array for non-RTI doc types", () => {
-    expect(checkCompleteness("Any content", "legal_notice")).toEqual([]);
-    expect(checkCompleteness("Any content", "nda")).toEqual([]);
+  it("returns missing sections for non-RTI doc types", () => {
+    expect(checkCompleteness("Any content", "legal_notice")).toEqual(["Parties", "Cause of Action", "Demand and Relief", "Timeline", "Governing Law"]);
+    expect(checkCompleteness("Any content", "nda")).toEqual(["Parties", "Definitions", "Confidential Information", "Obligations", "Term and Termination", "Governing Law", "Signatures"]);
   });
 });
 
@@ -381,10 +400,11 @@ describe("checkCompletenessLLM()", () => {
     expect(result.llmResponse).toBeUndefined();
   });
 
-  it("returns empty immediately for non-RTI doc types (no LLM call)", async () => {
+  it("makes LLM call for non-RTI doc types because they now have required sections", async () => {
+    (router.run as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ text: JSON.stringify({ sections: { "Parties": "missing", "Cause of Action": "missing", "Demand and Relief": "missing", "Timeline": "missing", "Governing Law": "missing" } }) });
     const result = await checkCompletenessLLM("Any content", "legal_notice");
-    expect(result.missing).toEqual([]);
-    expect(router.run).not.toHaveBeenCalled();
+    expect(result.missing.length).toBeGreaterThan(0);
+    expect(router.run).toHaveBeenCalled();
   });
 });
 
@@ -507,6 +527,47 @@ describe("runReviewer()", () => {
     await expect(
       runReviewer({ draft: makeDraft(COMPLETE_RTI_DRAFT) })
     ).rejects.toThrow("Network error");
+  });
+
+  // 5 unit tests per doc type with a "missing one required section" case
+  it("fails when a legal_notice is missing 'Demand and Relief'", async () => {
+    (router.run as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ text: JSON.stringify({ sections: { "Parties": "found", "Cause of Action": "found", "Demand and Relief": "missing", "Timeline": "found", "Governing Law": "found" } }) })
+      .mockResolvedValueOnce(MOCK_LLM_TONE_PASS);
+
+    const result = await runReviewer({ draft: makeDraft(BANNER + "\n\n# Legal Notice...", "legal_notice") });
+    expect(result.approved).toBe(false);
+    expect(result.missing_required_sections).toContain("Demand and Relief");
+  });
+
+  it("fails when an nda is missing 'Confidential Information'", async () => {
+    (router.run as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ text: JSON.stringify({ sections: { "Parties": "found", "Definitions": "found", "Confidential Information": "missing", "Obligations": "found", "Term and Termination": "found", "Governing Law": "found", "Signatures": "found" } }) })
+      .mockResolvedValueOnce(MOCK_LLM_TONE_PASS);
+
+    const result = await runReviewer({ draft: makeDraft(BANNER + "\n\n# NDA...", "nda") });
+    expect(result.approved).toBe(false);
+    expect(result.missing_required_sections).toContain("Confidential Information");
+  });
+
+  it("fails when a consumer_complaint is missing 'Relief Sought'", async () => {
+    (router.run as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ text: JSON.stringify({ sections: { "Complainant Details": "found", "Opposite Party": "found", "Facts of Transaction": "found", "Deficiency of Service": "found", "Relief Sought": "missing", "Jurisdiction": "found" } }) })
+      .mockResolvedValueOnce(MOCK_LLM_TONE_PASS);
+
+    const result = await runReviewer({ draft: makeDraft(BANNER + "\n\n# Consumer Complaint...", "consumer_complaint") });
+    expect(result.approved).toBe(false);
+    expect(result.missing_required_sections).toContain("Relief Sought");
+  });
+
+  it("fails when a cheque_bounce_notice is missing 'Dishonour Details'", async () => {
+    (router.run as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ text: JSON.stringify({ sections: { "Drawer Details": "found", "Payee Details": "found", "Cheque Details": "found", "Dishonour Details": "missing", "Demand for Payment": "found", "Legal Warning": "found" } }) })
+      .mockResolvedValueOnce(MOCK_LLM_TONE_PASS);
+
+    const result = await runReviewer({ draft: makeDraft(BANNER + "\n\n# Cheque Bounce Notice...", "cheque_bounce_notice") });
+    expect(result.approved).toBe(false);
+    expect(result.missing_required_sections).toContain("Dishonour Details");
   });
 });
 
