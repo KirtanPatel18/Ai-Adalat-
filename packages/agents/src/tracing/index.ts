@@ -75,10 +75,12 @@ export async function persistTrace(
         latency_ms:        trace.latency_ms,
         status:            trace.status === "ok" ? "ok" : trace.status === "error" ? "error" : "ok",
         error_msg:         trace.error_message ?? null,
+        doc_type:          trace.doc_type ?? null,
         metadata: {
           cited_nodes: trace.cited_nodes,
           session_id:  trace.session_id,
           timestamp:   trace.timestamp,
+          parent_trace_id:  trace.parent_trace_id,
         },
       });
 
