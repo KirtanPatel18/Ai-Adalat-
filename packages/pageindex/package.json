@@ -24,7 +24,10 @@
     "validate": "node scripts/validate-tree.mjs"
   },
   "dependencies": {
-    "@trionic/shared": "workspace:*"
+    "@supabase/supabase-js": "^2.106.2",
+    "@trionic/shared": "workspace:*",
+    "dotenv": "^17.4.2",
+    "openai": "^4.67.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

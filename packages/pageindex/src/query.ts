@@ -1,6 +1,14 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 import { NodeNotFoundError, InvalidQueryError } from "./errors.js";
+import { createClient } from "@supabase/supabase-js";
+import OpenAI from "openai";
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } }) : null;
+
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
 const artifactsDir = join(__dirname, "..", "artifacts");
 
@@ -23,6 +31,7 @@ export interface PageIndexNode {
 
 export interface SearchScope {
   act_code?: string;
+  act_codes?: string[];
   level?: NodeLevel;
   snapshot_id?: string;
 }
@@ -187,7 +196,7 @@ export async function expand_path(node_id: string): Promise<PageIndexNode[]> {
 }
 
 /** Search the PageIndex tree for relevant nodes. */
-export async function search(query: string, scope?: SearchScope): Promise<SearchResult[]> {
+export async function search(query: string, scope?: SearchScope, top_k: number = 20): Promise<SearchResult[]> {
   if (!query || !query.trim()) {
     throw new InvalidQueryError("Search query cannot be empty");
   }
@@ -198,11 +207,67 @@ export async function search(query: string, scope?: SearchScope): Promise<Search
     throw new InvalidQueryError("Search query cannot be empty");
   }
 
+  // If DB/OpenAI is configured, use hybrid search
+  if (supabase && process.env.OPENAI_API_KEY) {
+    let filterScopes: string[] | null = null;
+    if (scope) {
+      if (scope.act_codes && scope.act_codes.length > 0) {
+        filterScopes = scope.act_codes;
+      } else if (scope.act_code) {
+        filterScopes = [scope.act_code];
+      }
+    }
+
+    try {
+      // 1. Embed query
+      const embedRes = await openai.embeddings.create({
+        model: "text-embedding-3-small",
+        input: query
+      });
+      const query_embedding = embedRes.data[0].embedding;
+
+      // 2. Call RPC
+      const { data, error } = await supabase.rpc("match_pageindex_nodes", {
+        query_text: query,
+        query_embedding,
+        match_count: top_k,
+        filter_scopes: filterScopes
+      });
+
+      if (error) {
+        console.error("Hybrid search error:", error);
+      } else if (data) {
+        const results: SearchResult[] = [];
+        for (const row of data) {
+          const node = allNodesMap.get(row.node_id);
+          if (node) {
+            // Apply other scope filters if necessary
+            if (scope?.level && node.level !== scope.level) continue;
+            if (scope?.snapshot_id && node.snapshot_id !== scope.snapshot_id) continue;
+
+            results.push({
+              node,
+              relevance: row.score,
+              match_reason: `Hybrid match (similarity: ${row.similarity.toFixed(2)}, bm25: ${row.bm25_score.toFixed(2)})`
+            });
+          }
+        }
+        if (results.length > 0) {
+          // Normalization already handled via score ensemble, return direct results
+          return results.slice(0, top_k);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to perform hybrid search:", err);
+    }
+  }
+
   const results: SearchResult[] = [];
 
   for (const node of allNodesMap.values()) {
     // Apply scope filters
     if (scope) {
+      if (scope.act_codes && scope.act_codes.length > 0 && !scope.act_codes.includes(node.act_code)) continue;
       if (scope.act_code && node.act_code !== scope.act_code) continue;
       if (scope.level && node.level !== scope.level) continue;
       if (scope.snapshot_id && node.snapshot_id !== scope.snapshot_id) continue;
@@ -226,14 +291,13 @@ export async function search(query: string, scope?: SearchScope): Promise<Search
     // Term matches
     let termMatchesInTitle = 0;
     let termMatchesInText = 0;
-    // Compute overlap boost based on title word overlap
     const titleWords = titleLower.split(/\s+/);
     let overlapBoost = 0;
     for (const term of queryTerms) {
       if (titleLower.includes(term)) {
         termMatchesInTitle++;
         if (titleWords.includes(term)) {
-          overlapBoost += 2.0; // boost for each query term present as a distinct word in title
+          overlapBoost += 2.0;
         }
       }
       if (textLower.includes(term)) {
@@ -241,12 +305,9 @@ export async function search(query: string, scope?: SearchScope): Promise<Search
       }
     }
     score += overlapBoost;
-
-    // Add weighted term matches
     score += termMatchesInTitle * 1.0;
-    score += termMatchesInText * 2.0; // increased weight for text matches to prioritize text relevance
+    score += termMatchesInText * 2.0;
 
-    // Phrase-specific boost: if title contains 'request' and text contains 'right to information', add extra relevance
     if (titleLower.includes('request') && textLower.includes('right to information')) {
       score += 5.0;
     }
@@ -254,26 +315,20 @@ export async function search(query: string, scope?: SearchScope): Promise<Search
     if (!matchReason) {
       matchReason = `Matched ${termMatchesInTitle} terms in title, ${termMatchesInText} in text`;
     }
-    results.push({
-      node,
-      relevance: score, // Store raw score temporarily
-      match_reason: matchReason
-    });
+    if (score > 0) {
+      results.push({
+        node,
+        relevance: score,
+        match_reason: matchReason
+      });
+    }
   }
 
-  if (results.length === 0) {
-    return [];
-  }
-
-  // Sort by raw score descending
   results.sort((a, b) => b.relevance - a.relevance);
-
-  // Normalize relevance between 0.0 and 1.0 based on the maximum score in results
-  const maxScore = results[0].relevance;
+  const maxScore = results[0]?.relevance || 1;
   for (const r of results) {
     r.relevance = maxScore > 0 ? parseFloat((r.relevance / maxScore).toFixed(4)) : 0.0;
   }
 
-  // Cap results at 20
-  return results.slice(0, 20);
+  return results.slice(0, top_k);
 }

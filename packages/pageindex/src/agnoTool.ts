@@ -38,15 +38,9 @@ export const pageindex = {
     const searchScope: any = {};
 
     if (scope && scope.length > 0) {
+      searchScope.act_codes = [];
       for (const item of scope) {
         if (
-          item === "CRPC-1973" ||
-          item === "IPC-1860" ||
-          item === "RTI-2005" ||
-          item === "ICA-1872"
-        ) {
-          searchScope.act_code = item;
-        } else if (
           [
             "act",
             "part",
@@ -57,6 +51,9 @@ export const pageindex = {
           ].includes(item)
         ) {
           searchScope.level = item;
+        } else {
+          // Assume anything else is an act code
+          searchScope.act_codes.push(item);
         }
       }
     }
