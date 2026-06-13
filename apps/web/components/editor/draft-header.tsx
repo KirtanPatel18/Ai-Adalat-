@@ -2,7 +2,7 @@ import { AlertCircle, CheckCircle2, Loader2, Save, PanelRight, ArrowLeft, Langua
 import { SaveStatus } from "../../hooks/use-autosave";
 import { useDraftStore } from "../../hooks/use-draft-store";
 import { StatusBadge } from "../../app/[locale]/dashboard/_components/status-badge";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 import { Button } from "../ui/button";
 import { LanguageSwitcher } from "../language-switcher";
 import { useTranslations } from "next-intl";
