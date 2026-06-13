@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-// @ts-expect-error - Expected error from createRouteHandlerClient (nextjs-auth-helpers signature)
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
 import type { DraftRequest, AgentStreamEvent } from "@trionic/shared";
 // @ts-ignore - Ignore module import if agents package is not compiled yet in monorepo bootstrap
 import { runAgentChainWithMemory, SupabaseStore } from "@trionic/agents";
@@ -81,33 +79,34 @@ function validateDraftRequest(body: unknown): { error?: string; validatedData?: 
  * and streams AgentStreamEvent frames to the client in real-time.
  */
 export async function POST(req: Request) {
-  // 1. Initialize Supabase Route Handler client using request cookies context
-  let supabase: ReturnType<typeof createRouteHandlerClient>;
+  // 1. Initialize Supabase Route Handler client (unified on @supabase/ssr).
+  let supabase: Awaited<ReturnType<typeof createClient>>;
   try {
-    supabase = createRouteHandlerClient({ cookies });
+    supabase = await createClient();
   } catch (err) {
     return NextResponse.json(
-      { 
-        error: "internal", 
-        message: "Supabase client initialization failed", 
-        details: err instanceof Error ? err.message : String(err) 
+      {
+        error: "internal",
+        message: "Supabase client initialization failed",
+        details: err instanceof Error ? err.message : String(err)
       },
       { status: 500 }
     );
   }
 
-  // 2. Authenticate the caller and ensure session validity
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-  if (sessionError) {
-    console.error("Supabase getSession error:", sessionError);
+  // 2. Authenticate the caller. Use getUser() — it verifies the JWT against
+  //    Supabase Auth (server-trusted), unlike getSession() which only reads the cookie.
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError) {
+    console.error("Supabase getUser error:", authError);
     return NextResponse.json(
-      { error: "unauthorized", message: "Failed to get session", details: sessionError.message },
+      { error: "unauthorized", message: "Failed to verify user", details: authError.message },
       { status: 401 }
     );
   }
-  if (!session) {
+  if (!user) {
     return NextResponse.json(
-      { error: "unauthorized", message: "Unauthorized session: active session is required" },
+      { error: "unauthorized", message: "Unauthorized: active session is required" },
       { status: 401 }
     );
   }
@@ -179,7 +178,7 @@ export async function POST(req: Request) {
       intake_text: draftReq.intake_text,
       target_language: draftReq.target_language,
       doc_type: draftReq.doc_type,
-      session_id: session.user.id, // Feed authenticated user id as the session identifier
+      session_id: user.id, // Feed authenticated user id as the session identifier
     },
     {
       memoryStore,
@@ -239,7 +238,7 @@ export async function POST(req: Request) {
                   document_id: draftReq.document_id,
                   version_num: currentNextVersion,
                   body_markdown: event.response.body_markdown,
-                  created_by: session.user.id,
+                  created_by: user.id,
                 })
                 .select("id")
                 .single();

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { Shield, Laptop, Monitor, LogOut, Loader2 } from "lucide-react";
-import { createBrowserClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@/lib/supabase/client";
 
 export function SessionsSection() {
   const [isRevoking, setIsRevoking] = useState(false);
@@ -12,10 +12,7 @@ export function SessionsSection() {
   const handleSignOutOtherDevices = async () => {
     setIsRevoking(true);
     try {
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
-      );
+      const supabase = createClient();
       const { error } = await supabase.auth.signOut({ scope: "others" });
 
       if (error) {

@@ -1,5 +1,5 @@
-import { cookies, headers } from "next/headers";
 import { NextResponse } from "next/server";
+import { createClient } from "../../../../lib/supabase/server";
 import type { AgentTrace, EvalMetric, EvalRunResult } from "@trionic/shared";
 
 export type AdminUser = {
@@ -85,27 +85,8 @@ export function forbiddenResponse() {
 }
 
 export async function createSupabaseClient(): Promise<AdminSupabaseClient> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
-  const supabaseAnonKey =
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Supabase environment variables are not configured");
-  }
-
-  const mod = (await import("@supabase/auth-helpers-nextjs").catch(() => null)) as {
-    createRouteHandlerClient?: unknown;
-  } | null;
-
-  if (mod && typeof mod.createRouteHandlerClient === "function") {
-    const createRouteHandlerClient = mod.createRouteHandlerClient as (args: {
-      headers: typeof headers;
-      cookies: typeof cookies;
-    }) => unknown;
-    return createRouteHandlerClient({ headers, cookies }) as AdminSupabaseClient;
-  }
-
-  throw new Error("Supabase auth helper 'createRouteHandlerClient' not available");
+  const client = await createClient();
+  return client as unknown as AdminSupabaseClient;
 }
 
 type EvalRunRequestBody = {
