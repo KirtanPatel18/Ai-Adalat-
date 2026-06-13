@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 
 type CitationEvalRun = {
   id: string;
@@ -114,7 +114,7 @@ export default function CitationValidityPage() {
             Per-LLM Dashboard
           </Link>
           <Link
-            href="/sign-in"
+            href="/auth/sign-in"
             className="rounded-md bg-slate-900 px-3 py-2 text-sm text-white"
           >
             Admin login

@@ -4,7 +4,7 @@ import * as React from "react"
 import { CitationDrawer } from "@/components/CitationDrawer"
 import { Citation } from "@trionic/shared"
 import { ArrowLeft, Languages, Download, CheckCircle, Scale, PenTool, Sparkles } from "lucide-react"
-import Link from "next/link"
+import { Link } from "@/i18n/routing"
 
 const MOCK_CITATIONS: Citation[] = [
   {

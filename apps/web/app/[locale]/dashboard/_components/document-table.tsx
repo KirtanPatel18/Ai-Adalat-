@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/routing";
 import { StatusBadge } from "./status-badge";
 import { useTranslations } from "next-intl";
 
