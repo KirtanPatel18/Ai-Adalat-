@@ -1,11 +1,17 @@
 import { AlertCircle, CheckCircle2, Loader2, Save, PanelRight, ArrowLeft, Languages, Download } from "lucide-react";
 import { SaveStatus } from "../../hooks/use-autosave";
 import { useDraftStore } from "../../hooks/use-draft-store";
-import { StatusBadge } from "../../app/[locale]/dashboard/_components/status-badge";
-import { Link } from "@/i18n/routing";
+import { StatusBadge } from "@/app/[locale]/dashboard/_components/status-badge";
+import Link from "next/link";
 import { Button } from "../ui/button";
-import { LanguageSwitcher } from "../language-switcher";
-import { useTranslations } from "next-intl";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import type { DocumentType } from "@trionic/shared";
 
 interface DraftHeaderProps {
   saveStatus: SaveStatus;
@@ -15,10 +21,25 @@ export function DraftHeader({ saveStatus }: DraftHeaderProps) {
   const documentData = useDraftStore((state) => state.document);
   const isCitationDrawerOpen = useDraftStore((state) => state.isCitationDrawerOpen);
   const toggleCitationDrawer = useDraftStore((state) => state.toggleCitationDrawer);
+  const updateDocType = useDraftStore((state) => state.updateDocType);
 
-  const t = useTranslations("draft");
-  const tCommon = useTranslations("common");
-  const tActions = useTranslations("actions");
+  const content = useDraftStore((state) => state.content);
+
+  const handleExport = () => {
+    if (!content) return;
+    const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    const filename = documentData?.title 
+      ? `${documentData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.md`
+      : "legal-draft.md";
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between border-b bg-background px-6 py-3 shrink-0">
@@ -28,21 +49,39 @@ export function DraftHeader({ saveStatus }: DraftHeaderProps) {
           className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mr-2 cursor-pointer"
         >
           <ArrowLeft className="h-4 w-4" />
-          <span>{t("back")}</span>
+          <span>Back</span>
         </Link>
 
         <h1 className="text-base font-bold text-foreground truncate max-w-[200px] sm:max-w-[300px]">
-          {documentData?.title || t("title")}
+          {documentData?.title || "Legal Draft"}
         </h1>
 
         {documentData?.status && (
           <StatusBadge status={documentData.status} />
         )}
+
+        {documentData && (
+          <Select 
+            value={documentData.doc_type} 
+            onValueChange={(val) => updateDocType(val as DocumentType)}
+          >
+            <SelectTrigger className="w-[180px] h-8 text-xs font-medium">
+              <SelectValue placeholder="Select type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="rti_application">RTI Application</SelectItem>
+              <SelectItem value="legal_notice">Legal Notice</SelectItem>
+              <SelectItem value="nda">NDA</SelectItem>
+              <SelectItem value="consumer_complaint">Consumer Complaint</SelectItem>
+              <SelectItem value="cheque_bounce_notice">Cheque Bounce Notice</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
         
         {/* Pinned AI Banner */}
         <div className="hidden md:flex items-center gap-2 rounded-md bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 px-3 py-1 text-xs font-semibold text-amber-800 dark:text-amber-300">
           <AlertCircle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-          <span>{tCommon("disclaimer")}</span>
+          <span>AI-generated draft — not legal advice</span>
         </div>
       </div>
 
@@ -52,31 +91,31 @@ export function DraftHeader({ saveStatus }: DraftHeaderProps) {
           {saveStatus === "idle" && (
             <>
               <Save className="h-4 w-4" />
-              <span>{t("noChanges")}</span>
+              <span>No changes</span>
             </>
           )}
           {saveStatus === "unsaved" && (
             <>
               <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-              <span>{t("unsaved")}</span>
+              <span>Unsaved</span>
             </>
           )}
           {saveStatus === "saving" && (
             <>
               <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-              <span className="text-blue-500">{t("saving")}</span>
+              <span className="text-blue-500">Saving...</span>
             </>
           )}
           {saveStatus === "saved" && (
             <>
               <CheckCircle2 className="h-4 w-4 text-green-500" />
-              <span className="text-green-500">{t("saved")}</span>
+              <span className="text-green-500">Saved</span>
             </>
           )}
           {saveStatus === "error" && (
             <>
               <AlertCircle className="h-4 w-4 text-destructive" />
-              <span className="text-destructive">{t("error")}</span>
+              <span className="text-destructive">Error</span>
             </>
           )}
         </div>
@@ -86,14 +125,12 @@ export function DraftHeader({ saveStatus }: DraftHeaderProps) {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
-          <LanguageSwitcher />
           <Button variant="outline" size="sm" className="hidden sm:flex" disabled>
             <Languages className="mr-2 h-4 w-4" />
-            {tActions("translate")}
+            Translate
           </Button>
-          
-          <Button variant="default" size="sm" disabled>
-            {tActions("export")}
+          <Button variant="default" size="sm" onClick={handleExport} disabled={!content}>
+            Export
             <Download className="ml-2 h-4 w-4" />
           </Button>
 
@@ -105,7 +142,7 @@ export function DraftHeader({ saveStatus }: DraftHeaderProps) {
             aria-label="Toggle citation drawer"
           >
             <PanelRight className="mr-2 h-4 w-4" />
-            {isCitationDrawerOpen ? t("hideCitations") : t("citations")}
+            {isCitationDrawerOpen ? "Hide Citations" : "Citations"}
           </Button>
         </div>
       </div>

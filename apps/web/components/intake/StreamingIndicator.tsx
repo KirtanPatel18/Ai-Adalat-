@@ -193,6 +193,8 @@ export function StreamingIndicator({
       if (abortControllerRef.current) {
         abortControllerRef.current.abort()
       }
+      // Reset for React 18 StrictMode so it restarts correctly on remount
+      streamStarted.current = false
     }
   }, [documentId, intakeText, targetLanguage, docType])
 

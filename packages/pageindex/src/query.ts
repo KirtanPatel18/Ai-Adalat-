@@ -274,7 +274,7 @@ export async function search(query: string, scope?: SearchScope, top_k: number =
   }
 
   // If DB/OpenAI is configured, use hybrid search
-  if (supabase && process.env.OPENAI_API_KEY) {
+  if (supabase && openai) {
     let filterScopes: string[] | null = null;
     if (scope) {
       if (scope.act_codes && scope.act_codes.length > 0) {

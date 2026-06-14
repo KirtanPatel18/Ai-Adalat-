@@ -50,11 +50,11 @@ const BANNER_EXACT = "AI-generated draft \u2014 not legal advice";
  * Exported for sharing with Sohil's editor.
  */
 export const REQUIRED_SECTIONS: Record<DocumentType, string[]> = {
-  rti_application: ["Address", "Subject", "Information Sought", "Declaration", "Date and Signature"],
-  legal_notice: ["Parties", "Cause of Action", "Demand and Relief", "Timeline", "Governing Law"],
-  nda: ["Parties", "Definitions", "Confidential Information", "Obligations", "Term and Termination", "Governing Law", "Signatures"],
-  consumer_complaint: ["Complainant Details", "Opposite Party", "Facts of Transaction", "Deficiency of Service", "Relief Sought", "Jurisdiction"],
-  cheque_bounce_notice: ["Drawer Details", "Payee Details", "Cheque Details", "Dishonour Details", "Demand for Payment", "Legal Warning"],
+  rti_application: ["Address", "Subject", "Information Sought", "Declaration"],
+  legal_notice: ["Sender", "Recipient", "Cause", "Demand", "Deadline"],
+  nda: ["Parties", "Purpose", "Confidential Info", "Term", "Remedies"],
+  consumer_complaint: ["Complainant", "Opposite Party", "Goods/Service", "Deficiency", "Relief"],
+  cheque_bounce_notice: ["Drawer", "Drawee", "Cheque Details", "Section 138 Invocation", "Demand"],
 };
 
 // ─── Input / Output shapes ────────────────────────────────────────────────────

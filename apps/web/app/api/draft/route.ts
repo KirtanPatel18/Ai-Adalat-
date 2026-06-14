@@ -110,7 +110,6 @@ export async function POST(req: Request) {
       { status: 401 }
     );
   }
-
   // 3. Parse and validate the incoming DraftRequest JSON body
   let bodyJson: unknown;
   try {
@@ -150,27 +149,15 @@ export async function POST(req: Request) {
       { status: 404 }
     );
   }
-
-  // 3.6. Set document status to "generating" (State machine transition)
-  const { error: generatingError } = await supabase
-    .from("documents")
-    .update({ status: "generating" })
-    .eq("id", draftReq.document_id);
-
-  if (generatingError) {
-    console.error("Failed to update status to generating:", generatingError);
-    return NextResponse.json(
-      { error: "internal", message: "Failed to update document status to generating" },
-      { status: 500 }
-    );
-  }
-
   const encoder = new TextEncoder();
 
-  // 4. Initialize Yatri's multi-turn conversation memory store using SupabaseStore
-  // We feed the active Supabase client to the production memory store wrapper.
+  // 4. Determine base URL (needed since API is called server-side from another route in some architectures)
+  const protocol = req.headers.get("x-forwarded-proto") || "http";
+
+  console.log('[API/DRAFT] Initializing SupabaseStore');
   const memoryStore = new SupabaseStore(supabase);
 
+  console.log('[API/DRAFT] Calling runAgentChainWithMemory');
   // 5. Initialize Malay's memory-aware agent chain generator
   const generator: AsyncGenerator<AgentStreamEvent> = runAgentChainWithMemory(
     {
@@ -185,6 +172,8 @@ export async function POST(req: Request) {
     }
   );
 
+  console.log('[API/DRAFT] Creating ReadableStream');
+
   // 6. Construct the ReadableStream to pipe generator emissions as Server-Sent Events (SSE)
   const stream = new ReadableStream({
     async start(controller) {
@@ -194,8 +183,14 @@ export async function POST(req: Request) {
       });
 
       try {
+        console.log('[API/DRAFT] Stream started, entering for await loop');
+        
+        // Pad the stream to force Next.js/Vercel to flush headers and start streaming
+        controller.enqueue(encoder.encode(`: ${' '.repeat(2048)}\n\n`));
+
         // Iterate over the generator's async iterable stream
         for await (const event of generator) {
+          console.log('[API/DRAFT] Received event type:', event.type);
           // Break immediately if request is already aborted
           if (req.signal.aborted) {
             break;
@@ -277,7 +272,6 @@ export async function POST(req: Request) {
             const { error: updateError } = await supabase.from("documents")
               .update({ 
                 status: "final",
-                current_version_id: newVersion.id,
                 updated_at: new Date().toISOString()
               })
               .eq("id", draftReq.document_id);

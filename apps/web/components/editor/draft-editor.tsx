@@ -1,10 +1,35 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Loader2, CheckCircle2, Edit3, Eye } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Loader2, CheckCircle2, Edit3, Eye, Plus } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragStartEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { cn } from "@/lib/utils";
 import { useDraftStore } from "../../hooks/use-draft-store";
 import { formatNodeIdToBreadcrumb } from "@/lib/citation-utils";
+import {
+  parseMarkdownToSections,
+  serializeSectionsToMarkdown,
+  fetchTemplate,
+  SectionData,
+  DocumentTemplate,
+} from "@/lib/document-templates";
+import { DraftSection } from "./draft-section";
+import type { DocumentType } from "@trionic/shared";
 import { useTranslations } from "next-intl";
 
 interface DraftEditorProps {
@@ -13,6 +38,7 @@ interface DraftEditorProps {
   isSaving?: boolean;
   lastSavedAt?: Date | null;
   className?: string;
+  docType?: DocumentType;
 }
 
 function CitationBadge({ nodeId, index }: { nodeId: string; index: number }) {
@@ -112,43 +138,112 @@ export function DraftEditor({
   isSaving = false,
   lastSavedAt,
   className,
+  docType,
 }: DraftEditorProps) {
-  const [localValue, setLocalValue] = useState(value);
-  const [mode, setMode] = useState<"edit" | "preview">("preview"); // Default to preview for the wow factor
-  const citations = useDraftStore((state) => state.citations);
   const t = useTranslations("draft");
+  const [sections, setSections] = useState<SectionData[]>([]);
+  const [template, setTemplate] = useState<DocumentTemplate | null>(null);
+  const [mode, setMode] = useState<"edit" | "preview">("preview");
+  const citations = useDraftStore((state) => state.citations);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
-  // Sync local state if external value changes (e.g. initial server load)
+  // Initialize Template and Sections
   useEffect(() => {
-    setLocalValue(value);
-  }, [value]);
+    let active = true;
+    async function loadTemplate() {
+      if (!docType) return;
+      const tpl = await fetchTemplate(docType);
+      if (active) {
+        setTemplate(tpl);
+        setSections(parseMarkdownToSections(value, tpl));
+      }
+    }
+    loadTemplate();
+    return () => { active = false; };
+    // Only re-run when docType changes. 
+    // We intentionally ignore `value` changes from upstream to avoid blowing away local editor state while editing.
+    // In a real app, you might sync it carefully if the external value changed outside this component.
+  }, [docType]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Debounced input handling
+  // Extract citations dynamically from edited text to update the drawer list
   useEffect(() => {
     const handler = setTimeout(() => {
-      if (localValue !== value) {
-        onChange(localValue);
-        
-        // Extract citations dynamically from edited text to update the drawer list
-        const matches = Array.from(localValue.matchAll(/\[CITE:([^\]]+)\]/g));
-        const dynamicCitations = matches.map((match) => ({
-          node_id: match[1],
-          snapshot_id: "2026-05-28",
-          span: [match.index!, match.index! + match[0].length] as [number, number]
-        }));
-        
-        // Update store citations dynamically
-        useDraftStore.setState({ citations: dynamicCitations });
+      // Serialize to get full text
+      const fullText = serializeSectionsToMarkdown(sections);
+      
+      // Update upstream value
+      if (fullText !== value) {
+        onChange(fullText);
       }
+      
+      const matches = Array.from(fullText.matchAll(/\[CITE:([^\]]+)\]/g));
+      const dynamicCitations = matches.map((match) => ({
+        node_id: match[1],
+        snapshot_id: "2026-05-28",
+        span: [match.index!, match.index! + match[0].length] as [number, number]
+      }));
+      
+      // Update store citations dynamically
+      useDraftStore.setState({ citations: dynamicCitations });
     }, 500);
 
     return () => clearTimeout(handler);
-  }, [localValue, onChange, value]);
+  }, [sections, onChange, value]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setLocalValue(e.target.value);
+  const handleSectionChange = (id: string, newContent: string) => {
+    setSections((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, content: newContent } : s))
+    );
   };
 
+  const handleRemoveSection = (id: string) => {
+    setSections((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const handleAddSection = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const title = e.target.value;
+    if (!title) return;
+    
+    setSections((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), title, content: "", required: false },
+    ]);
+    // Reset select
+    e.target.value = "";
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+
+    if (over && active.id !== over.id) {
+      setSections((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  const availableSectionsToAdd = useMemo(() => {
+    if (!template) return [];
+    return template.allowedSections.filter(
+      (as) => !sections.some((s) => s.title.toLowerCase() === as.title.toLowerCase())
+    );
+  }, [template, sections]);
+
+  // Preview parsing
   const renderInline = (text: string) => {
     const regex = /(\*\*.*?\*\*|\[CITE:[^\]]+\])/g;
     const parts = text.split(regex);
@@ -268,17 +363,51 @@ export function DraftEditor({
       {/* Editor Body */}
       <div className="relative flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
         {mode === "edit" ? (
-          <textarea
-            value={localValue}
-            onChange={handleChange}
-            placeholder={t("placeholder")}
-            className="h-full w-full resize-none bg-transparent outline-none font-mono text-sm md:text-base leading-relaxed text-foreground placeholder:text-muted-foreground focus:ring-0"
-            spellCheck={false}
-          />
+          <div className="max-w-3xl mx-auto space-y-6 pb-20">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={sections.map((s) => s.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-4">
+                  {sections.map((section) => (
+                    <DraftSection
+                      key={section.id}
+                      section={section}
+                      onChange={handleSectionChange}
+                      onRemove={handleRemoveSection}
+                      isActive={activeId === section.id}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+
+            {/* Add Section Select */}
+            {availableSectionsToAdd.length > 0 && (
+              <div className="flex items-center gap-2 pt-4 border-t border-dashed">
+                <select
+                  className="px-3 py-1.5 text-sm border rounded-md bg-transparent text-foreground outline-none focus:ring-1 focus:ring-primary"
+                  onChange={handleAddSection}
+                  defaultValue=""
+                >
+                  <option value="" disabled>+ Add Section</option>
+                  {availableSectionsToAdd.map((sec) => (
+                    <option key={sec.id} value={sec.title}>{sec.title}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
         ) : (
           <div className="bg-background select-text max-w-3xl mx-auto py-4 animate-in fade-in duration-200">
-            <div className="prose dark:prose-invert max-w-none break-words">
-              {parseMarkdown(localValue)}
+            <div className="prose dark:prose-invert max-w-none">
+              {parseMarkdown(serializeSectionsToMarkdown(sections))}
             </div>
           </div>
         )}

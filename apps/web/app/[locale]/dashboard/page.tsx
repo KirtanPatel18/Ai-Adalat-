@@ -39,6 +39,13 @@ export default function DashboardPage() {
   const fetchDocuments = useCallback(async () => {
     setFetchState("loading");
     try {
+      // Redirect to sign in if unauthenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push("/auth/sign-in");
+        return;
+      }
+
       const params = new URLSearchParams();
       if (filters.status   !== "all") params.set("status",   filters.status);
       if (filters.language !== "all") params.set("language", filters.language);
@@ -52,63 +59,13 @@ export default function DashboardPage() {
         fetchedDocs = data.documents;
       }
 
-      // Inject demo mock data if empty or error
-      if (fetchedDocs.length === 0) {
-        fetchedDocs = [
-          {
-            id: "mock-1",
-            owner_id: "user-1",
-            title: "RTI – Municipal records",
-            doc_type: "rti_application",
-            status: "draft",
-            language: "en",
-            created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-            updated_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-            current_version_id: "v1",
-          },
-          {
-            id: "mock-2",
-            owner_id: "user-1",
-            title: "Legal notice – Tenant deposit",
-            doc_type: "legal_notice",
-            status: "final",
-            language: "hi",
-            created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-            updated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-            current_version_id: "v1",
-          },
-          {
-            id: "mock-3",
-            owner_id: "user-1",
-            title: "NDA – Freelance contract",
-            doc_type: "nda",
-            status: "exported",
-            language: "en",
-            created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-            updated_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-            current_version_id: "v1",
-          }
-        ];
-      }
+      // Mock injection removed to enforce real backend connection
 
       setDocuments(fetchedDocs);
       setFetchState("done");
-    } catch {
-      // Fallback for demo day if backend fails completely
-      setDocuments([
-        {
-            id: "mock-1",
-            owner_id: "user-1",
-            title: "RTI – Municipal records (Demo Mode)",
-            doc_type: "rti_application",
-            status: "draft",
-            language: "en",
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            current_version_id: "v1",
-        }
-      ]);
-      setFetchState("done");
+    } catch (err) {
+      console.error("[Dashboard] Error fetching documents:", err);
+      setFetchState("error");
     }
   }, [filters.status, filters.language, filters.doc_type]);
 

@@ -1,5 +1,5 @@
 import type { PageIndexNodeId, SnapshotId } from "@trionic/shared";
-import { pageindex } from "@trionic/pageindex";
+import { getPageIndex } from "@trionic/pageindex";
 
 export class NodeNotFoundError extends Error {
   constructor(node_id: PageIndexNodeId) {
@@ -20,7 +20,7 @@ export type PageIndexNode = {
  * If the node does not exist (returns null), throws NodeNotFoundError.
  */
 export async function get_text(node_id: PageIndexNodeId): Promise<PageIndexNode> {
-  const result = await pageindex.get_text({ node_id });
+  const result = await getPageIndex().get_text({ node_id });
 
   if (!result) {
     throw new NodeNotFoundError(node_id);
