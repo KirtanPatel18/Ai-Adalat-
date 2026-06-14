@@ -5,8 +5,8 @@ import { X, BookOpenText, Info, Bookmark } from "lucide-react";
 import { useDraftStore } from "../../hooks/use-draft-store";
 import { parseNodeId, formatNodeIdToBreadcrumb, getHumanBreadcrumb } from "@/lib/citation-utils";
 import type { Citation } from "@trionic/shared";
+import { useTranslations } from "next-intl";
 
-// Tree Node Interface for nested hierarchical data structure
 interface TreeNode {
   id: string;
   label: string;
@@ -31,6 +31,7 @@ export function CitationDrawer() {
   const [nodeTexts, setNodeTexts] = React.useState<Record<string, any>>({});
   const [loadingNodes, setLoadingNodes] = React.useState<Record<string, boolean>>({});
 
+  const t = useTranslations("draft");
   // Fetch page index text for a given node id
   const fetchNodeText = async (nodeId: string) => {
     if (nodeTexts[nodeId] || loadingNodes[nodeId]) return;
@@ -43,7 +44,7 @@ export function CitationDrawer() {
           ...prev,
           [nodeId]: {
             title: data.title || formatNodeIdToBreadcrumb(nodeId),
-            text: data.text || "Legal text content not found.",
+            text: data.text || t("legalTextNotFound"),
             act_name: data.act_name,
             number: data.number,
             snapshot_id: data.snapshot_id
@@ -54,7 +55,7 @@ export function CitationDrawer() {
           ...prev,
           [nodeId]: {
             title: formatNodeIdToBreadcrumb(nodeId),
-            text: "Failed to load authoritative text from PageIndex."
+            text: t("failedToFetchNode")
           }
         }));
       }
@@ -64,7 +65,7 @@ export function CitationDrawer() {
         ...prev,
         [nodeId]: {
           title: formatNodeIdToBreadcrumb(nodeId),
-          text: "Error connecting to PageIndex API."
+          text: t("errorConnecting")
         }
       }));
     } finally {
@@ -141,7 +142,7 @@ export function CitationDrawer() {
         if (!hasDetail) {
           sectionNode.children.push({
             id: detailId,
-            label: "Explanation",
+            label: t("explanation"),
             level: 3,
             children: [],
             citationIndex: idx,
@@ -174,7 +175,7 @@ export function CitationDrawer() {
         if (!hasDetail) {
           sectionNode.children.push({
             id: detailId,
-            label: "Explanation",
+            label: t("explanation"),
             level: 2,
             children: [],
             citationIndex: idx,
@@ -185,7 +186,7 @@ export function CitationDrawer() {
     });
 
     return rootNodes;
-  }, [citations, nodeTexts]);
+  }, [citations, nodeTexts, t]);
 
   // Compute Word Count and Density Info
   const wordCount = React.useMemo(() => {
@@ -289,7 +290,7 @@ export function CitationDrawer() {
         <div key={node.id} className={`${indentClass} py-1.5 pr-1`}>
           <div className="bg-background border rounded-xl p-3 shadow-sm select-text text-left space-y-2 animate-in slide-in-from-top-1 duration-150">
             <div className="flex items-center justify-between border-b pb-1.5 text-[9.5px] text-muted-foreground font-mono font-bold">
-              <span>AUTHORITATIVE LEGAL TEXT</span>
+              <span>{t("authoritativeText")}</span>
               <span className="font-extrabold text-indigo-650 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-1.5 py-0.5 rounded">
                 [{node.citationIndex! + 1}]
               </span>
@@ -298,11 +299,11 @@ export function CitationDrawer() {
             {isLoading ? (
               <div className="flex items-center gap-2 text-xs text-muted-foreground py-2 font-sans">
                 <span className="h-3.5 w-3.5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                Loading authoritative text...
+                {t("loading")}
               </div>
             ) : (
               <p className="text-xs leading-relaxed text-foreground font-sans">
-                {textInfo?.text || "Expand parent or hover badge to fetch full text."}
+                {textInfo?.text || t("expandParent")}
               </p>
             )}
 
@@ -391,7 +392,7 @@ export function CitationDrawer() {
       <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-muted/30 px-4 py-3 backdrop-blur-sm">
         <div className="flex items-center gap-2">
           <BookOpenText className="h-5 w-5 text-primary" />
-          <h2 className="text-sm font-semibold tracking-tight">Citations ({citations.length})</h2>
+          <h2 className="text-sm font-semibold tracking-tight">{t("citations")} ({citations.length})</h2>
           <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border ${densityInfo.color} select-none`}>
             {densityInfo.text}
           </span>
@@ -414,10 +415,10 @@ export function CitationDrawer() {
             </div>
             <div className="space-y-2 max-w-[250px]">
               <h3 className="font-semibold tracking-tight text-foreground">
-                No Citations Found
+                {t("noCitationsFound")}
               </h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Add citation markers like `[CITE:RTI-2005/CH-II/S-6]` in the text to reference legal acts.
+                {t("addCitationMarkers")}
               </p>
               {useDraftStore.getState().document?.doc_type === "rti_application" && (
                 <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-2 font-medium bg-indigo-50 dark:bg-indigo-950/30 p-2 rounded-md border border-indigo-100 dark:border-indigo-900/50">
@@ -441,7 +442,7 @@ export function CitationDrawer() {
       {/* Footer Info */}
       <div className="p-3 border-t bg-muted/20 text-muted-foreground text-[10px] flex items-center gap-2">
         <Info className="h-4 w-4 shrink-0 text-primary" />
-        <span>Click paths to expand. Section clicks highlight & scroll editor to marker.</span>
+        <span>{t("clickPathsToExpand")}</span>
       </div>
     </div>
   );

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 import type { EvalRunResult } from "@trionic/shared";
 import { BudgetTracker } from "@/components/admin/BudgetTracker";
 type ClientTraceRow = {
@@ -151,7 +151,7 @@ export default function AdminEvalsPage() {
     <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-950 sm:px-6 lg:px-8">
       <nav className="mx-auto mb-6 flex w-full max-w-7xl items-center justify-between">
         <div className="text-2xl sm:text-3xl font-bold text-slate-900">Trionic Adalat</div>
-        <Link href="/sign-in" className="rounded-md bg-slate-900 px-3 py-2 text-sm text-white">
+        <Link href="/auth/sign-in" className="rounded-md bg-slate-900 px-3 py-2 text-sm text-white">
           Admin login
         </Link>
       </nav>

@@ -11,8 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, X } from "lucide-react";
-
-// ── locked values from types.ts ──────────────────────────────────────────────
+import { useTranslations } from "next-intl";
 
 const STATUS_OPTIONS: { value: DocumentStatus; label: string }[] = [
   { value: "draft",      label: "Draft" },
@@ -39,7 +38,22 @@ const DOC_TYPE_OPTIONS: { value: DocumentType; label: string }[] = [
   { value: "cheque_bounce_notice",label: "Cheque Bounce Notice" },
 ];
 
-// ── types ────────────────────────────────────────────────────────────────────
+const STATUS_KEYS: Record<DocumentStatus, string> = {
+  draft: "statusDraft",
+  generating: "statusGenerating",
+  final: "statusFinal",
+  failed: "statusFailed",
+  exported: "statusExported",
+  archived: "statusArchived",
+};
+
+const DOC_TYPE_KEYS: Record<DocumentType, string> = {
+  rti_application: "docTypeOptionRti",
+  legal_notice: "docTypeOptionNotice",
+  nda: "docTypeOptionNda",
+  consumer_complaint: "docTypeOptionConsumer",
+  cheque_bounce_notice: "docTypeOptionCheque",
+};
 
 export type FilterState = {
   search:   string;
@@ -53,9 +67,11 @@ interface FilterBarProps {
   onChange: (filters: FilterState) => void;
 }
 
-// ── component ────────────────────────────────────────────────────────────────
-
 export function FilterBar({ filters, onChange }: FilterBarProps) {
+  const t = useTranslations("dashboard.filters");
+  const tLang = useTranslations("languages");
+  const tIntake = useTranslations("intake");
+
   const hasActiveFilters =
     filters.search   !== "" ||
     filters.status   !== "all" ||
@@ -73,7 +89,7 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
       <div className="relative flex-1 min-w-[200px]">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
         <Input
-          placeholder="Search documents..."
+          placeholder={t("searchPlaceholder")}
           value={filters.search}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
             onChange({ ...filters, search: e.target.value })
@@ -90,33 +106,17 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
         }
       >
         <SelectTrigger className="w-[140px]">
-          <SelectValue placeholder="Status" />
+          <SelectValue placeholder={t("statusPlaceholder")} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All statuses</SelectItem>
+          <SelectItem value="all">{t("allStatuses")}</SelectItem>
           {STATUS_OPTIONS.map((o) => (
-            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+            <SelectItem key={o.value} value={o.value}>{t(STATUS_KEYS[o.value])}</SelectItem>
           ))}
         </SelectContent>
       </Select>
 
-      {/* Language filter */}
-      <Select
-        value={filters.language}
-        onValueChange={(v: string) =>
-          onChange({ ...filters, language: v as SupportedLanguage | "all" })
-        }
-      >
-        <SelectTrigger className="w-[140px]">
-          <SelectValue placeholder="Language" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All languages</SelectItem>
-          {LANGUAGE_OPTIONS.map((o) => (
-            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+
 
       {/* Doc type filter */}
       <Select
@@ -126,12 +126,12 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
         }
       >
         <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Document type" />
+          <SelectValue placeholder={t("typePlaceholder")} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All types</SelectItem>
+          <SelectItem value="all">{t("allTypes")}</SelectItem>
           {DOC_TYPE_OPTIONS.map((o) => (
-            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+            <SelectItem key={o.value} value={o.value}>{tIntake(DOC_TYPE_KEYS[o.value])}</SelectItem>
           ))}
         </SelectContent>
       </Select>
@@ -140,7 +140,7 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
       {hasActiveFilters && (
         <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 text-zinc-500">
           <X className="h-3 w-3" />
-          Clear
+          {t("clear")}
         </Button>
       )}
     </div>

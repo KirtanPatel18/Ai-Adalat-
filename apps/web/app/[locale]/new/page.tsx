@@ -1,54 +1,17 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { Link, useRouter } from '@/i18n/routing'
 import type { DocumentType, SupportedLanguage } from '@trionic/shared'
 import { LanguagePicker } from '@/components/intake/LanguagePicker'
 import { StreamingIndicator } from '@/components/intake/StreamingIndicator'
 import { ArrowLeft, Sparkles, Scale, FileText } from 'lucide-react'
-
-const DOC_TYPES: { value: DocumentType | 'ai_decide'; label: string; description: string; icon: React.ReactNode }[] = [
-  {
-    value: 'ai_decide',
-    label: 'Let AI Decide',
-    description: 'Classifier routes to the correct legal domain automatically.',
-    icon: <Sparkles className="size-5 text-indigo-500" />,
-  },
-  {
-    value: 'rti_application',
-    label: 'RTI Application',
-    description: 'Right to Information requests under Section 6 of RTI Act, 2005.',
-    icon: <FileText className="size-5 text-emerald-500" />,
-  },
-  {
-    value: 'legal_notice',
-    label: 'Legal Notice',
-    description: 'Demand letters, tenant deposit recoveries, contract notices.',
-    icon: <Scale className="size-5 text-blue-500" />,
-  },
-  {
-    value: 'nda',
-    label: 'NDA',
-    description: 'Non-Disclosure Agreement for confidential partnerships.',
-    icon: <FileText className="size-5 text-purple-500" />,
-  },
-  {
-    value: 'consumer_complaint',
-    label: 'Consumer Complaint',
-    description: 'Consumer Protection Act filings for deficient goods/services.',
-    icon: <Scale className="size-5 text-orange-500" />,
-  },
-  {
-    value: 'cheque_bounce_notice',
-    label: 'Cheque Bounce Notice',
-    description: 'Formal demand under Section 138 of Negotiable Instruments Act.',
-    icon: <FileText className="size-5 text-rose-500" />,
-  },
-]
+import { useTranslations } from 'next-intl'
 
 export default function NewDraftPage() {
   const router = useRouter()
+  const t = useTranslations('intake')
+  const tCommon = useTranslations('common')
 
   const [docType, setDocType] = useState<DocumentType | 'ai_decide'>('ai_decide')
   const [intakeText, setIntakeText] = useState('')
@@ -60,11 +23,50 @@ export default function NewDraftPage() {
   const [isStreaming, setIsStreaming] = useState(false)
   const [documentId, setDocumentId] = useState<string | null>(null)
 
+  const DOC_TYPES = [
+    {
+      value: 'ai_decide',
+      label: t('docTypeOptionAi'),
+      description: t('docTypeOptionAiDesc'),
+      icon: <Sparkles className="size-5 text-indigo-500" />,
+    },
+    {
+      value: 'rti_application',
+      label: t('docTypeOptionRti'),
+      description: t('docTypeOptionRtiDesc'),
+      icon: <FileText className="size-5 text-emerald-500" />,
+    },
+    {
+      value: 'legal_notice',
+      label: t('docTypeOptionNotice'),
+      description: t('docTypeOptionNoticeDesc'),
+      icon: <Scale className="size-5 text-blue-500" />,
+    },
+    {
+      value: 'nda',
+      label: t('docTypeOptionNda'),
+      description: t('docTypeOptionNdaDesc'),
+      icon: <FileText className="size-5 text-purple-500" />,
+    },
+    {
+      value: 'consumer_complaint',
+      label: t('docTypeOptionConsumer'),
+      description: t('docTypeOptionConsumerDesc'),
+      icon: <Scale className="size-5 text-orange-500" />,
+    },
+    {
+      value: 'cheque_bounce_notice',
+      label: t('docTypeOptionCheque'),
+      description: t('docTypeOptionChequeDesc'),
+      icon: <FileText className="size-5 text-rose-500" />,
+    },
+  ] as const
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
     if (!intakeText.trim()) {
-      setError('Please describe the situation or context for your draft.')
+      setError(t('situationPlaceholder'))
       return
     }
 
@@ -129,10 +131,10 @@ export default function NewDraftPage() {
             className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-900 transition-colors text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-zinc-400 rounded-lg p-1"
           >
             <ArrowLeft className="size-4" />
-            Back to Dashboard
+            {t('backButton')}
           </Link>
           <div className="h-4 w-px bg-zinc-200" />
-          <h1 className="text-base font-bold text-zinc-900">New Legal Draft</h1>
+          <h1 className="text-base font-bold text-zinc-900">{t('title')}</h1>
         </div>
       </header>
 
@@ -141,16 +143,16 @@ export default function NewDraftPage() {
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Header Info */}
             <div>
-              <h2 className="text-xl font-bold tracking-tight text-zinc-900">Document Specifications</h2>
+              <h2 className="text-xl font-bold tracking-tight text-zinc-900">{t('title')}</h2>
               <p className="text-sm text-zinc-500 mt-1">
-                Provide details to classify, analyze and automatically write your grounded legal document.
+                {t('situationPlaceholder')}
               </p>
             </div>
 
             {/* Document Type Selection */}
             <div className="space-y-3">
               <label className="block text-sm font-semibold text-zinc-800">
-                What kind of document do you need?
+                {t('docTypeQuestion')}
               </label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {DOC_TYPES.map((type) => {
@@ -190,7 +192,7 @@ export default function NewDraftPage() {
             {/* Situation Textarea */}
             <div className="space-y-2">
               <label htmlFor="intake-text" className="block text-sm font-semibold text-zinc-850">
-                What's the situation?
+                {t('situationQuestion')}
               </label>
               <textarea
                 id="intake-text"
@@ -198,7 +200,7 @@ export default function NewDraftPage() {
                 value={intakeText}
                 onChange={(e) => setIntakeText(e.target.value)}
                 className="w-full border border-zinc-200 rounded-2xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-950 focus:border-transparent leading-relaxed placeholder:text-zinc-400 bg-white shadow-inner"
-                placeholder="Describe your issue in your own words. The more context, the better the draft. Include relevant details like dates, financial amounts, names, and key events. Identifying details stay on your device until you export."
+                placeholder={t('situationPlaceholder')}
               />
             </div>
 
@@ -221,7 +223,7 @@ export default function NewDraftPage() {
                 className="px-8 py-3 bg-zinc-900 hover:bg-zinc-850 text-white font-semibold rounded-2xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-zinc-950 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:scale-[1.01]"
                 id="btn-generate-draft"
               >
-                {loading ? 'Initializing...' : 'Generate draft →'}
+                {loading ? t('loading') : t('submitButton')}
               </button>
             </div>
           </form>
@@ -231,9 +233,10 @@ export default function NewDraftPage() {
       {/* Persistent Disclaimer */}
       <footer className="max-w-4xl mx-auto px-4 mt-8 text-center">
         <p className="text-xs text-zinc-400">
-          ⚠ AI-assisted drafting is designed to support, not substitute, professional legal advice. Review drafts before filing.
+          ⚠ {tCommon('disclaimer')}
         </p>
       </footer>
     </div>
   )
 }
+

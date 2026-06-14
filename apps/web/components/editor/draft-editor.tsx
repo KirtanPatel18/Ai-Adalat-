@@ -49,6 +49,7 @@ function CitationBadge({ nodeId, index }: { nodeId: string; index: number }) {
   const setActiveCitationNodeId = useDraftStore((state) => state.setActiveCitationNodeId);
   const toggleCitationDrawer = useDraftStore((state) => state.toggleCitationDrawer);
   const isCitationDrawerOpen = useDraftStore((state) => state.isCitationDrawerOpen);
+  const t = useTranslations("draft");
 
   const handleMouseEnter = async () => {
     setHovered(true);
@@ -60,18 +61,18 @@ function CitationBadge({ nodeId, index }: { nodeId: string; index: number }) {
         const data = await res.json();
         setNodeText({
           title: data.title || formatNodeIdToBreadcrumb(nodeId),
-          text: data.text || "Legal text content not found."
+          text: data.text || t("legalTextNotFound")
         });
       } else {
         setNodeText({
           title: formatNodeIdToBreadcrumb(nodeId),
-          text: "Failed to fetch node text from PageIndex."
+          text: t("failedToFetchNode")
         });
       }
     } catch {
       setNodeText({
         title: formatNodeIdToBreadcrumb(nodeId),
-        text: "Error connecting to PageIndex API."
+        text: t("errorConnecting")
       });
     } finally {
       setLoading(false);
@@ -113,16 +114,15 @@ function CitationBadge({ nodeId, index }: { nodeId: string; index: number }) {
           ? "bg-indigo-600 text-white border-indigo-650 ring-2 ring-indigo-400 shadow-md scale-105"
           : "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border-indigo-250 dark:border-indigo-900 hover:bg-indigo-100 dark:hover:bg-indigo-900"
       )}
-      title={`Click to view citation ${index + 1} in drawer`}
     >
       {index + 1}
       {hovered && (
         <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 w-64 p-3 bg-slate-950 dark:bg-white text-white dark:text-slate-900 text-xs rounded-xl shadow-2xl font-sans leading-relaxed pointer-events-none z-50 border border-slate-800 dark:border-slate-200 text-left font-normal animate-in fade-in zoom-in-95 duration-100">
           <span className="block font-bold text-xs border-b border-slate-800 dark:border-slate-200 pb-1 mb-1.5 font-serif text-white dark:text-slate-950">
-            {loading ? "Loading..." : nodeText?.title}
+            {loading ? t("loading") : nodeText?.title}
           </span>
           <span className="block text-[11px] text-slate-300 dark:text-slate-650 max-h-32 overflow-y-auto scrollbar-none">
-            {loading ? "Fetching legal text from PageIndex..." : nodeText?.text}
+            {loading ? t("fetchingNode") : nodeText?.text}
           </span>
           <span className="absolute top-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-t-slate-950 dark:border-t-white" />
         </span>
@@ -274,22 +274,22 @@ export function DraftEditor({
 
       // Check for headers
       if (trimmed.startsWith("# ")) {
-        return <h1 key={pIdx} className="text-2xl font-extrabold mb-4 mt-6 text-foreground tracking-tight border-b pb-2 font-sans">{renderInline(trimmed.substring(2))}</h1>;
+        return <h1 key={pIdx} className="text-2xl font-extrabold mb-4 mt-6 text-foreground tracking-tight border-b pb-2 font-sans break-words">{renderInline(trimmed.substring(2))}</h1>;
       }
       if (trimmed.startsWith("## ")) {
-        return <h2 key={pIdx} className="text-xl font-bold mb-3 mt-5 text-foreground tracking-tight font-sans">{renderInline(trimmed.substring(3))}</h2>;
+        return <h2 key={pIdx} className="text-xl font-bold mb-3 mt-5 text-foreground tracking-tight font-sans break-words">{renderInline(trimmed.substring(3))}</h2>;
       }
       if (trimmed.startsWith("### ")) {
-        return <h3 key={pIdx} className="text-lg font-bold mb-2 mt-4 text-foreground tracking-tight font-sans">{renderInline(trimmed.substring(4))}</h3>;
+        return <h3 key={pIdx} className="text-lg font-bold mb-2 mt-4 text-foreground tracking-tight font-sans break-words">{renderInline(trimmed.substring(4))}</h3>;
       }
 
       // Check for bullet lists
       if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
         const items = trimmed.split(/\n[*+-]\s+/);
         return (
-          <ul key={pIdx} className="list-disc pl-6 space-y-2 mb-4">
+          <ul key={pIdx} className="list-disc pl-6 space-y-2 mb-4 break-words">
             {items.map((item, iIdx) => (
-              <li key={iIdx} className="text-foreground leading-relaxed">
+              <li key={iIdx} className="text-foreground leading-relaxed break-words">
                 {renderInline(item.replace(/^[*+-]\s+/, ""))}
               </li>
             ))}
@@ -299,7 +299,7 @@ export function DraftEditor({
 
       // Regular paragraph
       return (
-        <p key={pIdx} className="text-foreground leading-relaxed mb-4 text-justify font-serif text-[15px]">
+        <p key={pIdx} className="text-foreground leading-relaxed mb-4 text-justify font-serif text-[15px] break-words">
           {renderInline(trimmed)}
         </p>
       );
@@ -323,7 +323,7 @@ export function DraftEditor({
               )}
             >
               <Eye className="h-3.5 w-3.5" />
-              Preview
+              {t("preview")}
             </button>
             <button
               onClick={() => setMode("edit")}
@@ -335,7 +335,7 @@ export function DraftEditor({
               )}
             >
               <Edit3 className="h-3.5 w-3.5" />
-              Edit Markdown
+              {t("edit")}
             </button>
           </div>
         </div>
@@ -345,15 +345,15 @@ export function DraftEditor({
           {isSaving ? (
             <span className="flex items-center gap-1.5 text-blue-500">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Saving...
+              {t("saving")}
             </span>
           ) : lastSavedAt ? (
             <span className="flex items-center gap-1.5 text-green-600 dark:text-green-500">
               <CheckCircle2 className="h-3.5 w-3.5" />
-              Saved at {lastSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {t("savedAt", { time: lastSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })}
             </span>
           ) : (
-            <span className="text-muted-foreground/50">Ready</span>
+            <span className="text-muted-foreground/50">{t("ready")}</span>
           )}
         </div>
       </div>

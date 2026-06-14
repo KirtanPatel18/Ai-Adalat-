@@ -1,10 +1,11 @@
 'use client'
 
 import React, { useEffect, useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter } from '@/i18n/routing'
 import type { AgentStreamEvent, SupportedLanguage } from '@trionic/shared'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2, CheckCircle2, AlertCircle, XCircle } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 interface StreamingIndicatorProps {
   documentId: string
@@ -29,6 +30,7 @@ export function StreamingIndicator({
   onCancel,
 }: StreamingIndicatorProps) {
   const router = useRouter()
+  const t = useTranslations('draft')
   const supabase = createClient()
   const streamStarted = useRef(false)
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -42,7 +44,7 @@ export function StreamingIndicator({
     { id: '6', agent: 'reviewer', label: 'Final review', status: 'pending' },
   ])
 
-  const [statusMessage, setStatusMessage] = useState('Usually takes ~30 seconds')
+  const [statusMessage, setStatusMessage] = useState(t('steps.usuallyTakes'))
   const [isError, setIsError] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
@@ -256,7 +258,7 @@ export function StreamingIndicator({
           </div>
         )}
         <h2 className="text-xl font-bold text-zinc-900">
-          {isError ? 'Generation Interrupted' : 'Generating your draft...'}
+          {isError ? t('steps.generationInterrupted') : t('generating')}
         </h2>
         <p className={`text-sm mt-1 font-medium ${isError ? 'text-red-500' : 'text-zinc-500'}`}>
           {statusMessage}
@@ -293,7 +295,7 @@ export function StreamingIndicator({
                     : 'text-zinc-400'
                 }`}
               >
-                {step.label}
+                {t(`steps.${step.agent}`)}
               </span>
             </div>
           )
@@ -312,7 +314,7 @@ export function StreamingIndicator({
           onClick={handleCancel}
           className="px-6 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-2xl text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-zinc-300"
         >
-          {isError ? 'Go back' : 'Cancel Generation'}
+          {isError ? t('steps.goBack') : t('steps.cancelGeneration')}
         </button>
       </div>
     </div>

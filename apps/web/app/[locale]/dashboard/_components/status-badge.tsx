@@ -13,11 +13,23 @@ const statusConfig: Record<
   archived:   { label: "Archived",   variant: "outline",      className: "bg-zinc-50 text-zinc-400 border-zinc-200 hover:bg-zinc-50" },
 };
 
+import { useTranslations } from "next-intl";
+
+const STATUS_KEYS: Record<DocumentStatus, string> = {
+  draft: "statusDraft",
+  generating: "statusGenerating",
+  final: "statusFinal",
+  failed: "statusFailed",
+  exported: "statusExported",
+  archived: "statusArchived",
+};
+
 export function StatusBadge({ status }: { status: DocumentStatus }) {
   const config = statusConfig[status];
+  const t = useTranslations("dashboard.filters");
   return (
     <Badge variant={config.variant} className={`text-xs font-medium border ${config.className}`}>
-      {config.label}
+      {t(STATUS_KEYS[status])}
     </Badge>
   );
 }

@@ -1,37 +1,22 @@
 import { FileText, RefreshCw, SearchX } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
+import { useTranslations } from "next-intl";
 
 type EmptyStateType = "empty" | "loading" | "error" | "no-results";
 
 const config = {
   empty: {
     icon: FileText,
-    title: "No drafts yet",
-    description: "You haven't created any legal drafts yet. Start by creating your first document.",
-    action: (
-      <Button asChild>
-        <Link href="/new">+ New Draft</Link>
-      </Button>
-    ),
   },
   "no-results": {
     icon: SearchX,
-    title: "No results found",
-    description: "No documents match your current filters. Try adjusting or clearing your filters.",
-    action: null,
   },
   error: {
     icon: RefreshCw,
-    title: "Failed to load documents",
-    description: "Something went wrong while fetching your documents. Please try again.",
-    action: null, // caller passes onRetry
   },
   loading: {
     icon: null,
-    title: "",
-    description: "",
-    action: null,
   },
 };
 
@@ -41,6 +26,9 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({ type, onRetry }: EmptyStateProps) {
+  const t = useTranslations("dashboard");
+  const tCommon = useTranslations("common");
+
   if (type === "loading") {
     return (
       <div className="flex flex-col gap-3 py-8">
@@ -51,7 +39,28 @@ export function EmptyState({ type, onRetry }: EmptyStateProps) {
     );
   }
 
-  const { icon: Icon, title, description, action } = config[type];
+  const { icon: Icon } = config[type];
+
+  // Dynamic localized lookup
+  let title = "";
+  let description = "";
+  let action: React.ReactNode = null;
+
+  if (type === "empty") {
+    title = t("emptyStateTitle");
+    description = t("emptyStateDesc");
+    action = (
+      <Button asChild className="cursor-pointer">
+        <Link href="/new">{tCommon("newDraft")}</Link>
+      </Button>
+    );
+  } else if (type === "no-results") {
+    title = t("noResultsTitle");
+    description = t("noResultsDesc");
+  } else if (type === "error") {
+    title = t("failedToLoadTitle");
+    description = t("failedToLoadDesc");
+  }
 
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
@@ -65,9 +74,9 @@ export function EmptyState({ type, onRetry }: EmptyStateProps) {
         <p className="text-sm text-zinc-500 max-w-sm">{description}</p>
       </div>
       {type === "error" && onRetry ? (
-        <Button variant="outline" onClick={onRetry} className="gap-2">
+        <Button variant="outline" onClick={onRetry} className="gap-2 cursor-pointer">
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {tCommon("tryAgain")}
         </Button>
       ) : (
         action

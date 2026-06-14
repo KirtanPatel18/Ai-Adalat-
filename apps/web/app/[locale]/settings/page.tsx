@@ -22,7 +22,7 @@ export default function SettingsPage() {
       if (res.status === 401) {
         isRedirecting = true;
         // Redirect unauthenticated user to login route
-        window.location.href = "/sign-in";
+        window.location.href = "/auth/sign-in";
         return;
       }
       if (!res.ok) {

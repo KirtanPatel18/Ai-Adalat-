@@ -3,11 +3,27 @@ import type { Document, Citation, SupportedLanguage, DocumentStatus, DocumentTyp
 import { DraftWorkspace } from "@/components/editor/draft-workspace";
 import { createClient } from "@/lib/supabase/server";
 
+const TITLES: Record<string, string> = {
+  en: "Notice for Cheque Bounce",
+  hi: "चेक बाउंस के लिए कानूनी नोटिस",
+  gu: "ચેક બાઉન્સ માટે કાનૂની નોટિસ",
+  mr: "चेक बाऊन्ससाठी कायदेशीर नोटीस",
+  ta: "காசோலை திரும்பியதற்கான சட்ட அறிவிப்பு",
+};
+
+const CONTENTS: Record<string, string> = {
+  en: `# LEGAL NOTICE\n\n**UNDER SECTION 138 OF THE NEGOTIABLE INSTRUMENTS ACT, 1881**\n\nTo,\n[Client Name]\n[Address]\n\nSubject: Notice for dishonour of Cheque No. XXXXXX\n\nSir/Madam,\n\nUnder instructions from and on behalf of my client...`,
+  hi: `# विधिक सूचना\n\n**परक्राम्य लिखत अधिनियम, 1881 की धारा 138 के तहत**\n\nसेवा में,\n[ग्राहक का नाम]\n[पता]\n\nविषय: चेक संख्या XXXXXX के अनादर के लिए नोटिस\n\nमहोदय/महोदया,\n\nअपने मुवक्किल की ओर से और उनके निर्देशानुसार...`,
+  gu: `# કાનૂની નોટિસ\n\n**નેગોશિયેબલ ઇન્સ્ટ્રુમેન્ટ્સ એક્ટ, 1881 ની કલમ 138 હેઠળ**\n\nપ્રતિ,\n[ગ્રાહકનું નામ]\n[સરનામું]\n\nવિષય: ચેક નંબર XXXXXX ના અનાદર માટેની નોટિસ\n\nશ્રીમાન/શ્રીમતી,\n\nમારા અસીલની સૂચનાથી અને તેમના વતી...`,
+  mr: `# कायदेशीर नोटीस\n\n**नेगोशिएबल इन्स्ट्रुमेंट्स ॲक्ट, १८८१ च्या कलम १३८ अंतर्गत**\n\nप्रति,\n[ग्राहकाचे नाव]\n[पत्ता]\n\nविषय: धनादेश क्रमांक XXXXXX अनादरासाठी नोटीस\n\nमहोदय/महोदया,\n\nमाझ्या क्लायंटच्या वतीने आणि त्यांच्या सूचनेनुसार...`,
+  ta: `# சட்ட அறிவிப்பு\n\n**மாற்றுச் சீட்டுச் சட்டம், 1881 இன் பிரிவு 138 இன் கீழ்**\n\nபெறுநர்,\n[வாடிக்கையாளர் பெயர்]\n[முகவரி]\n\nபொருள்: காசோலை எண் XXXXXX திரும்பியதற்கான அறிவிப்பு\n\nஐயா/அம்மா,\n\nஎனது வாடிக்கையாளரின் அறிவுறுத்தலின்படியும் அவர் சார்பாகவும்...`
+};
+
 /**
  * Mock Data Fetcher
  * Simulates a server-side DB query to fetch the draft document.
  */
-async function getMockDocument(id: string): Promise<{ document: Document; content: string; citations: Citation[] } | null> {
+async function getMockDocument(id: string, locale: string): Promise<{ document: Document; content: string; citations: Citation[] } | null> {
   // Simulate network latency
   await new Promise((resolve) => setTimeout(resolve, 800));
 
@@ -18,32 +34,17 @@ async function getMockDocument(id: string): Promise<{ document: Document; conten
     id,
     owner_id: "user-123",
     doc_type: "legal_notice",
-    language: "en",
-    title: "Notice for Cheque Bounce",
+    language: (["en", "hi", "gu", "mr", "ta"].includes(locale) ? locale : "en") as any,
+    title: TITLES[locale] || TITLES.en,
     status: "generating", // "generating" indicates AI is actively streaming/working
     current_version_id: "v1",
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
 
-  const mockContent = `# LEGAL NOTICE
-
-**UNDER SECTION 138 OF THE NEGOTIABLE INSTRUMENTS ACT, 1881**
-
-To,
-[Client Name]
-[Address]
-
-Subject: Notice for dishonour of Cheque No. XXXXXX
-
-Sir/Madam,
-
-Under instructions from and on behalf of my client...
-`;
-
   return {
     document: mockDocument,
-    content: mockContent,
+    content: CONTENTS[locale] || CONTENTS.en,
     citations: [],
   };
 }
@@ -131,26 +132,23 @@ async function getRealDocument(id: string): Promise<{ document: Document; conten
 
 /**
  * Draft Editor Server Component
- * 
- * Fetches the initial data securely on the server and passes it down to the 
- * interactive Client Component workspace.
  */
-export default async function DraftPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function DraftPage({ params }: { params: Promise<{ id: string; locale: string }> }) {
+  const { id, locale } = await params;
   
   // 1. Fetch real server data
   let data = await getRealDocument(id);
   
   // 2. Fallback to mock data for local testing
   if (!data) {
-    data = await getMockDocument(id);
+    data = await getMockDocument(id, locale);
   }
   
   // 3. Handle not found gracefully
   if (!data) {
     notFound();
   }
-
+  
   // 4. Delegate to the Client Component orchestrator
   return (
     <DraftWorkspace
