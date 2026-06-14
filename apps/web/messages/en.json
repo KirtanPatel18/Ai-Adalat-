@@ -81,7 +81,7 @@
   "common": {
     "brandName": "Trionic Adalat",
     "disclaimer": "AI-generated draft — not legal advice. Review before filing.",
-    "newDraft": "+ New draft",
+    "newDraft": "New draft",
     "signIn": "Sign in",
     "signOut": "Sign out"
   },
@@ -116,6 +116,8 @@
     "subtitle": "Manage your legal drafts, generate new documents, and review citations.",
     "searchPlaceholder": "Search...",
     "emptyState": "No drafts yet — start one with [+ New draft]",
+    "emptyStateTitle": "No drafts found",
+    "emptyStateDesc": "You haven't created any legal documents yet. Start drafting now.",
     "empty": "No drafts yet — start one with [+ New draft]",
     "search": "Search",
     "mockTitleRti": "RTI – Municipal records",
@@ -171,7 +173,8 @@
     "submitButton": "Generate draft →",
     "issueTitle": "What is your legal issue?",
     "placeholder": "Describe your issue here...",
-    "submit": "Submit Issue"
+    "submit": "Submit Issue",
+    "loading": "Generating..."
   },
   "settings": {
     "title": "Settings",

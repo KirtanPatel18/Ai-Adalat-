@@ -76,7 +76,7 @@ export async function PATCH(
   // Never distinguish 403 vs 404 (security — per API_CONTRACTS.md error model).
   const { data: document, error: docError } = await supabase
     .from('documents')
-    .select('id, owner_id, current_version_id')
+    .select('id, owner_id')
     .eq('id', documentId)
     .single()
 
@@ -114,11 +114,10 @@ export async function PATCH(
     return errorResponse('internal', 'Failed to create document version', 500)
   }
 
-  // ── 6. Update documents.current_version_id ────────────────────────────────
+  // ── 6. Update documents updated_at ────────────────────────────────────────
   await supabase
     .from('documents')
     .update({
-      current_version_id: newVersion.id,
       updated_at: new Date().toISOString(),
       ...(body.title ? { title: body.title } : {}),
     })

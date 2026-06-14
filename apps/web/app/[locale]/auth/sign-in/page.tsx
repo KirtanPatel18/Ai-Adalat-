@@ -22,12 +22,20 @@ export default function SignInPage() {
     setError(null)
 
     if (isSignUp) {
-      const { error } = await supabase.auth.signUp({ email, password })
+      const { data, error } = await supabase.auth.signUp({ email, password })
       if (error) {
         setError(error.message)
         setLoading(false)
         return
       }
+      
+      // If email confirmation is required, session will be null
+      if (!data.session) {
+        setError("Please check your email to confirm your account before continuing.")
+        setLoading(false)
+        return
+      }
+      
       router.push('/onboarding')
     } else {
       const { data, error } = await supabase.auth.signInWithPassword({

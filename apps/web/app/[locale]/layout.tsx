@@ -72,6 +72,7 @@ export default async function LocaleLayout({
       lang={locale}
       dir={dir}
       className={`${fontVariable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col font-sans relative">
         <NextIntlClientProvider messages={messages}>

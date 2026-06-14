@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Document, Citation } from "@trionic/shared";
+import type { Document, Citation, DocumentType } from "@trionic/shared";
 
 interface DraftStore {
   // Document state
@@ -16,6 +16,7 @@ interface DraftStore {
   setContent: (content: string) => void;
   toggleCitationDrawer: () => void;
   setActiveCitationNodeId: (nodeId: string | null) => void;
+  updateDocType: (docType: DocumentType) => void;
 }
 
 export const useDraftStore = create<DraftStore>((set) => ({
@@ -36,4 +37,9 @@ export const useDraftStore = create<DraftStore>((set) => ({
 
   setActiveCitationNodeId: (nodeId) =>
     set({ activeCitationNodeId: nodeId }),
+
+  updateDocType: (docType) =>
+    set((state) => ({
+      document: state.document ? { ...state.document, doc_type: docType } : null,
+    })),
 }));

@@ -30,6 +30,7 @@ import {
 } from "@/lib/document-templates";
 import { DraftSection } from "./draft-section";
 import type { DocumentType } from "@trionic/shared";
+import { useTranslations } from "next-intl";
 
 interface DraftEditorProps {
   value: string;
@@ -139,6 +140,7 @@ export function DraftEditor({
   className,
   docType,
 }: DraftEditorProps) {
+  const t = useTranslations("draft");
   const [sections, setSections] = useState<SectionData[]>([]);
   const [template, setTemplate] = useState<DocumentTemplate | null>(null);
   const [mode, setMode] = useState<"edit" | "preview">("preview");

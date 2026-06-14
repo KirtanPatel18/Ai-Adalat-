@@ -7,12 +7,12 @@ export type TemplateSection = {
 };
 
 export type DocumentTemplate = {
-  docType: DocumentType;
+  docType: string;
   allowedSections: TemplateSection[];
   defaultSections: TemplateSection[];
 };
 
-const TEMPLATES: Record<DocumentType, DocumentTemplate> = {
+const TEMPLATES: Record<string, DocumentTemplate> = {
   rti_application: {
     docType: "rti_application",
     allowedSections: [
@@ -96,16 +96,38 @@ const TEMPLATES: Record<DocumentType, DocumentTemplate> = {
       { id: "demand", title: "Demand", required: true },
     ],
   },
+  other: {
+    docType: "other",
+    allowedSections: [
+      { id: "general", title: "General Details", required: true },
+    ],
+    defaultSections: [
+      { id: "general", title: "General Details", required: true },
+    ],
+  },
 };
 
 /**
  * Fetch the template for a given document type.
- * In a real app, this could call an API endpoint first and fallback to these hardcoded values.
+ * Attempts to fetch from the backend API first, and falls back to hardcoded templates
+ * if the backend is unavailable or returns an error.
  */
 export async function fetchTemplate(docType: DocumentType): Promise<DocumentTemplate> {
-  // Simulate API call or try fetching from /api/document_templates
-  // For now, return fallback template immediately
-  return TEMPLATES[docType];
+  if (typeof window !== "undefined") {
+    try {
+      const res = await fetch(`/api/document_templates?type=${docType}`);
+      if (res.ok) {
+        return (await res.json()) as DocumentTemplate;
+      }
+      console.warn(`[fetchTemplate] Backend failed to load template for ${docType}.`);
+    } catch (err) {
+      // Silently fall back to local template on network error or timeout
+      console.warn(`[fetchTemplate] Backend unavailable for ${docType}, using fallback.`);
+    }
+  }
+
+  // Fallback template
+  return TEMPLATES[docType] || TEMPLATES.other;
 }
 
 export type SectionData = {
@@ -120,9 +142,10 @@ export type SectionData = {
  */
 export function parseMarkdownToSections(
   markdown: string,
-  template: DocumentTemplate
+  template?: DocumentTemplate
 ): SectionData[] {
   if (!markdown || markdown.trim() === "") {
+    if (!template) return [];
     // Return empty skeleton based on template defaults
     return template.defaultSections.map((sec) => ({
       id: crypto.randomUUID(),
@@ -163,9 +186,14 @@ export function parseMarkdownToSections(
       title = title.trim();
     }
 
-    const templateSec = template.allowedSections.find(
+    const templateSec = template?.allowedSections?.find(
       (s) => s.title.toLowerCase() === title.toLowerCase()
     );
+
+    // If section is empty and not part of the current template, skip it (incorrect skeletons disappear)
+    if (content === "" && !templateSec) {
+      continue;
+    }
 
     sections.push({
       id: crypto.randomUUID(),
@@ -181,14 +209,16 @@ export function parseMarkdownToSections(
   }
 
   // Also ensure required sections from template are present, if missing, add them empty at the end.
-  for (const defaultSec of template.defaultSections) {
-    if (!sections.some((s) => s.title.toLowerCase() === defaultSec.title.toLowerCase())) {
-      sections.push({
-        id: crypto.randomUUID(),
-        title: defaultSec.title,
-        content: "",
-        required: defaultSec.required,
-      });
+  if (template) {
+    for (const defaultSec of template.defaultSections) {
+      if (!sections.some((s) => s.title.toLowerCase() === defaultSec.title.toLowerCase())) {
+        sections.push({
+          id: crypto.randomUUID(),
+          title: defaultSec.title,
+          content: "",
+          required: defaultSec.required,
+        });
+      }
     }
   }
 

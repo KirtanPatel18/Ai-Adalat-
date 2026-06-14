@@ -35,31 +35,19 @@ export interface StepRouteConfig {
 export const ROUTER_CONFIG: Record<string, StepRouteConfig> = {
   classifier: {
     preferred: {
-      provider: "gemini",
-      model: "gemini-2.5-flash",
+      provider: "deepseek",
+      model: "deepseek-chat",
       maxTokens: 512,
       temperature: 0.1,
     },
-    fallback: {
-      provider: "gpt",
-      model: "gpt-4o-mini",
-      maxTokens: 512,
-      temperature: 0.1,
-    }
   },
   planner: {
     preferred: {
-      provider: "claude",
-      model: "claude-3-5-sonnet-20241022",
+      provider: "deepseek",
+      model: "deepseek-chat",
       maxTokens: 1024,
       temperature: 0.2,
     },
-    fallback: {
-      provider: "gemini",
-      model: "gemini-2.5-pro",
-      maxTokens: 1024,
-      temperature: 0.2,
-    }
   },
   drafter: {
     preferred: {
@@ -68,62 +56,38 @@ export const ROUTER_CONFIG: Record<string, StepRouteConfig> = {
       maxTokens: 4096,
       temperature: 0.3,
     },
-    fallback: {
-      provider: "claude",
-      model: "claude-3-5-sonnet-20241022",
-      maxTokens: 4096,
-      temperature: 0.3,
-    }
   },
   citator: {
     preferred: {
-      provider: "claude",
-      model: "claude-3-5-sonnet-20241022",
+      provider: "deepseek",
+      model: "deepseek-chat",
       maxTokens: 512,
       temperature: 0.0,
     },
-    fallback: {
-      provider: "gemini",
-      model: "gemini-2.5-pro",
-      maxTokens: 512,
-      temperature: 0.0,
-    }
   },
   reviewer: {
     preferred: {
-      provider: "gemini",
-      model: "gemini-2.5-pro",
+      provider: "deepseek",
+      model: "deepseek-chat",
       maxTokens: 1024,
       temperature: 0.2,
     },
-    fallback: {
-      provider: "gpt",
-      model: "gpt-4o",
-      maxTokens: 1024,
-      temperature: 0.2,
-    }
   },
   translator: {
     preferred: {
-      provider: "gemini",
-      model: "gemini-2.5-pro",
+      provider: "deepseek",
+      model: "deepseek-chat",
       maxTokens: 2048,
       temperature: 0.1,
     },
-    fallback: {
-      provider: "gpt",
-      model: "gpt-4o",
-      maxTokens: 2048,
-      temperature: 0.1,
-    }
   },
 };
 
 /** Default config used if a step is not found in ROUTER_CONFIG. */
 export const DEFAULT_ROUTE_CONFIG: StepRouteConfig = {
   preferred: {
-    provider: "claude",
-    model: "claude-3-5-sonnet-20241022",
+    provider: "deepseek",
+    model: "deepseek-chat",
     maxTokens: 1024,
     temperature: 0.2,
   }
