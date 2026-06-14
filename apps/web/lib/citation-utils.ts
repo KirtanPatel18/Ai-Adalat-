@@ -15,18 +15,20 @@ export interface ParsedCitationNode {
 
 // Mapping of common legal Act abbreviations to their full descriptive names
 const ACT_MAP: Record<string, string> = {
-  'IPC': 'Indian Penal Code',
-  'IPC-1860': 'Indian Penal Code',
-  'RTI': 'Right to Information Act',
-  'RTI-2005': 'Right to Information Act',
-  'ICA': 'Indian Contract Act',
-  'ICA-1872': 'Indian Contract Act',
-  'CPA': 'Consumer Protection Act',
-  'CPA-2019': 'Consumer Protection Act',
-  'CRPC': 'Code of Criminal Procedure',
-  'CRPC-1973': 'Code of Criminal Procedure',
-  'COI': 'Constitution of India',
-  'COI-1950': 'Constitution of India',
+  'IPC': 'Indian Penal Code, 1860',
+  'IPC-1860': 'Indian Penal Code, 1860',
+  'RTI': 'Right to Information Act, 2005',
+  'RTI-2005': 'Right to Information Act, 2005',
+  'ICA': 'Indian Contract Act, 1872',
+  'ICA-1872': 'Indian Contract Act, 1872',
+  'CPA': 'Consumer Protection Act, 2019',
+  'CPA-2019': 'Consumer Protection Act, 2019',
+  'CRPC': 'Code of Criminal Procedure, 1973',
+  'CRPC-1973': 'Code of Criminal Procedure, 1973',
+  'COI': 'Constitution of India, 1950',
+  'COI-1950': 'Constitution of India, 1950',
+  'NI': 'Negotiable Instruments Act, 1881',
+  'NI-1881': 'Negotiable Instruments Act, 1881',
 };
 
 /**
@@ -84,5 +86,35 @@ export function formatNodeIdToBreadcrumb(nodeId: string): string {
     // Join any extra sub-nodes (like Explanation, Clause, etc.)
     segments.push(...parsed.rest.map(r => r.replace(/^[A-Z]+-/, '')));
   }
+  return segments.join(' › ');
+}
+
+/**
+ * Converts a PageIndexNodeId and optional dynamic metadata into a highly readable human-friendly breadcrumb.
+ * Example: "RTI-2005/CH-II/S-6" -> "Right to Information Act, 2005 › Chapter II › Section 6 (Request for obtaining information)"
+ */
+export function getHumanBreadcrumb(nodeId: string, metadata?: { title?: string; act_name?: string; number?: string }): string {
+  const parsed = parseNodeId(nodeId);
+  const act = metadata?.act_name || parsed.actName;
+  
+  // Format Chapter (if it has 3 parts and doesn't just split into section code)
+  const parts = nodeId.split('/');
+  const hasChapter = parts.length >= 3;
+  const chapter = hasChapter ? parsed.chapterName : '';
+
+  const secNum = metadata?.number || (hasChapter ? parsed.sectionCode : parsed.chapterCode).replace('S-', '');
+  const secTitle = metadata?.title || (hasChapter ? parsed.sectionName : parsed.chapterName);
+  
+  const cleanTitle = secTitle ? secTitle.replace(/\.$/, '').trim() : '';
+  const sectionStr = cleanTitle ? `Section ${secNum} (${cleanTitle})` : `Section ${secNum}`;
+
+  const segments = [act];
+  if (chapter) segments.push(chapter);
+  segments.push(sectionStr);
+  
+  if (parsed.rest.length > 0) {
+    segments.push(...parsed.rest.map(r => r.replace(/^[A-Z]+-/, '')));
+  }
+  
   return segments.join(' › ');
 }
