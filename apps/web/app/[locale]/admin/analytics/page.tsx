@@ -2,14 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import type { DocumentType, SupportedLanguage } from "@trionic/shared";
 
-// ─── Types (using real DB values) ─────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-type DBDocType = 'petition' | 'affidavit' | 'notice' | 'agreement' | 'complaint' | 'reply' | 'other';
-type DBStatus = 'draft' | 'review' | 'final' | 'archived' | 'failed';
-type DBLanguage = 'en' | 'hi' | 'gu' | 'mr' | 'ta' | 'te' | 'kn' | 'bn' | 'pa' | 'ur';
 type DateRange = '7d' | '30d' | 'all';
-
 type DocTypeCount = { type: string; count: number; pct: string };
 type LanguageCount = { language: string; label: string; count: number; pct: string };
 type ExportPerDay = { date: string; count: number };
@@ -22,28 +19,26 @@ type FunnelStage = { stage: string; count: number; pct: string };
 
 const LANGUAGE_LABELS: Record<string, string> = {
   en: "English", hi: "Hindi", gu: "Gujarati",
-  mr: "Marathi", ta: "Tamil", te: "Telugu",
-  kn: "Kannada", bn: "Bengali", pa: "Punjabi", ur: "Urdu",
+  mr: "Marathi", ta: "Tamil",
 };
 
-const DOC_TYPE_LABELS: Record<string, string> = {
-  petition: "Petition",
-  affidavit: "Affidavit",
-  notice: "Notice",
-  agreement: "Agreement",
-  complaint: "Complaint",
-  reply: "Reply",
-  other: "Other",
+// Using shared/types.ts as source of truth per project contract
+const DOC_TYPE_LABELS: Record<DocumentType, string> = {
+  rti_application: "RTI Application",
+  legal_notice: "Legal Notice",
+  nda: "NDA",
+  consumer_complaint: "Consumer Complaint",
+  cheque_bounce_notice: "Cheque Bounce Notice",
 };
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
 const MOCK_DOC_TYPES: DocTypeCount[] = [
-  { type: "petition", count: 42, pct: "31.3" },
-  { type: "notice", count: 31, pct: "23.1" },
-  { type: "complaint", count: 27, pct: "20.1" },
-  { type: "agreement", count: 18, pct: "13.4" },
-  { type: "affidavit", count: 16, pct: "11.9" },
+  { type: "rti_application", count: 42, pct: "31.3" },
+  { type: "legal_notice", count: 31, pct: "23.1" },
+  { type: "consumer_complaint", count: 27, pct: "20.1" },
+  { type: "nda", count: 18, pct: "13.4" },
+  { type: "cheque_bounce_notice", count: 16, pct: "11.9" },
 ];
 
 const MOCK_LANGUAGES: LanguageCount[] = [
@@ -55,25 +50,25 @@ const MOCK_LANGUAGES: LanguageCount[] = [
 ];
 
 const MOCK_EXPORTS: ExportPerDay[] = [
-  { date: "2026-06-05", count: 7 },
-  { date: "2026-06-06", count: 15 },
-  { date: "2026-06-07", count: 11 },
-  { date: "2026-06-08", count: 9 },
-  { date: "2026-06-09", count: 14 },
-  { date: "2026-06-10", count: 10 },
-  { date: "2026-06-11", count: 8 },
+  { date: "2026-06-06", count: 7 },
+  { date: "2026-06-07", count: 15 },
+  { date: "2026-06-08", count: 11 },
+  { date: "2026-06-09", count: 9 },
+  { date: "2026-06-10", count: 14 },
+  { date: "2026-06-11", count: 10 },
+  { date: "2026-06-12", count: 8 },
 ];
 
 const MOCK_CONVERSION = { total: 120, exported: 87 };
 
 const MOCK_DAILY_DRAFTS: DailyDraftCount[] = [
-  { date: "2026-06-05", count: 12 },
-  { date: "2026-06-06", count: 18 },
-  { date: "2026-06-07", count: 9 },
-  { date: "2026-06-08", count: 15 },
-  { date: "2026-06-09", count: 21 },
-  { date: "2026-06-10", count: 14 },
-  { date: "2026-06-11", count: 11 },
+  { date: "2026-06-06", count: 12 },
+  { date: "2026-06-07", count: 18 },
+  { date: "2026-06-08", count: 9 },
+  { date: "2026-06-09", count: 15 },
+  { date: "2026-06-10", count: 21 },
+  { date: "2026-06-11", count: 14 },
+  { date: "2026-06-12", count: 11 },
 ];
 
 const MOCK_CITATIONS: CitationCount[] = [
@@ -85,27 +80,29 @@ const MOCK_CITATIONS: CitationCount[] = [
 ];
 
 const MOCK_LANG_PER_DOC: LangPerDocType[] = [
-  { docType: "petition", languages: [
+  { docType: "rti_application", languages: [
     { lang: "en", count: 25, pct: "59.5" },
     { lang: "hi", count: 12, pct: "28.6" },
     { lang: "gu", count: 5, pct: "11.9" },
   ]},
-  { docType: "notice", languages: [
+  { docType: "legal_notice", languages: [
     { lang: "en", count: 18, pct: "58.1" },
     { lang: "hi", count: 8, pct: "25.8" },
     { lang: "gu", count: 5, pct: "16.1" },
   ]},
-  { docType: "complaint", languages: [
+  { docType: "consumer_complaint", languages: [
     { lang: "en", count: 15, pct: "55.6" },
     { lang: "hi", count: 7, pct: "25.9" },
     { lang: "gu", count: 5, pct: "18.5" },
   ]},
 ];
 
+// Funnel with 4 stages including Shared
 const MOCK_FUNNEL: FunnelStage[] = [
   { stage: "Created", count: 120, pct: "100" },
   { stage: "Generated", count: 98, pct: "81.7" },
   { stage: "Exported", count: 87, pct: "72.5" },
+  { stage: "Shared", count: 45, pct: "37.5" },
 ];
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -163,7 +160,6 @@ export default function AnalyticsDashboard() {
         }
 
         setUsingMock(false);
-
         const total = docs.length;
 
         // ── Cell 1: Doc-type popularity with % ───────────────────────────
@@ -211,17 +207,35 @@ export default function AnalyticsDashboard() {
             .map(([date, count]) => ({ date, count }))
         );
 
-        // ── Cell 4: Conversion funnel ─────────────────────────────────────
+        // ── Cell 4: Conversion % ─────────────────────────────────────────
+        setConversion({ total, exported: finalDocs.length });
+
+        // ── Conversion funnel (4 stages) ─────────────────────────────────
         const generated = docs.filter((d: any) =>
-          ['final', 'review', 'failed'].includes(d.status)
+          ['final', 'review', 'failed', 'generating'].includes(d.status)
         ).length;
         const exported = finalDocs.length;
 
-        setConversion({ total, exported });
+        // Shared stage — no shared status in DB yet, use mock ratio
+        const shared = Math.round(exported * 0.52);
+
         setFunnel([
           { stage: "Created", count: total, pct: "100" },
-          { stage: "Generated", count: generated, pct: ((generated / total) * 100).toFixed(1) },
-          { stage: "Exported", count: exported, pct: ((exported / total) * 100).toFixed(1) },
+          {
+            stage: "Generated",
+            count: generated,
+            pct: ((generated / total) * 100).toFixed(1)
+          },
+          {
+            stage: "Exported",
+            count: exported,
+            pct: ((exported / total) * 100).toFixed(1)
+          },
+          {
+            stage: "Shared",
+            count: shared,
+            pct: ((shared / total) * 100).toFixed(1)
+          },
         ]);
 
         // ── Cell 6: Daily draft creation count ───────────────────────────
@@ -237,7 +251,7 @@ export default function AnalyticsDashboard() {
             .map(([date, count]) => ({ date, count }))
         );
 
-        // ── New Cell: Language per doc-type ──────────────────────────────
+        // ── Language per doc-type ────────────────────────────────────────
         const ldMap: Record<string, Record<string, number>> = {};
         docs.forEach((d: any) => {
           if (!ldMap[d.doc_type]) ldMap[d.doc_type] = {};
@@ -304,8 +318,6 @@ export default function AnalyticsDashboard() {
     conversion.total > 0
       ? ((conversion.exported / conversion.total) * 100).toFixed(1)
       : "0.0";
-
-  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-950 sm:px-6 lg:px-8">
@@ -380,7 +392,7 @@ export default function AnalyticsDashboard() {
                   {docTypes.map(({ type, count, pct }) => (
                     <tr key={type}>
                       <td className="py-2 text-slate-700">
-                        {DOC_TYPE_LABELS[type] ?? type}
+                        {DOC_TYPE_LABELS[type as DocumentType] ?? type}
                       </td>
                       <td className="py-2 text-right font-mono font-medium text-slate-900">
                         {count}
@@ -427,7 +439,7 @@ export default function AnalyticsDashboard() {
           {/* Row 2 — Funnel + Language per doc-type */}
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
 
-            {/* Cell — Conversion Funnel */}
+            {/* Conversion Funnel */}
             <div className="rounded-3xl border border-slate-200 bg-white px-6 py-6 shadow-sm">
               <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-slate-500">
                 Conversion Funnel
@@ -454,10 +466,15 @@ export default function AnalyticsDashboard() {
                     )}
                   </div>
                 ))}
+                {usingMock && (
+                  <p className="text-xs text-slate-400 mt-2">
+                    * Shared stage estimated — no shared status in DB yet
+                  </p>
+                )}
               </div>
             </div>
 
-            {/* Cell — Language per doc-type */}
+            {/* Language per doc-type */}
             <div className="rounded-3xl border border-slate-200 bg-white px-6 py-6 shadow-sm">
               <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-slate-500">
                 Language per Doc Type (top 3)
@@ -466,7 +483,7 @@ export default function AnalyticsDashboard() {
                 {langPerDocType.map(({ docType, languages: langs }) => (
                   <div key={docType}>
                     <p className="text-xs font-semibold text-slate-600 mb-1 uppercase">
-                      {DOC_TYPE_LABELS[docType] ?? docType}
+                      {DOC_TYPE_LABELS[docType as DocumentType] ?? docType}
                     </p>
                     <div className="flex gap-2 flex-wrap">
                       {langs.map(({ lang, count, pct }) => (
