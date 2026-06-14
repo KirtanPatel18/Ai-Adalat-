@@ -1,9 +1,11 @@
 import { AlertCircle, CheckCircle2, Loader2, Save, PanelRight, ArrowLeft, Languages, Download } from "lucide-react";
 import { SaveStatus } from "../../hooks/use-autosave";
 import { useDraftStore } from "../../hooks/use-draft-store";
-import { StatusBadge } from "../../app/dashboard/_components/status-badge";
-import Link from "next/link";
+import { StatusBadge } from "../../app/[locale]/dashboard/_components/status-badge";
+import { Link } from "@/i18n/routing";
 import { Button } from "../ui/button";
+import { LanguageSwitcher } from "../language-switcher";
+import { useTranslations } from "next-intl";
 
 interface DraftHeaderProps {
   saveStatus: SaveStatus;
@@ -14,6 +16,10 @@ export function DraftHeader({ saveStatus }: DraftHeaderProps) {
   const isCitationDrawerOpen = useDraftStore((state) => state.isCitationDrawerOpen);
   const toggleCitationDrawer = useDraftStore((state) => state.toggleCitationDrawer);
 
+  const t = useTranslations("draft");
+  const tCommon = useTranslations("common");
+  const tActions = useTranslations("actions");
+
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between border-b bg-background px-6 py-3 shrink-0">
       <div className="flex items-center gap-4">
@@ -22,11 +28,11 @@ export function DraftHeader({ saveStatus }: DraftHeaderProps) {
           className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mr-2 cursor-pointer"
         >
           <ArrowLeft className="h-4 w-4" />
-          <span>Back</span>
+          <span>{t("back")}</span>
         </Link>
 
         <h1 className="text-base font-bold text-foreground truncate max-w-[200px] sm:max-w-[300px]">
-          {documentData?.title || "Legal Draft"}
+          {documentData?.title || t("title")}
         </h1>
 
         {documentData?.status && (
@@ -36,7 +42,7 @@ export function DraftHeader({ saveStatus }: DraftHeaderProps) {
         {/* Pinned AI Banner */}
         <div className="hidden md:flex items-center gap-2 rounded-md bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/30 px-3 py-1 text-xs font-semibold text-amber-800 dark:text-amber-300">
           <AlertCircle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-          <span>AI-generated draft — not legal advice</span>
+          <span>{tCommon("disclaimer")}</span>
         </div>
       </div>
 
@@ -46,31 +52,31 @@ export function DraftHeader({ saveStatus }: DraftHeaderProps) {
           {saveStatus === "idle" && (
             <>
               <Save className="h-4 w-4" />
-              <span>No changes</span>
+              <span>{t("noChanges")}</span>
             </>
           )}
           {saveStatus === "unsaved" && (
             <>
               <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-              <span>Unsaved</span>
+              <span>{t("unsaved")}</span>
             </>
           )}
           {saveStatus === "saving" && (
             <>
               <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-              <span className="text-blue-500">Saving...</span>
+              <span className="text-blue-500">{t("saving")}</span>
             </>
           )}
           {saveStatus === "saved" && (
             <>
               <CheckCircle2 className="h-4 w-4 text-green-500" />
-              <span className="text-green-500">Saved</span>
+              <span className="text-green-500">{t("saved")}</span>
             </>
           )}
           {saveStatus === "error" && (
             <>
               <AlertCircle className="h-4 w-4 text-destructive" />
-              <span className="text-destructive">Error</span>
+              <span className="text-destructive">{t("error")}</span>
             </>
           )}
         </div>
@@ -80,13 +86,14 @@ export function DraftHeader({ saveStatus }: DraftHeaderProps) {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
+          <LanguageSwitcher />
           <Button variant="outline" size="sm" className="hidden sm:flex" disabled>
             <Languages className="mr-2 h-4 w-4" />
-            Translate
+            {tActions("translate")}
           </Button>
           
           <Button variant="default" size="sm" disabled>
-            Export
+            {tActions("export")}
             <Download className="ml-2 h-4 w-4" />
           </Button>
 
@@ -98,7 +105,7 @@ export function DraftHeader({ saveStatus }: DraftHeaderProps) {
             aria-label="Toggle citation drawer"
           >
             <PanelRight className="mr-2 h-4 w-4" />
-            {isCitationDrawerOpen ? "Hide Citations" : "Citations"}
+            {isCitationDrawerOpen ? t("hideCitations") : t("citations")}
           </Button>
         </div>
       </div>

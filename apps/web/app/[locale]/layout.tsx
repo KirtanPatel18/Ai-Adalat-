@@ -64,10 +64,13 @@ export default async function LocaleLayout({
   // Fetch translation messages
   const messages = await getMessages();
   const fontVariable = fontMap[locale] || geistSans.variable;
+  const isRtl = locale === "ur";
+  const dir = isRtl ? "rtl" : "ltr";
 
   return (
     <html
       lang={locale}
+      dir={dir}
       className={`${fontVariable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans relative">
