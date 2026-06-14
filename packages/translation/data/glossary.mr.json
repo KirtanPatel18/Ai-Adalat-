@@ -487,7 +487,223 @@
     "language": "mr",
     "domain": "rti",
     "status": "approved"
+  },
+  {
+    "id": "mr-ni-1881-cheque-bounce",
+    "term_en": "cheque bounce",
+    "term_indic": "धनादेश अनादरित होणे",
+    "language": "mr",
+    "domain": "banking",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ni-1881-drawer",
+    "term_en": "drawer",
+    "term_indic": "धनादेशकर्ता",
+    "language": "mr",
+    "domain": "banking",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ni-1881-drawee",
+    "term_en": "drawee",
+    "term_indic": "धनादेश स्वीकारणारी बँक",
+    "language": "mr",
+    "domain": "banking",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ni-1881-dishonour",
+    "term_en": "dishonour",
+    "term_indic": "अनादर",
+    "language": "mr",
+    "domain": "banking",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ni-1881-insufficient-funds",
+    "term_en": "insufficient funds",
+    "term_indic": "अपुरी रक्कम",
+    "language": "mr",
+    "domain": "banking",
+    "status": "approved"
+  },
+  {
+    "id": "mr-legal-dear-sir-madam",
+    "term_en": "dear sir/madam",
+    "term_indic": "महोदय/महोदया",
+    "language": "mr",
+    "domain": "legal_notice",
+    "status": "approved"
+  },
+  {
+    "id": "mr-legal-you-are-hereby-notified",
+    "term_en": "you are hereby notified that",
+    "term_indic": "आपणास यानुसार सूचित करण्यात येते की",
+    "language": "mr",
+    "domain": "legal_notice",
+    "status": "approved"
+  },
+  {
+    "id": "mr-legal-failing-which",
+    "term_en": "failing which",
+    "term_indic": "अन्यथा",
+    "language": "mr",
+    "domain": "legal_notice",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ni-1881-account-closed",
+    "term_en": "account closed",
+    "term_indic": "खाते बंद",
+    "language": "mr",
+    "node_id": "NI-1881/S-138",
+    "snapshot_id": "2026-05-19",
+    "act_code": "NI-1881",
+    "domain": "banking",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ni-1881-demand-notice",
+    "term_en": "demand notice",
+    "term_indic": "मागणी नोटीस",
+    "language": "mr",
+    "node_id": "NI-1881/S-138",
+    "snapshot_id": "2026-05-19",
+    "act_code": "NI-1881",
+    "domain": "legal_notice",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ni-1881-statutory-notice",
+    "term_en": "statutory notice",
+    "term_indic": "वैधानिक नोटीस",
+    "language": "mr",
+    "node_id": "NI-1881/S-138",
+    "snapshot_id": "2026-05-19",
+    "act_code": "NI-1881",
+    "domain": "legal_notice",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ni-1881-payee",
+    "term_en": "payee",
+    "term_indic": "देयक प्राप्तकर्ता",
+    "language": "mr",
+    "node_id": "NI-1881/S-138",
+    "snapshot_id": "2026-05-19",
+    "act_code": "NI-1881",
+    "domain": "banking",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ni-1881-bank-memo",
+    "term_en": "bank memo",
+    "term_indic": "बँक स्मरणपत्र",
+    "language": "mr",
+    "node_id": "NI-1881/S-138",
+    "snapshot_id": "2026-05-19",
+    "act_code": "NI-1881",
+    "domain": "banking",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ni-1881-returned-unpaid",
+    "term_en": "returned unpaid",
+    "term_indic": "अदा न होता परत",
+    "language": "mr",
+    "node_id": "NI-1881/S-138",
+    "snapshot_id": "2026-05-19",
+    "act_code": "NI-1881",
+    "domain": "banking",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ni-1881-section-138",
+    "term_en": "Section 138",
+    "term_indic": "कलम १३८",
+    "language": "mr",
+    "node_id": "NI-1881/S-138",
+    "snapshot_id": "2026-05-19",
+    "act_code": "NI-1881",
+    "domain": "cheque-bounce",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ni-1881-cheque-bounce-notice",
+    "term_en": "cheque bounce notice",
+    "term_indic": "धनादेश अनादर नोटीस",
+    "language": "mr",
+    "node_id": "NI-1881/S-138",
+    "snapshot_id": "2026-05-19",
+    "act_code": "NI-1881",
+    "domain": "cheque-bounce",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ni-1881-legal-liability",
+    "term_en": "legal liability",
+    "term_indic": "कायदेशीर दायित्व",
+    "language": "mr",
+    "node_id": "NI-1881/S-138",
+    "snapshot_id": "2026-05-19",
+    "act_code": "NI-1881",
+    "domain": "cheque-bounce",
+    "status": "approved"
+  },
+  {
+    "id": "mr-ni-1881-cheque-amount",
+    "term_en": "cheque amount",
+    "term_indic": "धनादेश रक्कम",
+    "language": "mr",
+    "node_id": "NI-1881/S-138",
+    "snapshot_id": "2026-05-19",
+    "act_code": "NI-1881",
+    "domain": "banking",
+    "status": "approved"
+  },
+  
+  {
+    "id": "mr-legal-within-15-days",
+    "term_en": "within 15 days",
+    "term_indic": "१५ दिवसांच्या आत",
+    "language": "mr",
+    "domain": "legal_notice",
+    "status": "approved"
+  },
+  {
+    "id": "mr-legal-appropriate-legal-action",
+    "term_en": "appropriate legal action",
+    "term_indic": "योग्य कायदेशीर कारवाई",
+    "language": "mr",
+    "domain": "legal_notice",
+    "status": "approved"
+  },
+  {
+    "id": "mr-legal-through-advocate",
+    "term_en": "through advocate",
+    "term_indic": "वकिलामार्फत",
+    "language": "mr",
+    "domain": "legal_notice",
+    "status": "approved"
+  },
+  {
+    "id": "mr-legal-without-prejudice",
+    "term_en": "without prejudice",
+    "term_indic": "कोणत्याही हक्कास बाधा न आणता",
+    "language": "mr",
+    "domain": "legal_notice",
+    "status": "approved"
+  },
+  {
+    "id": "mr-legal-cause-of-action",
+    "term_en": "cause of action",
+    "term_indic": "कारवाईचे कारण",
+    "language": "mr",
+    "domain": "legal_notice",
+    "status": "approved"
   }
+
   
 ]
 
