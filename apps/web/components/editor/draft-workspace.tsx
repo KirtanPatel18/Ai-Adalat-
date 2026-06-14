@@ -69,6 +69,7 @@ export function DraftWorkspace({
             onChange={setContent}
             isSaving={saveStatus === "saving"}
             lastSavedAt={lastSavedAt}
+            docType={initialDocument.doc_type}
           />
         </div>
 

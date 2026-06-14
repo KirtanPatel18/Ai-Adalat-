@@ -419,6 +419,16 @@ export function CitationDrawer() {
               <p className="text-sm text-muted-foreground leading-relaxed">
                 Add citation markers like `[CITE:RTI-2005/CH-II/S-6]` in the text to reference legal acts.
               </p>
+              {useDraftStore.getState().document?.doc_type === "rti_application" && (
+                <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-2 font-medium bg-indigo-50 dark:bg-indigo-950/30 p-2 rounded-md border border-indigo-100 dark:border-indigo-900/50">
+                  Hint: Try citing the <strong>RTI Act, 2005</strong>.
+                </p>
+              )}
+              {useDraftStore.getState().document?.doc_type === "cheque_bounce_notice" && (
+                <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-2 font-medium bg-indigo-50 dark:bg-indigo-950/30 p-2 rounded-md border border-indigo-100 dark:border-indigo-900/50">
+                  Hint: Try citing <strong>Negotiable Instruments Act, Section 138</strong>.
+                </p>
+              )}
             </div>
           </div>
         ) : (
