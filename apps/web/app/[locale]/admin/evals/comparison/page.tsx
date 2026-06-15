@@ -16,6 +16,10 @@ type ComparisonEvalRun = {
     total_citations: number;
     valid_citations: number;
     invalid_citations: string[];
+    hallucination_rate?: number;
+    completeness_score?: number;
+    hallucination_span_count?: number;
+    missing_section_count?: number;
   } | null;
   score: number | null;
   status: string;
@@ -120,7 +124,7 @@ export default function ComparisonPage() {
             Per-LLM Dashboard
           </Link>
           <Link
-            href="/sign-in"
+            href="/auth/sign-in"
             className="rounded-md bg-slate-900 px-3 py-2 text-sm text-white"
           >
             Admin login
@@ -146,8 +150,9 @@ export default function ComparisonPage() {
         </header>
 
         <div className="rounded-3xl border border-amber-200 bg-amber-50 px-6 py-4 text-sm text-amber-800 shadow-sm">
-          Hallucination rate, completeness, cost/run, and p95 latency columns
-          are pending — waiting on PR #231 (Kaushal) and GET route fix (Om).
+          Cost/run and p95 latency columns pending — waiting on Om&apos;s GET
+          route fix. Multi-model runs pending — waiting on Vercel API keys +
+          DeepSeek wiring (@YugGandhi).
         </div>
 
         {loading ? (
@@ -170,12 +175,10 @@ export default function ComparisonPage() {
                     <th className="px-5 py-4 font-medium">
                       Citation Validity (%)
                     </th>
-                    <th className="px-5 py-4 font-medium text-slate-400">
-                      Hallucination Rate
+                    <th className="px-5 py-4 font-medium">
+                      Hallucination Rate (%)
                     </th>
-                    <th className="px-5 py-4 font-medium text-slate-400">
-                      Completeness
-                    </th>
+                    <th className="px-5 py-4 font-medium">Completeness (%)</th>
                     <th className="px-5 py-4 font-medium text-slate-400">
                       Cost / Run
                     </th>
@@ -212,8 +215,16 @@ export default function ComparisonPage() {
                               ? `${(run.score * 100).toFixed(1)}%`
                               : "—"}
                         </td>
-                        <td className="px-5 py-4 text-slate-400">—</td>
-                        <td className="px-5 py-4 text-slate-400">—</td>
+                        <td className="px-5 py-4">
+                          {run.results?.hallucination_rate != null
+                            ? `${run.results.hallucination_rate.toFixed(1)}%`
+                            : "—"}
+                        </td>
+                        <td className="px-5 py-4">
+                          {run.results?.completeness_score != null
+                            ? `${run.results.completeness_score.toFixed(1)}%`
+                            : "—"}
+                        </td>
                         <td className="px-5 py-4 text-slate-400">—</td>
                         <td className="px-5 py-4 text-slate-400">—</td>
                         <td className="px-5 py-4">

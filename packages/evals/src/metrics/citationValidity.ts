@@ -1,5 +1,5 @@
 import type { EvalMetric, SnapshotId } from "@trionic/shared";
-import { pageindex } from "@trionic/pageindex";
+import { get_text } from "@trionic/pageindex";
 import type { Fixture } from "../types";
 
 interface GetTextResult {
@@ -24,8 +24,12 @@ export async function citationValidity(
   const invalidCitations: string[] = [];
 
   for (const marker of citeMarkers) {
-    const result = await pageindex.get_text({ node_id: marker.node_id });
-    if (!result) {
+    try {
+      const result = await get_text({ node_id: marker.node_id });
+      if (!result) {
+        invalidCitations.push(marker.node_id);
+      }
+    } catch {
       invalidCitations.push(marker.node_id);
     }
   }
