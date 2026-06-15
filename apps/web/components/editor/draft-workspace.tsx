@@ -9,6 +9,8 @@ import { CitationDrawer } from "./citation-drawer";
 import type { Document, Citation } from "@trionic/shared";
 import { cn } from "@/lib/utils";
 
+import { useTranslations } from "next-intl";
+
 interface DraftWorkspaceProps {
   documentId: string;
   initialDocument: Document;
@@ -26,6 +28,7 @@ export function DraftWorkspace({
   const setContent = useDraftStore((state) => state.setContent);
   const setDocument = useDraftStore((state) => state.setDocument);
   const isCitationDrawerOpen = useDraftStore((state) => state.isCitationDrawerOpen);
+  const tCommon = useTranslations("common");
 
   // Initialize store with server data on mount
   useEffect(() => {
@@ -52,7 +55,7 @@ export function DraftWorkspace({
       {/* Global Warning Banner */}
       <div className="flex items-center justify-center bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-800 dark:text-amber-400 border-b border-amber-500/20">
         <span className="mr-2">⚠</span>
-        AI-generated draft — not legal advice. Review before filing.
+        {tCommon("disclaimer")}
       </div>
 
       {/* Two Pane Layout */}
@@ -69,6 +72,7 @@ export function DraftWorkspace({
             onChange={setContent}
             isSaving={saveStatus === "saving"}
             lastSavedAt={lastSavedAt}
+            docType={useDraftStore((state) => state.document?.doc_type) ?? initialDocument.doc_type}
           />
         </div>
 

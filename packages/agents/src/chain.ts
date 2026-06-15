@@ -185,7 +185,9 @@ export async function* runAgentChain(
   const intakeHash = hashIntakeText(intake_text);
 
   // ── 1. Load existing memory ─────────────────────────────────────────────
+  console.log('[AGENT_CHAIN] Attempting to load existing memory for doc:', document_id);
   let state = await memory.load(document_id);
+  console.log('[AGENT_CHAIN] Memory loaded:', !!state);
   const isResume = state !== null;
 
   if (!state) {
@@ -237,7 +239,9 @@ export async function* runAgentChain(
         version: fresh.version + 1,
         last_classifier_output: classifierOutput,
       }));
+      console.log('[AGENT_CHAIN] Classifier memory saved');
     } catch (error) {
+      console.error('[AGENT_CHAIN] Error in classifier step:', error);
       const message = error instanceof Error ? error.message : String(error);
       yield stepError("classifier", message);
       return; // Abort chain

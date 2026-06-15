@@ -108,6 +108,72 @@ function loadNodes() {
     console.warn("Warning: Could not load crpc-tree.json", err);
   }
 
+  // Load IPC Tree
+  try {
+    const ipcPath = join(artifactsDir, "ipc-tree.json");
+    const ipcData = readFileSync(ipcPath, "utf-8");
+    const ipcNodes = JSON.parse(ipcData);
+    for (const node of ipcNodes) {
+      const node_id = node.node_id || node.id;
+      const normalizedNode: PageIndexNode = {
+        node_id,
+        snapshot_id: node.snapshot_id || "2024-12-01",
+        act_code: "IPC-1860",
+        act_name: "Indian Penal Code, 1860",
+        level: (node.level || "section") as NodeLevel,
+        number: node.number || node_id.split("-").pop() || "",
+        title: node.title || "",
+        text: node.text || node.text_content || "",
+        parent_id: node.parent_id || null,
+        children_ids: node.children_ids || [],
+        path: node.path || [node_id],
+        source_url: node.source_url || "https://indiacode.nic.in"
+      };
+      allNodesMap.set(normalizedNode.node_id, normalizedNode);
+    }
+  } catch (err) {
+    console.warn("Warning: Could not load ipc-tree.json", err);
+  }
+
+  // Load NI Act Tree
+  try {
+    const niActPath = join(artifactsDir, "ni-act-tree.json");
+    const niActData = readFileSync(niActPath, "utf-8");
+    const niActTree = JSON.parse(niActData);
+
+    const flattenNiNode = (node: any, parentId: string | null = null, path: string[] = []) => {
+      const currentPath = [...path, node.node_id];
+      const childrenIds = node.children ? node.children.map((c: any) => c.node_id) : [];
+      
+      const normalizedNode: PageIndexNode = {
+        node_id: node.node_id,
+        snapshot_id: node.snapshot_id || "2026-06-11",
+        act_code: "NI-1881",
+        act_name: "Negotiable Instruments Act, 1881",
+        level: (node.level || "section") as NodeLevel,
+        number: node.section_number || node.node_id.split("-").pop() || "",
+        title: node.title || "",
+        text: node.text || "",
+        parent_id: node.parent_id || parentId,
+        children_ids: childrenIds,
+        path: currentPath,
+        source_url: "https://indiacode.nic.in"
+      };
+      
+      allNodesMap.set(normalizedNode.node_id, normalizedNode);
+      
+      if (node.children) {
+        for (const child of node.children) {
+          flattenNiNode(child, node.node_id, currentPath);
+        }
+      }
+    };
+
+    flattenNiNode(niActTree);
+  } catch (err) {
+    console.warn("Warning: Could not load ni-act-tree.json", err);
+  }
+
   // Load RTI Act Tree
   try {
     let rtiPath = join(artifactsDir, "rti-act-2005.json");
@@ -208,7 +274,7 @@ export async function search(query: string, scope?: SearchScope, top_k: number =
   }
 
   // If DB/OpenAI is configured, use hybrid search
-  if (supabase && process.env.OPENAI_API_KEY) {
+  if (supabase && openai) {
     let filterScopes: string[] | null = null;
     if (scope) {
       if (scope.act_codes && scope.act_codes.length > 0) {

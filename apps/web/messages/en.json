@@ -53,7 +53,20 @@
     "expandParent": "Expand parent or hover badge to fetch full text.",
     "noCitationsFound": "No Citations Found",
     "addCitationMarkers": "Add citation markers like `[CITE:RTI-2005/CH-II/S-6]` in the text to reference legal acts.",
-    "clickPathsToExpand": "Click paths to expand. Section clicks highlight & scroll editor to marker."
+    "clickPathsToExpand": "Click paths to expand. Section clicks highlight & scroll editor to marker.",
+    "steps": {
+      "classifier": "Classifying your issue",
+      "planner": "Identifying applicable Acts",
+      "pageindex": "Retrieving legal sections",
+      "drafter": "Drafting document",
+      "citator": "Verifying citations",
+      "reviewer": "Performing final review",
+      "translator": "Translating draft",
+      "usuallyTakes": "Usually takes ~30 seconds",
+      "generationInterrupted": "Generation Interrupted",
+      "cancelGeneration": "Cancel Generation",
+      "goBack": "Go back"
+    }
   },
   "onboarding": {
     "welcome": "Welcome to Trionic Adalat",
@@ -68,7 +81,7 @@
   "common": {
     "brandName": "Trionic Adalat",
     "disclaimer": "AI-generated draft — not legal advice. Review before filing.",
-    "newDraft": "+ New draft",
+    "newDraft": "New draft",
     "signIn": "Sign in",
     "signOut": "Sign out"
   },
@@ -103,6 +116,8 @@
     "subtitle": "Manage your legal drafts, generate new documents, and review citations.",
     "searchPlaceholder": "Search...",
     "emptyState": "No drafts yet — start one with [+ New draft]",
+    "emptyStateTitle": "No drafts found",
+    "emptyStateDesc": "You haven't created any legal documents yet. Start drafting now.",
     "empty": "No drafts yet — start one with [+ New draft]",
     "search": "Search",
     "mockTitleRti": "RTI – Municipal records",
@@ -141,18 +156,25 @@
     "backButton": "Back",
     "docTypeQuestion": "What kind of document do you need?",
     "docTypeOptionAi": "Let our AI decide based on what you describe",
+    "docTypeOptionAiDesc": "Classifier routes to the correct legal domain automatically.",
     "docTypeOptionRti": "RTI application",
+    "docTypeOptionRtiDesc": "Right to Information requests under Section 6 of RTI Act, 2005.",
     "docTypeOptionNotice": "Legal notice",
+    "docTypeOptionNoticeDesc": "Demand letters, tenant deposit recoveries, contract notices.",
     "docTypeOptionNda": "NDA",
+    "docTypeOptionNdaDesc": "Non-Disclosure Agreement for confidential partnerships.",
     "docTypeOptionConsumer": "Consumer complaint",
+    "docTypeOptionConsumerDesc": "Consumer Protection Act filings for deficient goods/services.",
     "docTypeOptionCheque": "Cheque-bounce notice",
+    "docTypeOptionChequeDesc": "Formal demand under Section 138 of Negotiable Instruments Act.",
     "situationQuestion": "What's the situation?",
     "situationPlaceholder": "Describe your issue in your own words. The more context, the better the draft. Names and identifying details stay on your device until you export.",
     "languageQuestion": "Draft language",
     "submitButton": "Generate draft →",
     "issueTitle": "What is your legal issue?",
     "placeholder": "Describe your issue here...",
-    "submit": "Submit Issue"
+    "submit": "Submit Issue",
+    "loading": "Generating..."
   },
   "settings": {
     "title": "Settings",

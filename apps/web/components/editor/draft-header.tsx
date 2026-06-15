@@ -1,9 +1,17 @@
 import { AlertCircle, CheckCircle2, Loader2, Save, PanelRight, ArrowLeft, Languages, Download } from "lucide-react";
 import { SaveStatus } from "../../hooks/use-autosave";
 import { useDraftStore } from "../../hooks/use-draft-store";
-import { StatusBadge } from "../../app/dashboard/_components/status-badge";
+import { StatusBadge } from "@/app/[locale]/dashboard/_components/status-badge";
 import Link from "next/link";
 import { Button } from "../ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import type { DocumentType } from "@trionic/shared";
 
 interface DraftHeaderProps {
   saveStatus: SaveStatus;
@@ -13,6 +21,25 @@ export function DraftHeader({ saveStatus }: DraftHeaderProps) {
   const documentData = useDraftStore((state) => state.document);
   const isCitationDrawerOpen = useDraftStore((state) => state.isCitationDrawerOpen);
   const toggleCitationDrawer = useDraftStore((state) => state.toggleCitationDrawer);
+  const updateDocType = useDraftStore((state) => state.updateDocType);
+
+  const content = useDraftStore((state) => state.content);
+
+  const handleExport = () => {
+    if (!content) return;
+    const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    const filename = documentData?.title 
+      ? `${documentData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.md`
+      : "legal-draft.md";
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between border-b bg-background px-6 py-3 shrink-0">
@@ -31,6 +58,24 @@ export function DraftHeader({ saveStatus }: DraftHeaderProps) {
 
         {documentData?.status && (
           <StatusBadge status={documentData.status} />
+        )}
+
+        {documentData && (
+          <Select 
+            value={documentData.doc_type} 
+            onValueChange={(val) => updateDocType(val as DocumentType)}
+          >
+            <SelectTrigger className="w-[180px] h-8 text-xs font-medium">
+              <SelectValue placeholder="Select type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="rti_application">RTI Application</SelectItem>
+              <SelectItem value="legal_notice">Legal Notice</SelectItem>
+              <SelectItem value="nda">NDA</SelectItem>
+              <SelectItem value="consumer_complaint">Consumer Complaint</SelectItem>
+              <SelectItem value="cheque_bounce_notice">Cheque Bounce Notice</SelectItem>
+            </SelectContent>
+          </Select>
         )}
         
         {/* Pinned AI Banner */}
@@ -84,8 +129,7 @@ export function DraftHeader({ saveStatus }: DraftHeaderProps) {
             <Languages className="mr-2 h-4 w-4" />
             Translate
           </Button>
-          
-          <Button variant="default" size="sm" disabled>
+          <Button variant="default" size="sm" onClick={handleExport} disabled={!content}>
             Export
             <Download className="ml-2 h-4 w-4" />
           </Button>

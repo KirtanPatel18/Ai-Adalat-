@@ -31,7 +31,7 @@ export class MemoryConflictError extends Error {
   constructor(documentId: string, expected: number, actual: number) {
     super(
       `Memory version conflict for document ${documentId}: ` +
-      `expected version ${expected}, found ${actual}. Re-load and retry.`
+        `expected version ${expected}, found ${actual}. Re-load and retry.`,
     );
     this.name = "MemoryConflictError";
   }
@@ -56,7 +56,10 @@ export interface MemoryStore {
  */
 export interface MemoryApi {
   load(documentId: string): Promise<ConversationState | null>;
-  save(documentId: string, state: ConversationState): Promise<ConversationState>;
+  save(
+    documentId: string,
+    state: ConversationState,
+  ): Promise<ConversationState>;
   clear(documentId: string): Promise<void>;
 }
 
@@ -109,17 +112,17 @@ export class SupabaseStore implements MemoryStore {
   async get(documentId: string): Promise<ConversationState | null> {
     const { data, error } = await this.supabase
       .from("documents")
-      .select("state")
+      .select("conversation_state")
       .eq("id", documentId)
       .single();
-    if (error || !data?.state) return null;
-    return data.state as ConversationState;
+    if (error || !data?.conversation_state) return null;
+    return data.conversation_state as ConversationState;
   }
 
   async set(documentId: string, state: ConversationState): Promise<void> {
     const { error } = await this.supabase
       .from("documents")
-      .update({ state })
+      .update({ conversation_state: state })
       .eq("id", documentId);
     if (error) throw new Error(`Memory save failed: ${error.message}`);
   }
@@ -180,11 +183,18 @@ export class Memory implements MemoryApi {
    * @param state - The ConversationState to persist.
    * @throws MemoryConflictError if a concurrent write bumped the version.
    */
-  async save(documentId: string, state: ConversationState): Promise<ConversationState> {
+  async save(
+    documentId: string,
+    state: ConversationState,
+  ): Promise<ConversationState> {
     // Optimistic concurrency check
     const existing = await this.store.get(documentId);
     if (existing && existing.version >= state.version) {
-      throw new MemoryConflictError(documentId, state.version, existing.version);
+      throw new MemoryConflictError(
+        documentId,
+        state.version,
+        existing.version,
+      );
     }
 
     // Stamp updated_at
@@ -216,7 +226,7 @@ export class Memory implements MemoryApi {
  */
 export function createInitialState(
   documentId: string,
-  intakeTextHash: string
+  intakeTextHash: string,
 ): ConversationState {
   return {
     schema_version: 1,

@@ -219,9 +219,9 @@ export async function* runIterationChain(
     // Reconstruct a DocumentDraft from the persisted state
     const previousDraft: DocumentDraft = {
       id: document_id,
-      document_type: currentState.last_planner_output.document_type,
+      document_type: currentState.last_planner_output!.document_type,
       language: "en", // Drafter always produces English
-      content: currentState.last_draft_content,
+      content: currentState.last_draft_content!,
       citations: currentState.last_citations ?? [],
       traces: [],
       created_at: new Date().toISOString(),

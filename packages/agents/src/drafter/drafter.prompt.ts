@@ -172,6 +172,27 @@ export function buildDrafterUserPrompt(
           .join("\n\n")
       : "  (none retrieved)";
 
+  let requiredHeaders = "";
+  switch (plan.document_type) {
+    case "rti_application":
+      requiredHeaders = "  - ## Address\n  - ## Subject\n  - ## Information Sought\n  - ## Declaration";
+      break;
+    case "legal_notice":
+      requiredHeaders = "  - ## Sender\n  - ## Recipient\n  - ## Cause\n  - ## Demand\n  - ## Deadline";
+      break;
+    case "nda":
+      requiredHeaders = "  - ## Parties\n  - ## Purpose\n  - ## Confidential Info\n  - ## Term\n  - ## Remedies";
+      break;
+    case "consumer_complaint":
+      requiredHeaders = "  - ## Complainant\n  - ## Opposite Party\n  - ## Goods/Service\n  - ## Deficiency\n  - ## Relief";
+      break;
+    case "cheque_bounce_notice":
+      requiredHeaders = "  - ## Drawer\n  - ## Drawee\n  - ## Cheque Details\n  - ## Section 138 Invocation\n  - ## Demand";
+      break;
+    default:
+      requiredHeaders = "  - ## General Details";
+  }
+
   return `## Drafting Request
 
 ### User's Original Request
@@ -200,8 +221,10 @@ MANDATORY:
 2. Every legal claim MUST have a [CITE:<node_id>] marker immediately after it.
 3. Use the exact [CITE:<node_id>] markers from the retrieved legal sections above where applicable. If not present in the retrieved sections list, derive node IDs from the applicable acts above using the format: <ACT_CODE>/<CHAPTER_OR_PART>/<SECTION>
    For example, if the act is RTI-2005 and you cite Section 7, use: [CITE:RTI-2005/CH-II/S-7]
-4. Use TODAY'S date (${new Date().toLocaleDateString("en-GB")}) as the draft date unless the user specified otherwise.
-5. Use placeholder text [FULL NAME], [ADDRESS], [DATE], [DESIGNATION] where the user must fill in personal details.
+4. Use EXACTLY the following Markdown headers for your sections. DO NOT invent your own headers or use numbers in the headers. You MUST use these exact headings:
+${requiredHeaders}
+5. Use TODAY'S date (${new Date().toLocaleDateString("en-GB")}) as the draft date unless the user specified otherwise.
+6. Use placeholder text [FULL NAME], [ADDRESS], [DATE], [DESIGNATION] where the user must fill in personal details.
 
 Output ONLY the Markdown document. No preamble, no explanation, no code fences.`;
 }

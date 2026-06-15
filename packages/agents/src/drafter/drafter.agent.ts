@@ -33,7 +33,7 @@ import {
 } from "./drafter.prompt.js";
 import { extractCitations, extractNodeIds } from "./citations.js";
 import type { DrafterInput, DrafterResult } from "./types.js";
-import { pageindex, type AgnoSearchResult } from "@trionic/pageindex";
+import { getPageIndex, type AgnoSearchResult } from "@trionic/pageindex";
 import { ROUTER_CONFIG } from "../router/router.config.js";
 
 // ─── runDrafter ───────────────────────────────────────────────────────────────
@@ -58,7 +58,7 @@ export async function runDrafter(input: DrafterInput): Promise<DrafterResult> {
   try {
     // 1. Query PageIndex for each hint query in plan.pageindex_queries
     const searchPromises = plan.pageindex_queries.map((q) =>
-      pageindex.search({ query: q, top_k: 3 }).catch((err: any) => {
+      getPageIndex().search({ query: q, top_k: 3 }).catch((err: any) => {
         console.warn(`[Drafter] PageIndex search failed for query "${q}":`, err);
         return [] as AgnoSearchResult[];
       })
@@ -121,7 +121,7 @@ export async function runDrafter(input: DrafterInput): Promise<DrafterResult> {
     const citations = await Promise.all(
       rawCitations.map(async (citation) => {
         try {
-          const res = await pageindex.get_text({ node_id: citation.node_id });
+          const res = await getPageIndex().get_text({ node_id: citation.node_id });
           if (res) {
             return {
               ...citation,
@@ -215,7 +215,7 @@ export async function reviseDraft(
     const citations = await Promise.all(
       rawCitations.map(async (citation) => {
         try {
-          const res = await pageindex.get_text({ node_id: citation.node_id });
+          const res = await getPageIndex().get_text({ node_id: citation.node_id });
           if (res) {
             return {
               ...citation,

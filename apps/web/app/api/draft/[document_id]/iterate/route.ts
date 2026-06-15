@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-// @ts-expect-error - Expected error from createRouteHandlerClient (nextjs-auth-helpers signature)
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
 import type { IterateRequest, AgentStreamEvent } from "@trionic/shared";
 // @ts-ignore - Ignore module import if agents package is not compiled yet in monorepo bootstrap
 import { runIterationChain, SupabaseStore } from "@trionic/agents";
@@ -49,9 +47,9 @@ function validateIterateRequest(body: unknown): { error?: string; validatedData?
  */
 export async function POST(
   req: Request,
-  { params }: { params: { document_id: string } }
+  { params }: { params: Promise<{ document_id: string }> }
 ) {
-  const { document_id } = params;
+  const { document_id } = await params;
 
   // 1. Validate document_id format
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -63,9 +61,9 @@ export async function POST(
   }
 
   // 2. Initialize Supabase Route Handler client
-  let supabase: ReturnType<typeof createRouteHandlerClient>;
+  let supabase: Awaited<ReturnType<typeof createClient>>;
   try {
-    supabase = createRouteHandlerClient({ cookies });
+    supabase = await createClient();
   } catch (err) {
     return NextResponse.json(
       {
@@ -78,15 +76,15 @@ export async function POST(
   }
 
   // 3. Authenticate the caller
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  const { data: { user }, error: sessionError } = await supabase.auth.getUser();
   if (sessionError) {
-    console.error("Supabase getSession error:", sessionError);
+    console.error("Supabase getUser error:", sessionError);
     return NextResponse.json(
       { error: "unauthorized", message: "Failed to get session", details: sessionError.message },
       { status: 401 }
     );
   }
-  if (!session) {
+  if (!user) {
     return NextResponse.json(
       { error: "unauthorized", message: "Unauthorized session: active session is required" },
       { status: 401 }
@@ -157,7 +155,7 @@ export async function POST(
       document_id,
       instruction: iterateReq.instruction,
       target_language: document.language || "en",
-      session_id: session.user.id,
+      session_id: user.id,
     },
     {
       memoryStore,
@@ -213,7 +211,7 @@ export async function POST(
                   version_num: currentNextVersion,
                   body_markdown: event.response.body_markdown,
                   change_note: iterateReq.instruction,
-                  created_by: session.user.id,
+                  created_by: user.id,
                 })
                 .select("id")
                 .single();
@@ -247,12 +245,11 @@ export async function POST(
               throw new Error("Failed to save iteration version due to persistent concurrency conflicts.");
             }
 
-            // Update document status to final and current_version_id
+            // Update document status to final
             const { error: updateError } = await supabase
               .from("documents")
               .update({
                 status: "final",
-                current_version_id: newVersion.id,
                 updated_at: new Date().toISOString(),
               })
               .eq("id", document_id);

@@ -1,10 +1,36 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Loader2, CheckCircle2, Edit3, Eye } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Loader2, CheckCircle2, Edit3, Eye, Plus } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragStartEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { cn } from "@/lib/utils";
 import { useDraftStore } from "../../hooks/use-draft-store";
 import { formatNodeIdToBreadcrumb } from "@/lib/citation-utils";
+import {
+  parseMarkdownToSections,
+  serializeSectionsToMarkdown,
+  fetchTemplate,
+  SectionData,
+  DocumentTemplate,
+} from "@/lib/document-templates";
+import { DraftSection } from "./draft-section";
+import type { DocumentType } from "@trionic/shared";
+import { useTranslations } from "next-intl";
 
 interface DraftEditorProps {
   value: string;
@@ -12,6 +38,7 @@ interface DraftEditorProps {
   isSaving?: boolean;
   lastSavedAt?: Date | null;
   className?: string;
+  docType?: DocumentType;
 }
 
 function CitationBadge({ nodeId, index }: { nodeId: string; index: number }) {
@@ -23,6 +50,7 @@ function CitationBadge({ nodeId, index }: { nodeId: string; index: number }) {
   const setActiveCitationNodeId = useDraftStore((state) => state.setActiveCitationNodeId);
   const toggleCitationDrawer = useDraftStore((state) => state.toggleCitationDrawer);
   const isCitationDrawerOpen = useDraftStore((state) => state.isCitationDrawerOpen);
+  const t = useTranslations("draft");
 
   const handleMouseEnter = async () => {
     setHovered(true);
@@ -34,18 +62,18 @@ function CitationBadge({ nodeId, index }: { nodeId: string; index: number }) {
         const data = await res.json();
         setNodeText({
           title: data.title || formatNodeIdToBreadcrumb(nodeId),
-          text: data.text || "Legal text content not found."
+          text: data.text || t("legalTextNotFound")
         });
       } else {
         setNodeText({
           title: formatNodeIdToBreadcrumb(nodeId),
-          text: "Failed to fetch node text from PageIndex."
+          text: t("failedToFetchNode")
         });
       }
     } catch {
       setNodeText({
         title: formatNodeIdToBreadcrumb(nodeId),
-        text: "Error connecting to PageIndex API."
+        text: t("errorConnecting")
       });
     } finally {
       setLoading(false);
@@ -87,16 +115,15 @@ function CitationBadge({ nodeId, index }: { nodeId: string; index: number }) {
           ? "bg-indigo-600 text-white border-indigo-650 ring-2 ring-indigo-400 shadow-md scale-105"
           : "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border-indigo-250 dark:border-indigo-900 hover:bg-indigo-100 dark:hover:bg-indigo-900"
       )}
-      title={`Click to view citation ${index + 1} in drawer`}
     >
       {index + 1}
       {hovered && (
         <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2.5 w-64 p-3 bg-slate-950 dark:bg-white text-white dark:text-slate-900 text-xs rounded-xl shadow-2xl font-sans leading-relaxed pointer-events-none z-50 border border-slate-800 dark:border-slate-200 text-left font-normal animate-in fade-in zoom-in-95 duration-100">
           <span className="block font-bold text-xs border-b border-slate-800 dark:border-slate-200 pb-1 mb-1.5 font-serif text-white dark:text-slate-950">
-            {loading ? "Loading..." : nodeText?.title}
+            {loading ? t("loading") : nodeText?.title}
           </span>
           <span className="block text-[11px] text-slate-300 dark:text-slate-650 max-h-32 overflow-y-auto scrollbar-none">
-            {loading ? "Fetching legal text from PageIndex..." : nodeText?.text}
+            {loading ? t("fetchingNode") : nodeText?.text}
           </span>
           <span className="absolute top-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-t-slate-950 dark:border-t-white" />
         </span>
@@ -111,42 +138,112 @@ export function DraftEditor({
   isSaving = false,
   lastSavedAt,
   className,
+  docType,
 }: DraftEditorProps) {
-  const [localValue, setLocalValue] = useState(value);
-  const [mode, setMode] = useState<"edit" | "preview">("preview"); // Default to preview for the wow factor
+  const t = useTranslations("draft");
+  const [sections, setSections] = useState<SectionData[]>([]);
+  const [template, setTemplate] = useState<DocumentTemplate | null>(null);
+  const [mode, setMode] = useState<"edit" | "preview">("preview");
   const citations = useDraftStore((state) => state.citations);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
-  // Sync local state if external value changes (e.g. initial server load)
+  // Initialize Template and Sections
   useEffect(() => {
-    setLocalValue(value);
-  }, [value]);
+    let active = true;
+    async function loadTemplate() {
+      if (!docType) return;
+      const tpl = await fetchTemplate(docType);
+      if (active) {
+        setTemplate(tpl);
+        setSections(parseMarkdownToSections(value, tpl));
+      }
+    }
+    loadTemplate();
+    return () => { active = false; };
+    // Only re-run when docType changes. 
+    // We intentionally ignore `value` changes from upstream to avoid blowing away local editor state while editing.
+    // In a real app, you might sync it carefully if the external value changed outside this component.
+  }, [docType]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Debounced input handling
+  // Extract citations dynamically from edited text to update the drawer list
   useEffect(() => {
     const handler = setTimeout(() => {
-      if (localValue !== value) {
-        onChange(localValue);
-        
-        // Extract citations dynamically from edited text to update the drawer list
-        const matches = Array.from(localValue.matchAll(/\[CITE:([^\]]+)\]/g));
-        const dynamicCitations = matches.map((match) => ({
-          node_id: match[1],
-          snapshot_id: "2026-05-28",
-          span: [match.index!, match.index! + match[0].length] as [number, number]
-        }));
-        
-        // Update store citations dynamically
-        useDraftStore.setState({ citations: dynamicCitations });
+      // Serialize to get full text
+      const fullText = serializeSectionsToMarkdown(sections);
+      
+      // Update upstream value
+      if (fullText !== value) {
+        onChange(fullText);
       }
+      
+      const matches = Array.from(fullText.matchAll(/\[CITE:([^\]]+)\]/g));
+      const dynamicCitations = matches.map((match) => ({
+        node_id: match[1],
+        snapshot_id: "2026-05-28",
+        span: [match.index!, match.index! + match[0].length] as [number, number]
+      }));
+      
+      // Update store citations dynamically
+      useDraftStore.setState({ citations: dynamicCitations });
     }, 500);
 
     return () => clearTimeout(handler);
-  }, [localValue, onChange, value]);
+  }, [sections, onChange, value]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setLocalValue(e.target.value);
+  const handleSectionChange = (id: string, newContent: string) => {
+    setSections((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, content: newContent } : s))
+    );
   };
 
+  const handleRemoveSection = (id: string) => {
+    setSections((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const handleAddSection = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const title = e.target.value;
+    if (!title) return;
+    
+    setSections((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), title, content: "", required: false },
+    ]);
+    // Reset select
+    e.target.value = "";
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+
+    if (over && active.id !== over.id) {
+      setSections((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  const availableSectionsToAdd = useMemo(() => {
+    if (!template) return [];
+    return template.allowedSections.filter(
+      (as) => !sections.some((s) => s.title.toLowerCase() === as.title.toLowerCase())
+    );
+  }, [template, sections]);
+
+  // Preview parsing
   const renderInline = (text: string) => {
     const regex = /(\*\*.*?\*\*|\[CITE:[^\]]+\])/g;
     const parts = text.split(regex);
@@ -179,22 +276,22 @@ export function DraftEditor({
 
       // Check for headers
       if (trimmed.startsWith("# ")) {
-        return <h1 key={pIdx} className="text-2xl font-extrabold mb-4 mt-6 text-foreground tracking-tight border-b pb-2 font-sans">{renderInline(trimmed.substring(2))}</h1>;
+        return <h1 key={pIdx} className="text-2xl font-extrabold mb-4 mt-6 text-foreground tracking-tight border-b pb-2 font-sans break-words">{renderInline(trimmed.substring(2))}</h1>;
       }
       if (trimmed.startsWith("## ")) {
-        return <h2 key={pIdx} className="text-xl font-bold mb-3 mt-5 text-foreground tracking-tight font-sans">{renderInline(trimmed.substring(3))}</h2>;
+        return <h2 key={pIdx} className="text-xl font-bold mb-3 mt-5 text-foreground tracking-tight font-sans break-words">{renderInline(trimmed.substring(3))}</h2>;
       }
       if (trimmed.startsWith("### ")) {
-        return <h3 key={pIdx} className="text-lg font-bold mb-2 mt-4 text-foreground tracking-tight font-sans">{renderInline(trimmed.substring(4))}</h3>;
+        return <h3 key={pIdx} className="text-lg font-bold mb-2 mt-4 text-foreground tracking-tight font-sans break-words">{renderInline(trimmed.substring(4))}</h3>;
       }
 
       // Check for bullet lists
       if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
         const items = trimmed.split(/\n[*+-]\s+/);
         return (
-          <ul key={pIdx} className="list-disc pl-6 space-y-2 mb-4">
+          <ul key={pIdx} className="list-disc pl-6 space-y-2 mb-4 break-words">
             {items.map((item, iIdx) => (
-              <li key={iIdx} className="text-foreground leading-relaxed">
+              <li key={iIdx} className="text-foreground leading-relaxed break-words">
                 {renderInline(item.replace(/^[*+-]\s+/, ""))}
               </li>
             ))}
@@ -204,7 +301,7 @@ export function DraftEditor({
 
       // Regular paragraph
       return (
-        <p key={pIdx} className="text-foreground leading-relaxed mb-4 text-justify font-serif text-[15px]">
+        <p key={pIdx} className="text-foreground leading-relaxed mb-4 text-justify font-serif text-[15px] break-words">
           {renderInline(trimmed)}
         </p>
       );
@@ -228,7 +325,7 @@ export function DraftEditor({
               )}
             >
               <Eye className="h-3.5 w-3.5" />
-              Preview
+              {t("preview")}
             </button>
             <button
               onClick={() => setMode("edit")}
@@ -240,7 +337,7 @@ export function DraftEditor({
               )}
             >
               <Edit3 className="h-3.5 w-3.5" />
-              Edit Markdown
+              {t("edit")}
             </button>
           </div>
         </div>
@@ -250,15 +347,15 @@ export function DraftEditor({
           {isSaving ? (
             <span className="flex items-center gap-1.5 text-blue-500">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Saving...
+              {t("saving")}
             </span>
           ) : lastSavedAt ? (
             <span className="flex items-center gap-1.5 text-green-600 dark:text-green-500">
               <CheckCircle2 className="h-3.5 w-3.5" />
-              Saved at {lastSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {t("savedAt", { time: lastSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })}
             </span>
           ) : (
-            <span className="text-muted-foreground/50">Ready</span>
+            <span className="text-muted-foreground/50">{t("ready")}</span>
           )}
         </div>
       </div>
@@ -266,17 +363,51 @@ export function DraftEditor({
       {/* Editor Body */}
       <div className="relative flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
         {mode === "edit" ? (
-          <textarea
-            value={localValue}
-            onChange={handleChange}
-            placeholder="Start drafting your legal document..."
-            className="h-full w-full resize-none bg-transparent outline-none font-mono text-sm md:text-base leading-relaxed text-foreground placeholder:text-muted-foreground focus:ring-0"
-            spellCheck={false}
-          />
+          <div className="max-w-3xl mx-auto space-y-6 pb-20">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={sections.map((s) => s.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-4">
+                  {sections.map((section) => (
+                    <DraftSection
+                      key={section.id}
+                      section={section}
+                      onChange={handleSectionChange}
+                      onRemove={handleRemoveSection}
+                      isActive={activeId === section.id}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+
+            {/* Add Section Select */}
+            {availableSectionsToAdd.length > 0 && (
+              <div className="flex items-center gap-2 pt-4 border-t border-dashed">
+                <select
+                  className="px-3 py-1.5 text-sm border rounded-md bg-transparent text-foreground outline-none focus:ring-1 focus:ring-primary"
+                  onChange={handleAddSection}
+                  defaultValue=""
+                >
+                  <option value="" disabled>+ Add Section</option>
+                  {availableSectionsToAdd.map((sec) => (
+                    <option key={sec.id} value={sec.title}>{sec.title}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
         ) : (
           <div className="bg-background select-text max-w-3xl mx-auto py-4 animate-in fade-in duration-200">
             <div className="prose dark:prose-invert max-w-none">
-              {parseMarkdown(localValue)}
+              {parseMarkdown(serializeSectionsToMarkdown(sections))}
             </div>
           </div>
         )}
