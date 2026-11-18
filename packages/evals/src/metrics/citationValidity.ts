@@ -25,7 +25,7 @@ export async function citationValidity(
 
   for (const marker of citeMarkers) {
     try {
-      const result = await get_text({ node_id: marker.node_id });
+      const result = await get_text(marker.node_id);
       if (!result) {
         invalidCitations.push(marker.node_id);
       }
