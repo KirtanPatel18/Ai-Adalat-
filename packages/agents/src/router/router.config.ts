@@ -35,48 +35,48 @@ export interface StepRouteConfig {
 export const ROUTER_CONFIG: Record<string, StepRouteConfig> = {
   classifier: {
     preferred: {
-      provider: "deepseek",
-      model: "deepseek-chat",
+      provider: "gemini",
+      model: "gemini-3.1-flash-lite",
       maxTokens: 512,
       temperature: 0.1,
     },
   },
   planner: {
     preferred: {
-      provider: "deepseek",
-      model: "deepseek-chat",
+      provider: "gemini",
+      model: "gemini-3.1-flash-lite",
       maxTokens: 1024,
       temperature: 0.2,
     },
   },
   drafter: {
     preferred: {
-      provider: "deepseek",
-      model: "deepseek-chat",
+      provider: "gemini",
+      model: "gemini-3.1-flash-lite",
       maxTokens: 4096,
       temperature: 0.3,
     },
   },
   citator: {
     preferred: {
-      provider: "deepseek",
-      model: "deepseek-chat",
+      provider: "gemini",
+      model: "gemini-3.1-flash-lite",
       maxTokens: 512,
       temperature: 0.0,
     },
   },
   reviewer: {
     preferred: {
-      provider: "deepseek",
-      model: "deepseek-chat",
+      provider: "gemini",
+      model: "gemini-3.1-flash-lite",
       maxTokens: 1024,
       temperature: 0.2,
     },
   },
   translator: {
     preferred: {
-      provider: "deepseek",
-      model: "deepseek-chat",
+      provider: "gemini",
+      model: "gemini-3.1-flash-lite",
       maxTokens: 2048,
       temperature: 0.1,
     },
@@ -86,8 +86,8 @@ export const ROUTER_CONFIG: Record<string, StepRouteConfig> = {
 /** Default config used if a step is not found in ROUTER_CONFIG. */
 export const DEFAULT_ROUTE_CONFIG: StepRouteConfig = {
   preferred: {
-    provider: "deepseek",
-    model: "deepseek-chat",
+    provider: "gemini",
+    model: "gemini-3.1-flash-lite",
     maxTokens: 1024,
     temperature: 0.2,
   }
