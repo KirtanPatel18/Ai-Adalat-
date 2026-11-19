@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Loader2, CheckCircle2, Edit3, Eye, Plus } from "lucide-react";
 import {
   DndContext,
@@ -146,6 +146,7 @@ export function DraftEditor({
   const [mode, setMode] = useState<"edit" | "preview">("preview");
   const citations = useDraftStore((state) => state.citations);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const userEditedRef = useRef(false);
 
   // Initialize Template and Sections
   useEffect(() => {
@@ -168,6 +169,9 @@ export function DraftEditor({
   // Extract citations dynamically from edited text to update the drawer list
   useEffect(() => {
     const handler = setTimeout(() => {
+      // Only sync upstream after the user actually edited. Otherwise stale
+      // template-only sections overwrite the real draft and its citations.
+      if (!userEditedRef.current) return;
       // Serialize to get full text
       const fullText = serializeSectionsToMarkdown(sections);
       
@@ -191,18 +195,21 @@ export function DraftEditor({
   }, [sections, onChange, value]);
 
   const handleSectionChange = (id: string, newContent: string) => {
+    userEditedRef.current = true;
     setSections((prev) =>
       prev.map((s) => (s.id === id ? { ...s, content: newContent } : s))
     );
   };
 
   const handleRemoveSection = (id: string) => {
+    userEditedRef.current = true;
     setSections((prev) => prev.filter((s) => s.id !== id));
   };
 
   const handleAddSection = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const title = e.target.value;
     if (!title) return;
+    userEditedRef.current = true;
     
     setSections((prev) => [
       ...prev,
@@ -228,6 +235,7 @@ export function DraftEditor({
     setActiveId(null);
 
     if (over && active.id !== over.id) {
+      userEditedRef.current = true;
       setSections((items) => {
         const oldIndex = items.findIndex((i) => i.id === active.id);
         const newIndex = items.findIndex((i) => i.id === over.id);

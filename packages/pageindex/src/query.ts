@@ -1,4 +1,4 @@
-import { readFileSync } from "fs";
+import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { NodeNotFoundError, InvalidQueryError } from "./errors.js";
 import { createClient } from "@supabase/supabase-js";
@@ -10,7 +10,18 @@ const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabase
 
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
-const artifactsDir = join(__dirname, "..", "artifacts");
+function resolvePackageDir(sub: string): string {
+  const candidates = [
+    process.env.PAGEINDEX_DIR ? join(process.env.PAGEINDEX_DIR, sub) : "",
+    join(__dirname, "..", sub),
+    join(process.cwd(), "..", "..", "packages", "pageindex", sub),
+    join(process.cwd(), "packages", "pageindex", sub),
+  ].filter(Boolean);
+  return candidates.find((p) => existsSync(p)) ?? join(__dirname, "..", sub);
+}
+
+const artifactsDir = resolvePackageDir("artifacts");
+const dataDir = resolvePackageDir("data");
 
 export type NodeLevel = "act" | "part" | "chapter" | "section" | "sub_section" | "clause";
 
@@ -177,8 +188,8 @@ function loadNodes() {
   // Load RTI Act Tree
   try {
     let rtiPath = join(artifactsDir, "rti-act-2005.json");
-    if (!require("fs").existsSync(rtiPath)) {
-      rtiPath = join(__dirname, "..", "data", "rti-act-2005.json");
+    if (!existsSync(rtiPath)) {
+      rtiPath = join(dataDir, "rti-act-2005.json");
     }
     const rtiData = readFileSync(rtiPath, "utf-8");
     const rtiTree = JSON.parse(rtiData);
