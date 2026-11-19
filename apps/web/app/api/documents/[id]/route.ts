@@ -84,30 +84,42 @@ export async function PATCH(
     return errorResponse('not_found', 'Document not found', 404)
   }
 
-  // ── 4. Compute next version_num ────────────────────────────────────────────
-  // .maybeSingle() returns null safely when no versions exist yet (first edit).
-  const { data: latestVersion } = await supabase
-    .from('document_versions')
-    .select('version_num')
-    .eq('document_id', documentId)
-    .order('version_num', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  // ── 4+5. Compute next version_num and insert (append-only) ─────────────────
+  // Concurrent autosaves can compute the same version_num. If the unique
+  // constraint (document_id, version_num) rejects the insert (23505), recompute
+  // and retry a few times instead of failing with a 500.
+  let newVersion: any = null
+  let insertError: any = null
 
-  const nextVersionNum = (latestVersion?.version_num ?? 0) + 1
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const { data: latestVersion } = await supabase
+      .from('document_versions')
+      .select('version_num')
+      .eq('document_id', documentId)
+      .order('version_num', { ascending: false })
+      .limit(1)
+      .maybeSingle()
 
-  // ── 5. Insert new version (append-only — never UPDATE an existing row) ─────
-  const { data: newVersion, error: insertError } = await supabase
-    .from('document_versions')
-    .insert({
-      document_id: documentId,
-      version_num: nextVersionNum,
-      body_markdown: body.body_markdown,
-      change_note: body.change_note ?? null,
-      created_by: user.id,
-    })
-    .select()
-    .single()
+    const nextVersionNum = (latestVersion?.version_num ?? 0) + 1
+
+    const result = await supabase
+      .from('document_versions')
+      .insert({
+        document_id: documentId,
+        version_num: nextVersionNum,
+        body_markdown: body.body_markdown,
+        change_note: body.change_note ?? null,
+        created_by: user.id,
+      })
+      .select()
+      .single()
+
+    newVersion = result.data
+    insertError = result.error
+
+    if (!insertError && newVersion) break
+    if (insertError?.code !== '23505') break
+  }
 
   if (insertError || !newVersion) {
     console.error('[PATCH /api/documents/:id] insert failed:', insertError)
