@@ -163,7 +163,7 @@ export function DraftEditor({
     // Only re-run when docType changes. 
     // We intentionally ignore `value` changes from upstream to avoid blowing away local editor state while editing.
     // In a real app, you might sync it carefully if the external value changed outside this component.
-  }, [docType]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [docType, value !== ""]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Extract citations dynamically from edited text to update the drawer list
   useEffect(() => {
