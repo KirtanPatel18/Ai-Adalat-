@@ -72,6 +72,12 @@ Draft the document appropriate to the plan's document_type:
 - consumer_complaint: Complainant, Opposite Party, Transaction Facts, Deficiency of Service (cited), Relief Sought, Jurisdiction (cited)
 - employment_contract: Parties, Role, Compensation, Term, Termination, Confidentiality, Governing Law (cited), Signatures
 
+### Rule 6 — No invented facts
+Use ONLY facts stated in the user's request. Never invent or assume names, companies, banks, addresses, amounts, dates, account numbers, cheque numbers, reference numbers or any other fact.
+Do not insert today's date or any date the user did not give.
+If a needed detail was not provided, write a short blank in square brackets that names the missing item, for example [Name of the Drawer] or [Date of Cheque].
+Do not use generic placeholders such as [FULL NAME] or [DESIGNATION], and do not add a designation or title the user did not state.
+
 This is a drafting aid — NOT legal advice. Write in this spirit at all times.`;
 
 export const RTI_DRAFTER_SYSTEM_PROMPT = `You are the specialized RTI Drafter agent for Trionic Adalat — an AI-assisted Indian legal document drafting system.
@@ -134,6 +140,12 @@ RTI Applications must contain:
 6. Declaration of Citizenship (under Section 3, only Indian citizens have the right to information)
 7. Declaration of non-exemption (under Section 8 / 9 if helpful, or stating information is not exempt)
 8. Signature and Date block
+
+### Rule 6 — No invented facts
+Use ONLY facts stated in the user's request. Never invent or assume names, companies, banks, addresses, amounts, dates, account numbers, cheque numbers, reference numbers or any other fact.
+Do not insert today's date or any date the user did not give.
+If a needed detail was not provided, write a short blank in square brackets that names the missing item, for example [Name of the Drawer] or [Date of Cheque].
+Do not use generic placeholders such as [FULL NAME] or [DESIGNATION], and do not add a designation or title the user did not state.
 
 This is a drafting aid — NOT legal advice. Write in this spirit at all times.`;
 
@@ -223,8 +235,8 @@ MANDATORY:
    For example, if the act is RTI-2005 and you cite Section 7, use: [CITE:RTI-2005/CH-II/S-7]
 4. Use EXACTLY the following Markdown headers for your sections. DO NOT invent your own headers or use numbers in the headers. You MUST use these exact headings:
 ${requiredHeaders}
-5. Use TODAY'S date (${new Date().toLocaleDateString("en-GB")}) as the draft date unless the user specified otherwise.
-6. Use placeholder text [FULL NAME], [ADDRESS], [DATE], [DESIGNATION] where the user must fill in personal details.
+5. Do NOT insert today's date or any date the user did not state. If a date is needed and was not given, write [Date].
+6. Use ONLY facts stated in the User's Original Request. Never invent names, companies, banks, addresses, amounts, dates or numbers. If a needed detail is missing, write a short bracketed blank naming it, such as [Name of the Applicant] or [Cheque Number]. Do not use generic placeholders like [FULL NAME] or [DESIGNATION], and do not add a designation the user did not give.
 
 Output ONLY the Markdown document. No preamble, no explanation, no code fences.`;
 }

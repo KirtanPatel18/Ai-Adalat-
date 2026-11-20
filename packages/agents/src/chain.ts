@@ -33,17 +33,12 @@ import type {
 
 import { runClassifier } from "./classifier/index.js";
 import { runPlanner } from "./planner/index.js";
-import { runDrafter, reviseDraft } from "./drafter/index.js";
+import { runDrafter } from "./drafter/index.js";
 import { runCitator } from "./citator/index.js";
 import { runReviewer } from "./reviewer/index.js";
 import { runTranslator } from "./translator/index.js";
 import { persistTrace } from "./tracing/index.js";
-import {
-  Memory,
-  MemoryConflictError,
-  createInitialState,
-  hashIntakeText,
-} from "./memory.js";
+import { Memory, MemoryConflictError, createInitialState, hashIntakeText } from "./memory.js";
 import type { MemoryStore } from "./memory.js";
 
 // ─── Input shape ──────────────────────────────────────────────────────────────
@@ -82,11 +77,7 @@ function stepStart(agent: string): AgentStreamEvent {
 }
 
 /** Emit a step.done event. */
-function stepDone(
-  agent: string,
-  durationMs: number,
-  tokens: number,
-): AgentStreamEvent {
+function stepDone(agent: string, durationMs: number, tokens: number): AgentStreamEvent {
   return {
     type: "step.done",
     agent,
@@ -110,11 +101,7 @@ function* emitCachedStep(agent: string): Generator<AgentStreamEvent> {
 /**
  * Persist a "cache hit" trace so Team F's evals can distinguish cached vs. fresh runs.
  */
-async function persistCacheTrace(
-  agent: string,
-  sessionId?: string,
-  documentId?: string,
-): Promise<void> {
+async function persistCacheTrace(agent: string, sessionId?: string, documentId?: string): Promise<void> {
   const trace = {
     agent,
     model: "cache",
@@ -153,7 +140,7 @@ async function saveWithRetry(
   memory: Memory,
   documentId: string,
   state: ConversationState,
-  merge: (fresh: ConversationState) => ConversationState,
+  merge: (fresh: ConversationState) => ConversationState
 ): Promise<ConversationState> {
   try {
     return await memory.save(documentId, state);
@@ -165,46 +152,6 @@ async function saveWithRetry(
     const merged = merge(fresh);
     return await memory.save(documentId, merged);
   }
-}
-
-// ─── Citator retry hint ──────────────────────────────────────────────────────
-
-/**
- * Build the plain-text hint fed to reviseDraft() when the Citator rejects a
- * draft. Names every rejected node ID (and the sentence it was attached to)
- * so the Drafter can replace or drop exactly those claims.
- */
-function buildCitatorRetryHint(
-  content: string,
-  rejected: { span: [number, number]; reason: string; message: string }[],
-): string {
-  const noCitation = rejected.some((r) => r.reason === "no_citation");
-  if (noCitation) {
-    return (
-      "The Citator rejected this draft because it contains no [CITE:<node_id>] markers. " +
-      "Add a [CITE:<node_id>] marker after every legal claim, using only sections of the " +
-      "applicable acts. If you cannot cite a claim, remove the claim."
-    );
-  }
-
-  const lines = rejected.map((r, i) => {
-    const id = r.message
-      .replace(/^PageIndex node not found:\s*/, "")
-      .replace(/^"|"$/g, "");
-    const sentence = content
-      .slice(r.span[0], r.span[1])
-      .replace(/\s+/g, " ")
-      .trim();
-    return `${i + 1}. Node ID "${id}" does not exist. Sentence: ${sentence}`;
-  });
-
-  return (
-    "The Citator rejected the following citations because the node IDs do not exist in the legal database:\n" +
-    lines.join("\n") +
-    "\n\nFor each one, either replace the marker with a real section of an applicable act, " +
-    "or remove the whole legal claim sentence. Do NOT invent new node IDs. " +
-    "Keep every other [CITE:...] marker exactly as it is."
-  );
 }
 
 // ─── The main orchestrator ────────────────────────────────────────────────────
@@ -230,7 +177,7 @@ function buildCitatorRetryHint(
  */
 export async function* runAgentChain(
   input: ChainInput,
-  options: ChainOptions = {},
+  options: ChainOptions = {}
 ): AsyncGenerator<AgentStreamEvent> {
   const { document_id, intake_text, target_language, session_id } = input;
 
@@ -238,12 +185,9 @@ export async function* runAgentChain(
   const intakeHash = hashIntakeText(intake_text);
 
   // ── 1. Load existing memory ─────────────────────────────────────────────
-  console.log(
-    "[AGENT_CHAIN] Attempting to load existing memory for doc:",
-    document_id,
-  );
+  console.log('[AGENT_CHAIN] Attempting to load existing memory for doc:', document_id);
   let state = await memory.load(document_id);
-  console.log("[AGENT_CHAIN] Memory loaded:", !!state);
+  console.log('[AGENT_CHAIN] Memory loaded:', !!state);
   const isResume = state !== null;
 
   if (!state) {
@@ -275,18 +219,14 @@ export async function* runAgentChain(
 
     try {
       const result = await runClassifier({
-        intakeText: intake_text, // PII: intake text sent ONLY here
+        intakeText: intake_text,  // PII: intake text sent ONLY here
         language: target_language,
         session_id,
       });
 
       classifierOutput = result.classification;
       const duration = Date.now() - startTime;
-      yield stepDone(
-        "classifier",
-        duration,
-        result.trace.tokens_in + result.trace.tokens_out,
-      );
+      yield stepDone("classifier", duration, result.trace.tokens_in + result.trace.tokens_out);
 
       // Update memory with classifier output
       state = {
@@ -299,9 +239,9 @@ export async function* runAgentChain(
         version: fresh.version + 1,
         last_classifier_output: classifierOutput,
       }));
-      console.log("[AGENT_CHAIN] Classifier memory saved");
+      console.log('[AGENT_CHAIN] Classifier memory saved');
     } catch (error) {
-      console.error("[AGENT_CHAIN] Error in classifier step:", error);
+      console.error('[AGENT_CHAIN] Error in classifier step:', error);
       const message = error instanceof Error ? error.message : String(error);
       yield stepError("classifier", message);
       return; // Abort chain
@@ -323,7 +263,7 @@ export async function* runAgentChain(
 
     try {
       const result = await runPlanner({
-        intakeText: intake_text, // PII: intake text sent ONLY here (last time)
+        intakeText: intake_text,  // PII: intake text sent ONLY here (last time)
         classifierOutput,
         language: target_language,
         session_id,
@@ -331,11 +271,7 @@ export async function* runAgentChain(
 
       plannerOutput = result.plan;
       const duration = Date.now() - startTime;
-      yield stepDone(
-        "planner",
-        duration,
-        result.trace.tokens_in + result.trace.tokens_out,
-      );
+      yield stepDone("planner", duration, result.trace.tokens_in + result.trace.tokens_out);
 
       // Update memory with planner output
       state = {
@@ -386,7 +322,7 @@ export async function* runAgentChain(
     yield stepDone(
       "drafter",
       drafterDuration,
-      drafterResult.trace.tokens_in + drafterResult.trace.tokens_out,
+      drafterResult.trace.tokens_in + drafterResult.trace.tokens_out
     );
 
     // Emit citation events for each cited node in the draft
@@ -425,48 +361,20 @@ export async function* runAgentChain(
     const citatorStartTime = Date.now();
 
     try {
-      // The draft the rest of the chain uses. Replaced if the retry below runs.
-      let activeDraft = drafterResult.draft;
-
-      let citatorResult = await runCitator({
-        draft: activeDraft,
+      const citatorResult = await runCitator({
+        draft: drafterResult.draft,
         session_id,
       });
-
-      // One retry: feed the rejected node IDs back to the Drafter, then re-validate.
-      if (!citatorResult.passed) {
-        console.warn(
-          "[AGENT_CHAIN] Citator rejected draft, retrying drafter once:",
-          citatorResult.verdict.rejected_spans.map((r) => r.message),
-        );
-        const hint = buildCitatorRetryHint(
-          activeDraft.content,
-          citatorResult.verdict.rejected_spans as {
-            span: [number, number];
-            reason: string;
-            message: string;
-          }[],
-        );
-        const revised = await reviseDraft(activeDraft, hint, session_id);
-        activeDraft = revised.draft;
-        citatorResult = await runCitator({
-          draft: activeDraft,
-          session_id,
-        });
-      }
 
       const citatorDuration = Date.now() - citatorStartTime;
       yield stepDone(
         "citator",
         citatorDuration,
-        citatorResult.trace.tokens_in + citatorResult.trace.tokens_out,
+        citatorResult.trace.tokens_in + citatorResult.trace.tokens_out
       );
 
       if (!citatorResult.passed) {
-        yield stepError(
-          "citator",
-          citatorResult.rejection_reason ?? "Citations rejected",
-        );
+        yield stepError("citator", citatorResult.rejection_reason ?? "Citations rejected");
         return; // Abort — document status becomes "failed"
       }
 
@@ -477,7 +385,7 @@ export async function* runAgentChain(
       try {
         const reviewerResult = await runReviewer({
           draft: {
-            ...activeDraft,
+            ...drafterResult.draft,
             citations: citatorResult.validatedCitations,
           },
           session_id,
@@ -488,19 +396,16 @@ export async function* runAgentChain(
         yield stepDone(
           "reviewer",
           reviewerDuration,
-          reviewerResult.trace.tokens_in + reviewerResult.trace.tokens_out,
+          reviewerResult.trace.tokens_in + reviewerResult.trace.tokens_out
         );
 
         if (!reviewerResult.approved) {
-          yield stepError(
-            "reviewer",
-            reviewerResult.trace.error_message ?? "Draft rejected by reviewer",
-          );
+          yield stepError("reviewer", reviewerResult.trace.error_message ?? "Draft rejected by reviewer");
           return; // Abort
         }
 
         // ── 8. Translator (if target_language ≠ "en") ────────────────────
-        let finalMarkdown = activeDraft.content;
+        let finalMarkdown = drafterResult.draft.content;
 
         if (target_language !== "en" && !options.skipTranslation) {
           yield stepStart("translator");
@@ -508,7 +413,7 @@ export async function* runAgentChain(
 
           try {
             const translatorResult = await runTranslator({
-              body_markdown: activeDraft.content,
+              body_markdown: drafterResult.draft.content,
               citations: citatorResult.validatedCitations,
               target_language: target_language,
               session_id,
@@ -518,14 +423,12 @@ export async function* runAgentChain(
             yield stepDone(
               "translator",
               translatorDuration,
-              translatorResult.trace.tokens_in +
-                translatorResult.trace.tokens_out,
+              translatorResult.trace.tokens_in + translatorResult.trace.tokens_out
             );
 
             finalMarkdown = translatorResult.output.translated_markdown;
           } catch (error) {
-            const message =
-              error instanceof Error ? error.message : String(error);
+            const message = error instanceof Error ? error.message : String(error);
             yield stepError("translator", message);
             return;
           }
