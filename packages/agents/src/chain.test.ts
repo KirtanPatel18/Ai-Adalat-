@@ -110,6 +110,7 @@ vi.mock("./drafter/index.js", () => ({
     draft: MOCK_DRAFT,
     trace: { ...MOCK_TRACE, agent: "drafter" },
   }),
+  reviseDraft: vi.fn(),
 }));
 
 vi.mock("./citator/index.js", () => ({
@@ -364,24 +365,51 @@ describe("runAgentChain", () => {
     expect(finalEvents.length).toBe(0);
   });
 
-  // ── Test 8: Citator rejection aborts chain ──────────────────────────────
+  // ── Test 8: Citator rejection aborts chain (after one retry) ────────────
 
   it("citator rejection aborts chain", async () => {
     const { runCitator } = await import("./citator/index.js");
-    (runCitator as any).mockResolvedValueOnce({
+    const { reviseDraft } = await import("./drafter/index.js");
+
+    const rejection = {
       passed: false,
       validatedCitations: [],
       rejection_reason: "Invalid citation: RTI-2005/S-99 does not exist",
+      verdict: {
+        approved: false,
+        rejected_spans: [
+          {
+            span: [0, 10],
+            reason: "invalid_node",
+            message: "PageIndex node not found: RTI-2005/S-99",
+          },
+        ],
+        resolved_citations: [],
+      },
       trace: { ...MOCK_TRACE, agent: "citator", status: "rejected" },
+    };
+
+    // Rejected on the first pass and again after the retry.
+    (runCitator as any)
+      .mockResolvedValueOnce(rejection)
+      .mockResolvedValueOnce(rejection);
+    (reviseDraft as any).mockResolvedValueOnce({
+      draft: MOCK_DRAFT,
+      trace: { ...MOCK_TRACE, agent: "drafter" },
     });
 
     const events = await collectEvents(
       runAgentChain(BASE_INPUT, { memoryStore: store })
     );
 
+    // Exactly one retry, then the chain gives up.
+    expect(reviseDraft).toHaveBeenCalledTimes(1);
+    expect(runCitator).toHaveBeenCalledTimes(2);
+
     const errorEvents = eventsOfType(events, "step.error");
     expect(errorEvents.length).toBe(1);
     expect(errorEvents[0].agent).toBe("citator");
+    expect(errorEvents[0].message).toBe(rejection.rejection_reason);
 
     const finalEvents = eventsOfType(events, "draft.final");
     expect(finalEvents.length).toBe(0);
