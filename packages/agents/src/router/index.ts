@@ -62,9 +62,29 @@ function withTimeout<T>(promise: Promise<T>, ms: number, errMsg: string): Promis
   });
 }
 
+/**
+ * True for temporary provider errors that are worth one quick retry
+ * (overloaded / rate limited), as opposed to permanent ones (bad key, bad request).
+ */
+function isTransientError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /\b(503|429)\b|high demand|overloaded|unavailable/i.test(msg);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // ─── LLMRouter ───────────────────────────────────────────────────────────────
 
 export class LLMRouter {
+  /** Pause before the single retry of a transient Gemini error. */
+  private readonly transientRetryDelayMs: number;
+
+  constructor(transientRetryDelayMs: number = 2000) {
+    this.transientRetryDelayMs = transientRetryDelayMs;
+  }
+
   /**
    * Resolve the StepRouteConfig for a given agent step.
    * Reads from ROUTER_CONFIG; falls back to DEFAULT_ROUTE_CONFIG.
@@ -91,7 +111,7 @@ export class LLMRouter {
     const timeoutMs = (step === "classifier" || step === "reviewer") ? 12000 : 25000;
 
     try {
-      const response = await this.executeCall(routeConfig.preferred, systemPrompt, userPrompt, timeoutMs);
+      const response = await this.executeWithTransientRetry(routeConfig.preferred, systemPrompt, userPrompt, timeoutMs);
       return {
         ...response,
         provider: routeConfig.preferred.provider,
@@ -123,6 +143,30 @@ export class LLMRouter {
       } else {
         throw primaryErr;
       }
+    }
+  }
+
+  /**
+   * Call the preferred model. If it is Gemini and fails with a transient
+   * error (503 / 429 / high demand), wait briefly and try once more.
+   */
+  private async executeWithTransientRetry(
+    config: ModelConfig,
+    systemPrompt: string,
+    userPrompt: string,
+    timeoutMs: number
+  ): Promise<Omit<LLMResponse, "provider" | "fallback_used">> {
+    try {
+      return await this.executeCall(config, systemPrompt, userPrompt, timeoutMs);
+    } catch (err: any) {
+      if (config.provider === "gemini" && isTransientError(err)) {
+        console.warn(
+          `[LLMRouter] Transient error from ${config.provider}/${config.model}, retrying once in ${this.transientRetryDelayMs}ms: ${err.message || err}`
+        );
+        await sleep(this.transientRetryDelayMs);
+        return this.executeCall(config, systemPrompt, userPrompt, timeoutMs);
+      }
+      throw err;
     }
   }
 
