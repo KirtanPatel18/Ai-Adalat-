@@ -415,7 +415,7 @@ export function DraftEditor({
         ) : (
           <div className="bg-background select-text max-w-3xl mx-auto py-4 animate-in fade-in duration-200">
             <div className="prose dark:prose-invert max-w-none">
-              {parseMarkdown(serializeSectionsToMarkdown(sections))}
+              {parseMarkdown(serializeSectionsToMarkdown(sections.filter((sec) => sec.content.trim() !== "")))}
             </div>
           </div>
         )}

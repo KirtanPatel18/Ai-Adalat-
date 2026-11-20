@@ -54,6 +54,18 @@ export interface SearchResult {
 }
 
 let allNodesMap: Map<string, PageIndexNode> = new Map();
+// Secondary index: "ACT-CODE|SECTION-NUMBER" -> node. Lets a citation such as
+// "NI-1881/CH-XVII/S-138" resolve to a tree that stores the section as "NI-1881/S-138"
+// (or "contract-act:s10"), because the chapter part of an ID is not reliable.
+let sectionIndex: Map<string, PageIndexNode> = new Map();
+
+function resolveNode(node_id: string): PageIndexNode | undefined {
+  const exact = allNodesMap.get(node_id);
+  if (exact) return exact;
+  const m = node_id.match(/^([^/]+)\/(?:.*\/)?S-(.+)$/i);
+  if (!m) return undefined;
+  return sectionIndex.get(`${m[1].toUpperCase()}|${m[2].toUpperCase()}`);
+}
 
 function loadNodes() {
   if (allNodesMap.size > 0) return;
@@ -226,12 +238,19 @@ function loadNodes() {
   } catch (err) {
     console.warn("Warning: Could not load rti-act-2005.json", err);
   }
+
+  // Build the act + section-number index used by resolveNode()
+  for (const node of allNodesMap.values()) {
+    if (node.level !== "section" || !node.number) continue;
+    const key = `${node.act_code.toUpperCase()}|${node.number.toUpperCase()}`;
+    if (!sectionIndex.has(key)) sectionIndex.set(key, node);
+  }
 }
 
 /** Retrieve the exact canonical legal text of a specific node by its ID. */
 export async function get_text(node_id: string): Promise<PageIndexNode> {
   loadNodes();
-  const node = allNodesMap.get(node_id);
+  const node = resolveNode(node_id);
   if (!node) {
     throw new NodeNotFoundError(node_id);
   }
@@ -241,7 +260,7 @@ export async function get_text(node_id: string): Promise<PageIndexNode> {
 /** Given a parent node ID, return its immediate children. */
 export async function descend(node_id: string): Promise<PageIndexNode[]> {
   loadNodes();
-  const node = allNodesMap.get(node_id);
+  const node = resolveNode(node_id);
   if (!node) {
     throw new NodeNotFoundError(node_id);
   }
@@ -258,7 +277,7 @@ export async function descend(node_id: string): Promise<PageIndexNode[]> {
 /** Given any node ID, return its full ancestor chain. */
 export async function expand_path(node_id: string): Promise<PageIndexNode[]> {
   loadNodes();
-  const node = allNodesMap.get(node_id);
+  const node = resolveNode(node_id);
   if (!node) {
     throw new NodeNotFoundError(node_id);
   }

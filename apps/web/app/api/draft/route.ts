@@ -198,7 +198,11 @@ export async function POST(req: Request) {
 
           // Format each event as a standard SSE frame
           const data = `data: ${JSON.stringify(event)}\n\n`;
-          controller.enqueue(encoder.encode(data));
+          // draft.final is sent to the client only AFTER the draft is saved (see below),
+          // otherwise the client opens the draft page before the version exists.
+          if (event.type !== "draft.final") {
+            controller.enqueue(encoder.encode(data));
+          }
 
           // Handle pipeline milestones / terminations
           if (event.type === "draft.final") {
@@ -281,8 +285,13 @@ export async function POST(req: Request) {
               throw updateError;
             }
 
-            // D. Close connection
-            controller.close();
+            // D. Tell the client the draft is saved, then close the stream
+            try {
+              controller.enqueue(encoder.encode(data));
+              controller.close();
+            } catch {
+              // Client already left (navigated away or aborted); the draft is saved anyway.
+            }
             break;
           } else if (event.type === "step.error") {
             // Pipeline failed (e.g., Citator rejection). Mark status as failed and close stream.
@@ -293,7 +302,11 @@ export async function POST(req: Request) {
               console.error("Failed to update document status to failed:", updateError);
             }
 
-            controller.close();
+            try {
+              controller.close();
+            } catch {
+              // stream already closed by the client
+            }
             break;
           }
         }
@@ -307,7 +320,11 @@ export async function POST(req: Request) {
           ts: new Date().toISOString()
         };
         const data = `data: ${JSON.stringify(errorEvent)}\n\n`;
-        controller.enqueue(encoder.encode(data));
+        try {
+          controller.enqueue(encoder.encode(data));
+        } catch {
+          // stream already closed by the client
+        }
 
         // Mark document as failed in the database
         const { error: updateError } = await supabase.from("documents")
@@ -316,8 +333,12 @@ export async function POST(req: Request) {
         if (updateError) {
           console.error("Failed to update document status to failed in catch block:", updateError);
         }
-          
-        controller.close();
+
+        try {
+          controller.close();
+        } catch {
+          // stream already closed by the client
+        }
       }
     },
     cancel() {
