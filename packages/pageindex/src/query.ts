@@ -3,6 +3,7 @@ import { join } from "path";
 import { NodeNotFoundError, InvalidQueryError } from "./errors.js";
 import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
+import { loadFlatTrees, canonicalActCode } from "./flatTrees.js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -64,7 +65,7 @@ function resolveNode(node_id: string): PageIndexNode | undefined {
   if (exact) return exact;
   const m = node_id.match(/^([^/]+)\/(?:.*\/)?S-(.+)$/i);
   if (!m) return undefined;
-  return sectionIndex.get(`${m[1].toUpperCase()}|${m[2].toUpperCase()}`);
+  return sectionIndex.get(`${canonicalActCode(m[1])}|${m[2].toUpperCase()}`);
 }
 
 function loadNodes() {
@@ -167,7 +168,7 @@ function loadNodes() {
     const flattenNiNode = (node: any, parentId: string | null = null, path: string[] = []) => {
       const currentPath = [...path, node.node_id];
       const childrenIds = node.children ? node.children.map((c: any) => c.node_id) : [];
-      
+
       const normalizedNode: PageIndexNode = {
         node_id: node.node_id,
         snapshot_id: node.snapshot_id || "2026-06-11",
@@ -182,9 +183,9 @@ function loadNodes() {
         path: currentPath,
         source_url: "https://indiacode.nic.in"
       };
-      
+
       allNodesMap.set(normalizedNode.node_id, normalizedNode);
-      
+
       if (node.children) {
         for (const child of node.children) {
           flattenNiNode(child, node.node_id, currentPath);
@@ -209,7 +210,7 @@ function loadNodes() {
     const flattenRtiNode = (node: any, parentId: string | null = null, path: string[] = []) => {
       const currentPath = [...path, node.node_id];
       const childrenIds = node.children ? node.children.map((c: any) => c.node_id) : [];
-      
+
       const normalizedNode: PageIndexNode = {
         node_id: node.node_id,
         snapshot_id: node.snapshot_id || "2026-05-28",
@@ -224,9 +225,9 @@ function loadNodes() {
         path: currentPath,
         source_url: "https://indiacode.nic.in"
       };
-      
+
       allNodesMap.set(normalizedNode.node_id, normalizedNode);
-      
+
       if (node.children) {
         for (const child of node.children) {
           flattenRtiNode(child, node.node_id, currentPath);
@@ -238,6 +239,9 @@ function loadNodes() {
   } catch (err) {
     console.warn("Warning: Could not load rti-act-2005.json", err);
   }
+
+  // Load flat-array trees (IT Act, Consumer Protection Act)
+  loadFlatTrees(allNodesMap, artifactsDir);
 
   // Build the act + section-number index used by resolveNode()
   for (const node of allNodesMap.values()) {

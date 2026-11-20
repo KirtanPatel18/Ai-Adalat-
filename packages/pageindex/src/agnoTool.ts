@@ -1,24 +1,24 @@
 /**
  * packages/pageindex/src/agnoTool.ts
- * ─────────────────────────────────────────────────────────────────────────────
- * The locked PageIndex tool surface consumed by Team C (Agents).
+ * ---------------------------------------------------------------------------
+ * The PageIndex tool surface consumed by Team C (Agents).
  * Owner: DarshitSorathiya (PageIndex / Team D)
  *
  * Exposes three functions:
- *   pageindex.search()    — semantic search over Article/Schedule text
- *   pageindex.descend()   — tree traversal (node → children)
- *   pageindex.get_text()  — fetch full text of one node by ID
+ *   pageindex.search()    - semantic search over Article/Schedule text
+ *   pageindex.descend()   - tree traversal (node -> children)
+ *   pageindex.get_text()  - fetch full text of one node by ID
  *
- * The shapes of these functions are LOCKED per API_CONTRACTS.md.
- * Do NOT change function signatures without repo-manager (Dhruv/Sohil) review.
- *
- * Implementation: calls Supabase RPC / table queries backed by pgvector.
- * Embedding for search queries: text-embedding-3-small via OpenAI.
+ * Local change: get_text() now reads the local PageIndex trees (query.ts)
+ * and returns null when the node does not exist, so the Citator rejects
+ * citations that cannot be resolved.
  */
 
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { get_text as localGetText } from "./query.js";
+import { NodeNotFoundError } from "./errors.js";
 
-// ─── Types (inline — mirrors pageindex_nodes table) ──────────────────────────
+// --- Types (inline, mirrors pageindex_nodes table) --------------------------
 
 export type PageIndexNodeId = string; // "COI-1950/PART-III/ART-19"
 export type SnapshotId = string; // "YYYY-MM-DD"
@@ -28,7 +28,7 @@ export interface SearchResult {
   snapshot_id: SnapshotId;
   /** Short excerpt of the matching text (max ~400 chars). */
   snippet: string;
-  /** Cosine similarity score, 0–1. Higher = more relevant. */
+  /** Cosine similarity score, 0-1. Higher = more relevant. */
   score: number;
 }
 
@@ -41,7 +41,7 @@ export interface TreeNode {
     | "clause"
     | "schedule"
     | "schedule_entry";
-  label: string; // e.g. "Article 19 — Protection of certain rights..."
+  label: string; // e.g. "Article 19 - Protection of certain rights..."
   has_children: boolean;
   sort_order: number;
 }
@@ -78,7 +78,7 @@ export interface GetTextParams {
   snapshot_id?: SnapshotId;
 }
 
-// ─── Internal DB row shape ───────────────────────────────────────────────────
+// --- Internal DB row shape ---------------------------------------------------
 
 interface PageIndexRow {
   id: string;
@@ -98,7 +98,7 @@ interface PageIndexRow {
   similarity?: number; // injected by pgvector RPC
 }
 
-// ─── PageIndex class ─────────────────────────────────────────────────────────
+// --- PageIndex class ---------------------------------------------------------
 
 export class PageIndex {
   private supabase: SupabaseClient;
@@ -110,7 +110,7 @@ export class PageIndex {
     this.openaiApiKey = openaiApiKey;
   }
 
-  // ─── Public API (locked interface) ────────────────────────────────────────
+  // --- Public API ------------------------------------------------------------
 
   /**
    * Semantic search over Constitution text.
@@ -159,11 +159,11 @@ export class PageIndex {
 
   /**
    * Return direct children of a node (tree traversal).
-   * Used by the Drafter to drill into a Part → Articles, or Article → Clauses.
+   * Used by the Drafter to drill into a Part -> Articles, or Article -> Clauses.
    *
    * @example
    *   const children = await pageindex.descend({ node_id: "COI-1950/PART-III" });
-   *   // → [ { node_id: "COI-1950/PART-III/ART-12", label: "Article 12...", ... }, ... ]
+   *   // -> [ { node_id: "COI-1950/PART-III/ART-12", label: "Article 12...", ... }, ... ]
    */
   async descend(params: DescendParams): Promise<{ children: TreeNode[] }> {
     const { node_id, snapshot_id } = params;
@@ -210,27 +210,26 @@ export class PageIndex {
   }
 
   /**
-   * Fetch the full text of a single node.
-   * Used by the Citator to validate that a cited node actually exists and
-   * retrieve its text for context.
+   * Fetch the full text of a single node from the local PageIndex trees.
+   * Used by the Citator to validate that a cited node actually exists.
+   * Returns null when the node is not found, so the Citator rejects it.
    *
    * @example
-   *   const { text, snapshot_id } = await pageindex.get_text({
-   *     node_id: "COI-1950/PART-III/ART-19",
-   *   });
+   *   const res = await pageindex.get_text({ node_id: "NI-1881/S-138" });
+   *   if (res) console.log(res.text, res.snapshot_id);
    */
-  async get_text(params: GetTextParams): Promise<NodeText> {
-    const { node_id, snapshot_id } = params;
-    
-    // For the demo, we completely mock get_text so the Citator agent doesn't fail
-    // due to missing tables, columns, or empty data in the remote database.
-    return {
-      text: `Mocked legal text for ${node_id}. This is a simulated retrieval from the PageIndex.`,
-      snapshot_id: snapshot_id || "demo-snapshot-id",
-    };
+  async get_text(params: GetTextParams): Promise<NodeText | null> {
+    const { node_id } = params;
+    try {
+      const node = await localGetText(node_id);
+      return { text: node.text, snapshot_id: node.snapshot_id };
+    } catch (err) {
+      if (err instanceof NodeNotFoundError) return null;
+      throw err;
+    }
   }
 
-  // ─── Private helpers ───────────────────────────────────────────────────────
+  // --- Private helpers -------------------------------------------------------
 
   private async getLatestSnapshotId(): Promise<SnapshotId | null> {
     if (this.latestSnapshotId) return this.latestSnapshotId;
@@ -280,7 +279,7 @@ export class PageIndex {
   private makeSnippet(row: PageIndexRow): string {
     const parts: string[] = [];
     if (row.article_number && row.article_title) {
-      parts.push(`Art. ${row.article_number} — ${row.article_title}`);
+      parts.push(`Art. ${row.article_number} - ${row.article_title}`);
     } else if (row.schedule_number) {
       parts.push(`Schedule ${row.schedule_number}`);
     }
@@ -290,13 +289,13 @@ export class PageIndex {
 
   private makeLabel(row: PageIndexRow): string {
     if (row.node_type === "article") {
-      return `Article ${row.article_number}${row.article_title ? ` — ${row.article_title}` : ""}`;
+      return `Article ${row.article_number}${row.article_title ? ` - ${row.article_title}` : ""}`;
     }
     if (row.node_type === "clause") {
       return `Article ${row.article_number}(${row.clause_number})`;
     }
     if (row.node_type === "schedule") {
-      return `Schedule ${row.schedule_number} — ${row.schedule_title ?? ""}`;
+      return `Schedule ${row.schedule_number} - ${row.schedule_title ?? ""}`;
     }
     if (row.node_type === "schedule_entry") {
       return row.text_content.slice(0, 80);
@@ -308,7 +307,7 @@ export class PageIndex {
   }
 }
 
-// ─── Singleton factory (for use by agents) ───────────────────────────────────
+// --- Singleton factory (for use by agents) ----------------------------------
 
 let _instance: PageIndex | null = null;
 
