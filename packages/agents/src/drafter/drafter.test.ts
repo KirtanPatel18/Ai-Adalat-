@@ -48,8 +48,8 @@ vi.mock("../tracing/index.js", () => ({
   persistTrace: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock("@trionic/pageindex", () => ({
-  pageindex: {
+vi.mock("@trionic/pageindex", () => {
+  const pageindex = {
     search: vi.fn().mockResolvedValue([
       { node_id: "CPA-2019/CH-I/S-2", snippet: "Mock section 2 text", score: 0.95 },
       { node_id: "CPA-2019/CH-IV/S-39", snippet: "Mock section 39 text", score: 0.88 },
@@ -64,8 +64,12 @@ vi.mock("@trionic/pageindex", () => ({
         snapshot_id: "2024-12-01",
       };
     }),
-  },
-}));
+  };
+  return {
+    pageindex,
+    getPageIndex: () => pageindex,
+  };
+});
 
 // ─── Imports (after mocks) ────────────────────────────────────────────────────
 
