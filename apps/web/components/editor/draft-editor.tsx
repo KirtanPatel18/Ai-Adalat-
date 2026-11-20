@@ -277,10 +277,17 @@ export function DraftEditor({
   };
 
   const parseMarkdown = (markdownText: string) => {
-    const paragraphs = markdownText.split(/\n\n+/);
+    // Make every standalone "---" line its own block, even without blank lines around it.
+    const normalized = markdownText.replace(/^[ \t]*-{3,}[ \t]*$/gm, "\n\n---\n\n");
+    const paragraphs = normalized.split(/\n\n+/);
     return paragraphs.map((para, pIdx) => {
       let trimmed = para.trim();
       if (!trimmed) return null;
+
+      // Horizontal rule
+      if (/^-{3,}$/.test(trimmed)) {
+        return <hr key={pIdx} className="my-4 border-border" />;
+      }
 
       // Check for headers
       if (trimmed.startsWith("# ")) {
@@ -307,9 +314,24 @@ export function DraftEditor({
         );
       }
 
+      // Numbered lists
+      if (/^\d+[.)]\s/.test(trimmed)) {
+        const items = trimmed.split(/\n(?=\d+[.)]\s)/);
+        const start = parseInt(trimmed, 10) || 1;
+        return (
+          <ol key={pIdx} start={start} className="list-decimal pl-6 space-y-2 mb-4 break-words">
+            {items.map((item, iIdx) => (
+              <li key={iIdx} className="text-foreground leading-relaxed break-words whitespace-pre-line">
+                {renderInline(item.replace(/^\d+[.)]\s+/, ""))}
+              </li>
+            ))}
+          </ol>
+        );
+      }
+
       // Regular paragraph
       return (
-        <p key={pIdx} className="text-foreground leading-relaxed mb-4 text-justify font-serif text-[15px] break-words">
+        <p key={pIdx} className="text-foreground leading-relaxed mb-4 text-justify font-serif text-[15px] break-words whitespace-pre-line">
           {renderInline(trimmed)}
         </p>
       );
